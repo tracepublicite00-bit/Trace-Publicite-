@@ -160,6 +160,20 @@
 </style>
 </head>
 <body>
+<script>
+window.onerror = function(msg, url, line, col, err) {
+  var box = document.createElement('div');
+  box.style = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:#fff;padding:16px;font-size:13px;z-index:999999;white-space:pre-wrap;word-break:break-word;';
+  box.textContent = 'ERE: ' + msg + ' (liy ' + line + ', kolòn ' + col + ')';
+  document.body.appendChild(box);
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var box = document.createElement('div');
+  box.style = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:#fff;padding:16px;font-size:13px;z-index:999999;white-space:pre-wrap;word-break:break-word;';
+  box.textContent = 'ERE (promise): ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
+  document.body.appendChild(box);
+});
+</script>
 <div class="app">
 
   <header class="topbar">
@@ -997,11 +1011,11 @@ function renderAdmin(){
   const sel = document.getElementById('newCourseCompany');
   if(sel) sel.innerHTML = companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 
-  const pending = teachers.filter(t=>t.status==='atant');
+  const pendingTeachers = teachers.filter(t=>t.status==='atant');
   const reqBox = document.getElementById('adminTeacherRequests');
   if(reqBox){
-    reqBox.innerHTML = pending.length
-      ? pending.map(t=>`
+    reqBox.innerHTML = pendingTeachers.length
+      ? pendingTeachers.map(t=>`
         <div class="kv">
           <span class="k">${t.non} — ${t.domenn}</span>
           <button class="btn btn-primary" style="width:auto;padding:6px 12px;font-size:12px;" onclick="approveTeacher('${t.id}')">Apwouve</button>
