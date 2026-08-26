@@ -417,6 +417,11 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="card">
       <div class="section-title">Antrepriz yo</div>
       <div id="adminCompanies"></div>
+      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+        <label>Non antrepriz la</label>
+        <input id="newCompanyName" placeholder="Ex: Antrepriz XYZ">
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="createCompany()">Kreye antrepriz</button>
+      </div>
     </div>
 
     <div class="card">
@@ -1104,6 +1109,23 @@ async function toggleCompanyApproval(id){
   }
   await updateDoc(doc(db,'companies',id), updateData);
 }
+window.toggleCompanyApproval = toggleCompanyApproval;
+
+async function createCompany(){
+  const nameEl = document.getElementById('newCompanyName');
+  const name = nameEl.value.trim();
+  if(!name){ toast('Antre non antrepriz la'); return; }
+  await addDoc(collection(db,'companies'), {
+    name,
+    approved: true,
+    trialStart: new Date().toISOString(),
+    trialDays: settings.trialDays,
+    createdAt: serverTimestamp()
+  });
+  nameEl.value = '';
+  toast('Antrepriz kreye');
+}
+window.createCompany = createCompany;
 
 async function toggleUserBlock(id, currentlyBlocked){
   await updateDoc(doc(db,'users',id), { blocked: !currentlyBlocked });
