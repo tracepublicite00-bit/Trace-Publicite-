@@ -485,7 +485,7 @@ window.addEventListener('unhandledrejection', function(e) {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import {
   getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc,
-  updateDoc, query, where, onSnapshot, serverTimestamp, increment
+  updateDoc, deleteDoc, query, where, onSnapshot, serverTimestamp, increment
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1000,7 +1000,10 @@ function renderAdmin(){
     return `
     <div class="kv">
       <span class="k">${c.name} ${trialInfo}</span>
-      <span class="v status-pill ${c.approved?'ok':'blocked'}" style="cursor:pointer;" onclick="toggleCompanyApproval('${c.id}')">${c.approved?'Aktif':'Aktive'}</span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span class="v status-pill ${c.approved?'ok':'blocked'}" style="cursor:pointer;" onclick="toggleCompanyApproval('${c.id}')">${c.approved?'Aktif':'Aktive'}</span>
+        <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCompany('${c.id}')">Efase</button>
+      </span>
     </div>`;
   }).join('');
 
@@ -1126,6 +1129,12 @@ async function createCompany(){
   toast('Antrepriz kreye');
 }
 window.createCompany = createCompany;
+
+async function deleteCompany(id){
+  await deleteDoc(doc(db,'companies',id));
+  toast('Antrepriz efase');
+}
+window.deleteCompany = deleteCompany;
 
 async function toggleUserBlock(id, currentlyBlocked){
   await updateDoc(doc(db,'users',id), { blocked: !currentlyBlocked });
