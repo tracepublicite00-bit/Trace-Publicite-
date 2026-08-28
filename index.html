@@ -448,13 +448,21 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Tit etap la</label>
       <input id="stepTitle" placeholder="Ex: Etap 1 — Entwodiksyon">
       <label>Videyo (chwazi nan galri telefòn ou)</label>
-      <input id="stepVideoFile" type="file" accept="video/*">
+      <input id="stepVideoFile" type="file" accept="video/*" onchange="previewStepFile('stepVideoFile','stepVideoPreview','video')">
+      <div id="stepVideoPreview"></div>
       <label>OSWA lyen YouTube</label>
       <input id="stepYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
       <label>Imaj (opsyonèl)</label>
-      <input id="stepImageFile" type="file" accept="image/*">
+      <input id="stepImageFile" type="file" accept="image/*" onchange="previewStepFile('stepImageFile','stepImagePreview','image')">
+      <div id="stepImagePreview"></div>
       <label>Nòt vwa (opsyonèl)</label>
-      <input id="stepAudioFile" type="file" accept="audio/*" capture="microphone">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="recordBtn" style="width:auto;padding:8px 16px;" onclick="toggleRecording()">🎙️ Anrejistre</button>
+        <button type="button" class="btn btn-danger" style="width:auto;padding:8px 16px;" onclick="deleteRecording()">🗑️ Efase</button>
+        <span class="hint">oswa</span>
+        <input id="stepAudioFile" type="file" accept="audio/*" style="flex:1;min-width:180px;" onchange="previewStepFile('stepAudioFile','stepAudioPreview','audio')">
+      </div>
+      <div id="stepAudioPreview"></div>
       <button class="btn btn-primary" style="margin-top:14px;" onclick="addCourseStep()">Ajoute etap la</button>
       <p id="stepUploadStatus" class="hint" style="margin-top:8px;"></p>
       <div id="stepList" style="margin-top:14px;"></div>
@@ -1296,6 +1304,57 @@ function renderStepList(){
 }
 document.addEventListener('change', (e)=>{ if(e.target.id==='stepCourseSelect') renderStepList(); });
 
+function previewStepFile(inputId, previewId, kind){
+  const file = document.getElementById(inputId).files[0];
+  const box = document.getElementById(previewId);
+  if(!file){ box.innerHTML=''; return; }
+  const url = URL.createObjectURL(file);
+  if(kind==='video'){
+    box.innerHTML = `<video src="${url}" controls style="width:100%;border-radius:10px;margin-top:8px;max-height:240px;"></video>`;
+  } else if(kind==='image'){
+    box.innerHTML = `<img src="${url}" style="width:100%;border-radius:10px;margin-top:8px;max-height:240px;object-fit:contain;">`;
+  } else if(kind==='audio'){
+    box.innerHTML = `<audio src="${url}" controls style="width:100%;margin-top:8px;"></audio>`;
+  }
+}
+window.previewStepFile = previewStepFile;
+
+/* ---- Anrejistreman vwa dirèkteman nan aplikasyon an ---- */
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+async function toggleRecording(){
+  const btn = document.getElementById('recordBtn');
+  if(mediaRecorder && mediaRecorder.state === 'recording'){
+    mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data.size>0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      recordedBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+      const url = URL.createObjectURL(recordedBlob);
+      document.getElementById('stepAudioPreview').innerHTML = `<audio src="${url}" controls style="width:100%;margin-top:8px;"></audio>`;
+      btn.textContent = '🎙️ Anrejistre';
+      btn.classList.remove('btn-danger');
+      btn.classList.add('btn-primary');
+      stream.getTracks().forEach(t=>t.stop());
+    };
+    mediaRecorder.start();
+    btn.textContent = '⏹️ Sispann';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-danger');
+    document.getElementById('stepAudioFile').value = '';
+  } catch(err){
+    console.error(err);
+    toast('Pa gen aksè a mikwofòn nan — verifye pèmisyon telefòn ou');
+  }
+}
+window.toggleRecording = toggleRecording;
+
 async function addCourseStep(){
   const courseId = document.getElementById('stepCourseSelect').value;
   const title = document.getElementById('stepTitle').value.trim();
@@ -1312,6 +1371,7 @@ async function addCourseStep(){
   if(videoFile){ statusEl.textContent='Ap telechaje videyo...'; const url = await uploadCourseFile(videoFile, 'videos'); if(url) step.videoUrl = url; }
   if(imageFile){ statusEl.textContent='Ap telechaje imaj...'; const url = await uploadCourseFile(imageFile, 'images'); if(url) step.imageUrl = url; }
   if(audioFile){ statusEl.textContent='Ap telechaje nòt vwa...'; const url = await uploadCourseFile(audioFile, 'audio'); if(url) step.audioUrl = url; }
+  else if(recordedBlob){ statusEl.textContent='Ap telechaje nòt vwa...'; const recFile = new File([recordedBlob], 'nòt-vwa.webm', { type:'audio/webm' }); const url = await uploadCourseFile(recFile, 'audio'); if(url) step.audioUrl = url; }
 
   const k = courses.find(c=>c.id===courseId);
   const videos = [...(k?.videos||[]), step];
@@ -1323,9 +1383,25 @@ async function addCourseStep(){
   document.getElementById('stepImageFile').value = '';
   document.getElementById('stepAudioFile').value = '';
   document.getElementById('stepYoutubeUrl').value = '';
+  document.getElementById('stepVideoPreview').innerHTML = '';
+  document.getElementById('stepImagePreview').innerHTML = '';
+  document.getElementById('stepAudioPreview').innerHTML = '';
+  recordedBlob = null;
   setTimeout(()=>{ statusEl.textContent=''; }, 3000);
 }
 window.addCourseStep = addCourseStep;
+
+function deleteRecording(){
+  recordedBlob = null;
+  document.getElementById('stepAudioFile').value = '';
+  document.getElementById('stepAudioPreview').innerHTML = '';
+  const btn = document.getElementById('recordBtn');
+  btn.textContent = '🎙️ Anrejistre';
+  btn.classList.remove('btn-danger');
+  btn.classList.add('btn-primary');
+  toast('Nòt vwa efase');
+}
+window.deleteRecording = deleteRecording;
 
 async function deleteCourseStep(courseId, index){
   const k = courses.find(c=>c.id===courseId);
