@@ -12,6 +12,7 @@
 <meta property="og:description" content="Platfòm kou marketing an liy">
 <meta property="og:image" content="https://i.postimg.cc/3Rf9Ccwv/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bleu:#1B3A6B;
@@ -485,25 +486,57 @@ window.addEventListener('unhandledrejection', function(e) {
   <div class="toast" id="toast"></div>
 </div>
 
-<script type="module">
-// ===================== FIREBASE SETUP =====================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import {
-  getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc,
-  updateDoc, deleteDoc, query, where, onSnapshot, serverTimestamp, increment
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+<script>
+// ===================== SUPABASE SETUP =====================
+const SUPABASE_URL = "https://pifxgwbxntkcprbxezyd.supabase.co";
+const SUPABASE_KEY = "sb_publishable_pVFNe-WZUznWuPbNvq1Mxw_B2mIGUgt";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCF5vk4Wwgac-VZf9Ga9KZ5LJHsnV9Bftc",
-  authDomain: "trace-publicite.firebaseapp.com",
-  projectId: "trace-publicite",
-  storageBucket: "trace-publicite.firebasestorage.app",
-  messagingSenderId: "282465842706",
-  appId: "1:282465842706:web:a272db631a1277e6564acb"
-};
+/* ---- Konvèsyon non chan: snake_case (Supabase) <-> camelCase (kòd la) ---- */
+function toCamelKey(s){ return s.replace(/_([a-z0-9])/g, (_,c)=>c.toUpperCase()); }
+function toSnakeKey(s){ return s.replace(/[A-Z]/g, c=>'_'+c.toLowerCase()); }
+function rowToCamel(row){
+  if(!row) return row;
+  const out = {};
+  for(const k in row) out[toCamelKey(k)] = row[k];
+  return out;
+}
+function objToSnake(obj){
+  const out = {};
+  for(const k in obj) out[toSnakeKey(k)] = obj[k];
+  return out;
+}
 
-const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
+/* ---- Ekivalan senp pou operasyon Firestore ---- */
+async function fetchAll(table){
+  const { data, error } = await db.from(table).select('*').order('created_at', { ascending:false });
+  if(error){ console.error('Erè Supabase ('+table+'):', error); return []; }
+  return data.map(rowToCamel);
+}
+async function fetchOne(table, id){
+  const { data, error } = await db.from(table).select('*').eq('id', id).single();
+  if(error){ console.error('Erè Supabase ('+table+'):', error); return null; }
+  return rowToCamel(data);
+}
+async function insertRow(table, obj){
+  const { data, error } = await db.from(table).insert(objToSnake(obj)).select().single();
+  if(error){ console.error('Erè ekri ('+table+'):', error); throw error; }
+  return rowToCamel(data);
+}
+async function updateRow(table, id, obj){
+  const { error } = await db.from(table).update(objToSnake(obj)).eq('id', id);
+  if(error) console.error('Erè modifye ('+table+'):', error);
+}
+async function deleteRow(table, id){
+  const { error } = await db.from(table).delete().eq('id', id);
+  if(error) console.error('Erè efase ('+table+'):', error);
+}
+async function incrementField(table, id, field, delta=1){
+  const { data } = await db.from(table).select(toSnakeKey(field)).eq('id', id).single();
+  const cur = data ? (data[toSnakeKey(field)]||0) : 0;
+  await updateRow(table, id, { [field]: cur + delta });
+}
+function nowIso(){ return new Date().toISOString(); }
 
 /* ===================== ETA LOKAL (kach) ===================== */
 let companies = [];
@@ -525,74 +558,84 @@ const benefInfo = {
 
 /* ===================== SEMANS DONE DEPA (yon sèl fwa) ===================== */
 async function seedIfEmpty(){
-  const snap = await getDocs(collection(db,'companies'));
-  if (snap.empty){
-    const seedCompanies = [
-      {id:'c1', name:'Antrepriz Boss Marketing', coursesCount:2, students:210, approved:true},
-      {id:'c2', name:'Digital Ayiti Academy', coursesCount:3, students:95, approved:true},
-      {id:'c3', name:'Kreyativite Pro', coursesCount:1, students:40, approved:false}
-    ];
-    for (const c of seedCompanies){ await setDoc(doc(db,'companies',c.id), c); }
+  const existing = await fetchAll('companies');
+  if (existing.length === 0){
+    const c1 = await insertRow('companies', {name:'Antrepriz Boss Marketing', coursesCount:2, students:210, approved:true});
+    await insertRow('companies', {name:'Digital Ayiti Academy', coursesCount:3, students:95, approved:true});
+    await insertRow('companies', {name:'Kreyativite Pro', coursesCount:1, students:40, approved:false});
 
-    const seedCourses = [
-      {id:'k1', companyId:'c1', title:'Baz Marketing Rezo Sosyal', price:1000, videos:[
-        {id:'v1', title:'Etap 1 — Entwodiksyon', locked:true},
-        {id:'v2', title:'Etap 2 — Kreye Kontni', locked:true},
-        {id:'v3', title:'Etap 3 — Piblisite Payé', locked:true}
-      ]},
-      {id:'k2', companyId:'c1', title:'Vann sou Facebook & Instagram', price:1500, videos:[
-        {id:'v4', title:'Etap 1 — Konfigirasyon Paj', locked:true}
-      ]},
-      {id:'k3', companyId:'c2', title:'Email Marketing pou Kòmanse', price:800, videos:[
-        {id:'v5', title:'Etap 1 — Chwazi Zouti', locked:true}
-      ]}
-    ];
-    for (const k of seedCourses){ await setDoc(doc(db,'courses',k.id), k); }
-
-    await setDoc(doc(db,'settings','main'), settings);
+    await insertRow('courses', {companyId:c1.id, title:'Baz Marketing Rezo Sosyal', price:1000, videos:[
+      {id:'v1', title:'Etap 1 — Entwodiksyon', locked:true},
+      {id:'v2', title:'Etap 2 — Kreye Kontni', locked:true},
+      {id:'v3', title:'Etap 3 — Piblisite Payé', locked:true}
+    ]});
+    await insertRow('courses', {companyId:c1.id, title:'Vann sou Facebook & Instagram', price:1500, videos:[
+      {id:'v4', title:'Etap 1 — Konfigirasyon Paj', locked:true}
+    ]});
   }
 }
 
 /* ===================== KONEKSYON AN TAN REYÈL ===================== */
+async function refreshCompanies(){
+  companies = await fetchAll('companies');
+  if(document.getElementById('akey').classList.contains('active')) renderAkey();
+  if(document.getElementById('achat').classList.contains('active')) renderCompanyListFull();
+  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
+async function refreshCourses(){
+  courses = await fetchAll('courses');
+  if(document.getElementById('akey').classList.contains('active')) renderAkey();
+  if(document.getElementById('touFormasyon').classList.contains('active')) renderCourseListFull();
+  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
+async function refreshUsers(){
+  allUsers = await fetchAll('users');
+  if(document.getElementById('akey').classList.contains('active')) renderAkey();
+  if(document.getElementById('weTout').classList.contains('active')) renderAllUsers();
+  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
+async function refreshDeposits(){
+  deposits = await fetchAll('deposits');
+  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
+async function refreshTeachers(){
+  teachers = await fetchAll('teachers');
+  if(document.getElementById('lisPwofese').classList.contains('active')) renderTeacherList();
+  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
+async function refreshSettings(){
+  const s = await fetchOne('settings','main');
+  if(s) settings = s;
+  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
+async function refreshAccessRequests(){
+  accessRequests = await fetchAll('access_requests');
+  if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderAccessAndVisits(); }
+}
+async function refreshVisits(){
+  const all = await fetchAll('visits');
+  visits = all.slice(0,20);
+  if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderAccessAndVisits(); }
+}
+
 function listenAll(){
-  onSnapshot(collection(db,'companies'), snap=>{
-    companies = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    if(document.getElementById('akey').classList.contains('active')) renderAkey();
-    if(document.getElementById('achat').classList.contains('active')) renderCompanyListFull();
-    if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+  const tables = [
+    ['companies', refreshCompanies],
+    ['courses', refreshCourses],
+    ['users', refreshUsers],
+    ['deposits', refreshDeposits],
+    ['teachers', refreshTeachers],
+    ['settings', refreshSettings],
+    ['access_requests', refreshAccessRequests],
+    ['visits', refreshVisits]
+  ];
+  tables.forEach(([table, refreshFn])=>{
+    db.channel('public:'+table)
+      .on('postgres_changes', {event:'*', schema:'public', table}, ()=>{ refreshFn(); })
+      .subscribe();
   });
-  onSnapshot(collection(db,'courses'), snap=>{
-    courses = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    if(document.getElementById('akey').classList.contains('active')) renderAkey();
-    if(document.getElementById('touFormasyon').classList.contains('active')) renderCourseListFull();
-  });
-  onSnapshot(collection(db,'users'), snap=>{
-    allUsers = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    if(document.getElementById('akey').classList.contains('active')) renderAkey();
-    if(document.getElementById('weTout').classList.contains('active')) renderAllUsers();
-    if(document.getElementById('admin').classList.contains('active')) renderAdmin();
-  });
-  onSnapshot(collection(db,'deposits'), snap=>{
-    deposits = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    if(document.getElementById('admin').classList.contains('active')) renderAdmin();
-  });
-  onSnapshot(collection(db,'teachers'), snap=>{
-    teachers = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    if(document.getElementById('lisPwofese').classList.contains('active')) renderTeacherList();
-    if(document.getElementById('admin').classList.contains('active')) renderAdmin();
-  });
-  onSnapshot(doc(db,'settings','main'), d=>{
-    if(d.exists()) settings = d.data();
-    if(document.getElementById('admin').classList.contains('active')) renderAdmin();
-  });
-  onSnapshot(collection(db,'accessRequests'), snap=>{
-    accessRequests = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderAccessAndVisits(); }
-  });
-  onSnapshot(collection(db,'visits'), snap=>{
-    visits = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)).slice(0,20);
-    if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderAccessAndVisits(); }
-  });
+  // premye chajman done yo
+  return Promise.all(tables.map(([,fn])=>fn()));
 }
 
 /* ===================== NAVIGASYON ===================== */
@@ -641,7 +684,7 @@ async function togglePublicProfile(){
   el.classList.toggle('on');
   const piblik = el.classList.contains('on');
   if(currentUser){
-    await updateDoc(doc(db,'users',currentUser.id), { piblik });
+    await updateRow('users', currentUser.id, { piblik });
     toast(piblik ? 'Pwofil ou piblik kounye a' : 'Pwofil ou prive kounye a');
   }
 }
@@ -659,7 +702,7 @@ async function deleteAccount(){
   if(!currentUser){ toast('Pa gen kont pou efase'); return; }
   const sur = confirm('Ou sèten ou vle efase kont ou nèt? Aksyon sa a pa ka anile.');
   if(!sur) return;
-  await updateDoc(doc(db,'users',currentUser.id), { blocked:true, deleted:true });
+  await updateRow('users', currentUser.id, { blocked:true, deleted:true });
   localStorage.removeItem('tp_current_user');
   currentUser = null;
   toast('Kont ou efase');
@@ -733,8 +776,8 @@ function openCompany(id){
 
 async function requestCompanyAccess(companyId){
   if(!currentUser){ toast('Ou dwe enskri anvan'); return; }
-  await addDoc(collection(db,'accessRequests'), {
-    companyId, userId: currentUser.id, userName: currentUser.non, status:'atant', createdAt: serverTimestamp()
+  await insertRow('access_requests', {
+    companyId, userId: currentUser.id, userName: currentUser.non, status:'atant'
   });
   toast('Demand aksè voyé — n ap tann apwobasyon');
 }
@@ -780,13 +823,13 @@ function checkAccessCode(courseId){
 window.checkAccessCode = checkAccessCode;
 
 async function react(courseId, field){
-  await updateDoc(doc(db,'courses',courseId), { [field]: increment(1) });
+  await incrementField('courses', courseId, field, 1);
 }
 window.react = react;
 
 async function openCourse(id){
   state.currentCourse = id;
-  await updateDoc(doc(db,'courses',id), { views: increment(1) });
+  await incrementField('courses', id, 'views', 1);
   const k = courses.find(x=>x.id===id);
   document.getElementById('kouTitre').textContent = k.title;
   document.getElementById('videoArea').innerHTML = `
@@ -840,11 +883,10 @@ async function submitDeposit(){
   if(!prenon || !siyati || !tel){ toast('Tanpri ranpli tout chan yo'); return; }
   if(!foto){ toast('Mete yon foto kòm prèv depo'); return; }
 
-  await addDoc(collection(db,'deposits'), {
-    montan, prenon, siyati, tel, method:state.method, status:'atant',
+  await insertRow('deposits', {
+    montan: Number(montan), prenon, siyati, tel, method:state.method, status:'atant',
     userId: currentUser?.id || null,
-    courseId: document.getElementById('depForCourse')?.value || null,
-    createdAt: serverTimestamp()
+    courseId: document.getElementById('depForCourse')?.value || null
   });
 
   toast('Reyisi! ' + montan + ' HTG — depo an atant konfimasyon');
@@ -865,16 +907,16 @@ async function submitRegister(){
 
   const accessCode = computeAccessCode(tel);
 
-  const docRef = await addDoc(collection(db,'users'), {
-    non, email, tel, peyi, vil, blocked:false, createdAt: serverTimestamp(),
+  const newUser = await insertRow('users', {
+    non, email, tel, peyi, vil, blocked:false,
     achte:0, fini:0, mwaAktif:0, piblik:true, accessCode
   });
 
-  currentUser = { id: docRef.id, non, email, tel, peyi, vil, accessCode };
+  currentUser = { id: newUser.id, non, email, tel, peyi, vil, accessCode };
   localStorage.setItem('tp_current_user', JSON.stringify(currentUser));
   document.getElementById('prof_non').textContent = non;
   document.getElementById('prof_tel').textContent = tel;
-  document.getElementById('prof_id').textContent = 'TP-' + docRef.id.slice(0,6).toUpperCase();
+  document.getElementById('prof_id').textContent = 'TP-' + newUser.id.slice(0,6).toUpperCase();
   document.getElementById('prof_code').textContent = accessCode;
   document.getElementById('prof_achte').textContent = '0';
   document.getElementById('prof_fini').textContent = '0';
@@ -934,9 +976,9 @@ async function submitTeacherKyc(){
   const konpetans = document.getElementById('kyc_konpetans').value;
   const poukisa = document.getElementById('kyc_poukisa').value;
   if(!non||!tel||!domenn||!konpetans||!poukisa){ toast('Tanpri ranpli tout chan yo'); return; }
-  await addDoc(collection(db,'teachers'), {
+  await insertRow('teachers', {
     non, tel, piece, domenn, konpetans, poukisa, status:'atant',
-    userId: currentUser?.id || null, createdAt: serverTimestamp()
+    userId: currentUser?.id || null
   });
   toast('Demand KYC voyé — n ap tann apwobasyon');
   go('profil');
@@ -948,7 +990,7 @@ async function createCourse(){
   const title = document.getElementById('newCourseTitle').value;
   const price = Number(document.getElementById('newCoursePrice').value);
   if(!companyId || !title || !price){ toast('Tanpri ranpli tout chan yo'); return; }
-  await addDoc(collection(db,'courses'), {
+  await insertRow('courses', {
     companyId, title, price,
     videos: [{id:'v'+Date.now(), title:'Etap 1', locked:true}],
     likes:0, comments:0, views:0, shares:0
@@ -973,7 +1015,7 @@ function uploadProfilePhoto(event){
       const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
       document.getElementById('photoPreview').innerHTML = `<img src="${dataUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;">`;
       if(currentUser){
-        await updateDoc(doc(db,'users',currentUser.id), { photoUrl: dataUrl });
+        await updateRow('users', currentUser.id, { photoUrl: dataUrl });
         document.getElementById('profAvatar').innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
         toast('Foto pwofil mete ajou');
       }
@@ -1064,7 +1106,7 @@ function renderAdmin(){
 }
 
 async function toggleTeacherBlock(id, currentlyBlocked){
-  await updateDoc(doc(db,'teachers',id), { blocked: !currentlyBlocked });
+  await updateRow('teachers', id, { blocked: !currentlyBlocked });
 }
 window.toggleTeacherBlock = toggleTeacherBlock;
 
@@ -1091,17 +1133,17 @@ function renderAccessAndVisits(){
 }
 
 async function approveAccessRequest(reqId, companyId, userId){
-  await updateDoc(doc(db,'accessRequests',reqId), { status:'apwouve' });
+  await updateRow('access_requests', reqId, { status:'apwouve' });
   const c = companies.find(x=>x.id===companyId);
   const approvedUsers = c?.approvedUsers || [];
   if(!approvedUsers.includes(userId)) approvedUsers.push(userId);
-  await updateDoc(doc(db,'companies',companyId), { approvedUsers });
+  await updateRow('companies', companyId, { approvedUsers });
   toast('Aksè apwouve pou itilizatè a');
 }
 window.approveAccessRequest = approveAccessRequest;
 
 async function approveTeacher(id){
-  await updateDoc(doc(db,'teachers',id), { status:'apwouve' });
+  await updateRow('teachers', id, { status:'apwouve' });
   toast('Pwofesè apwouve');
 }
 window.approveTeacher = approveTeacher;
@@ -1111,11 +1153,11 @@ window.uploadProfilePhoto = uploadProfilePhoto;
 
 async function confirmDeposit(id){
   const dep = deposits.find(d=>d.id===id);
-  await updateDoc(doc(db,'deposits',id), { status:'konfime' });
+  await updateRow('deposits', id, { status:'konfime' });
   if(dep?.userId){
-    await updateDoc(doc(db,'users',dep.userId), { achte: increment(1) });
+    await incrementField('users', dep.userId, 'achte', 1);
     if(dep.courseId){
-      await addDoc(collection(db,'purchases'), { userId:dep.userId, courseId:dep.courseId, createdAt: serverTimestamp() });
+      await insertRow('purchases', { userId:dep.userId, courseId:dep.courseId });
     }
   }
   toast('Depo konfime — aksè bay itilizatè a');
@@ -1129,7 +1171,7 @@ async function toggleCompanyApproval(id){
     updateData.trialStart = new Date().toISOString();
     updateData.trialDays = settings.trialDays;
   }
-  await updateDoc(doc(db,'companies',id), updateData);
+  await updateRow('companies', id, updateData);
 }
 window.toggleCompanyApproval = toggleCompanyApproval;
 
@@ -1137,12 +1179,11 @@ async function createCompany(){
   const nameEl = document.getElementById('newCompanyName');
   const name = nameEl.value.trim();
   if(!name){ toast('Antre non antrepriz la'); return; }
-  await addDoc(collection(db,'companies'), {
+  await insertRow('companies', {
     name,
     approved: true,
     trialStart: new Date().toISOString(),
-    trialDays: settings.trialDays,
-    createdAt: serverTimestamp()
+    trialDays: settings.trialDays
   });
   nameEl.value = '';
   toast('Antrepriz kreye');
@@ -1150,25 +1191,25 @@ async function createCompany(){
 window.createCompany = createCompany;
 
 async function deleteCompany(id){
-  await deleteDoc(doc(db,'companies',id));
+  await deleteRow('companies', id);
   toast('Antrepriz efase');
 }
 window.deleteCompany = deleteCompany;
 
 async function deleteCourse(id){
-  await deleteDoc(doc(db,'courses',id));
+  await deleteRow('courses', id);
   toast('Kou efase');
 }
 window.deleteCourse = deleteCourse;
 
 async function toggleUserBlock(id, currentlyBlocked){
-  await updateDoc(doc(db,'users',id), { blocked: !currentlyBlocked });
+  await updateRow('users', id, { blocked: !currentlyBlocked });
 }
 
 async function saveAdminSettings(){
   const price = Number(document.getElementById('admin_price').value);
   const trialDays = Number(document.getElementById('admin_trial').value);
-  await setDoc(doc(db,'settings','main'), { price, trialDays });
+  await updateRow('settings', 'main', { price, trialDays });
   toast('Chanjman anrejistre');
 }
 
@@ -1193,14 +1234,14 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   renderDepositBox();
   try {
     await seedIfEmpty();
-    listenAll();
+    await listenAll();
   } catch(e){
-    console.error('Erè Firebase:', e);
-    toast('Erè koneksyon ak baz done a — verifye konfigirasyon Firebase');
+    console.error('Erè Supabase:', e);
+    toast('Erè koneksyon ak baz done a — verifye konfigirasyon Supabase');
   }
   renderAkey();
-  await addDoc(collection(db,'visits'), {
-    userName: currentUser?.non || 'Vizitè anonim', createdAt: serverTimestamp()
+  await insertRow('visits', {
+    userName: currentUser?.non || 'Vizitè anonim'
   });
   if(currentUser){
     go('akey');
@@ -1208,9 +1249,8 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     document.getElementById('prof_tel').textContent = currentUser.tel;
     document.getElementById('prof_id').textContent = 'TP-' + currentUser.id.slice(0,6).toUpperCase();
     document.getElementById('prof_code').textContent = currentUser.accessCode || computeAccessCode(currentUser.tel);
-    const userDoc = await getDoc(doc(db,'users',currentUser.id));
-    if(userDoc.exists()){
-      const u = userDoc.data();
+    const u = await fetchOne('users', currentUser.id);
+    if(u){
       document.getElementById('prof_achte').textContent = u.achte ?? 0;
       document.getElementById('prof_fini').textContent = u.fini ?? 0;
       document.getElementById('prof_mwa').textContent = u.mwaAktif ?? 0;
