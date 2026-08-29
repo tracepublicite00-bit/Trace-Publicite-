@@ -341,7 +341,9 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Klasman</span></div>
     <div class="card">
       <div class="method-choice" style="margin-bottom:12px;">
-        <div class="opt selected">Vant</div><div class="opt">Aboné</div><div class="opt">Elèv</div>
+        <div class="opt selected" id="rank_vant" onclick="selectRankTab('vant')">Vant</div>
+        <div class="opt" id="rank_abone" onclick="selectRankTab('abone')">Aboné</div>
+        <div class="opt" id="rank_elev" onclick="selectRankTab('elev')">Elèv</div>
       </div>
       <div id="rankList"></div>
     </div>
@@ -412,7 +414,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <b>Kondisyon fòmatè:</b>
         <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
           <li>Ou dwe gen ekspètiz nan domèn nan</li>
-          <li>Ou peye platfòm nan 3000 G pa mwa (20 jou esè gratis)</li>
+          <li>Ou peye platfòm nan <span id="teacherFeeText">3000</span> G pa mwa (<span id="teacherTrialText">20</span> jou esè gratis)</li>
           <li>Ou dwe respekte règleman ak estanda yo</li>
         </ul>
       </div>
@@ -540,6 +542,8 @@ window.addEventListener('unhandledrejection', function(e) {
       <input id="admin_price" type="number" value="1000">
       <label>Chanje kantite jou esè gratis antrepriz</label>
       <input id="admin_trial" type="number" value="20">
+      <label>Chanje pri abònman fòmatè (G/mwa)</label>
+      <input id="admin_teacherFee" type="number" value="3000">
       <button class="btn btn-primary" style="margin-top:14px;" onclick="saveAdminSettings()">Anrejistre chanjman yo</button>
     </div>
   </section>
@@ -698,6 +702,7 @@ async function refreshTeachers(){
 async function refreshSettings(){
   const s = await fetchOne('settings','main');
   if(s) settings = s;
+  updateTeacherFeeText();
   if(document.getElementById('admin').classList.contains('active')) renderAdmin();
   if(document.getElementById('depoze').classList.contains('active')) renderDepositBox();
 }
@@ -944,7 +949,7 @@ function courseCardHtml(k){
           <span onclick="event.stopPropagation(); react('${k.id}','likes')">👍 ${k.likes||0}</span>
           <span onclick="event.stopPropagation(); react('${k.id}','comments')">💬 ${k.comments||0}</span>
           <span>👁️ ${k.views||0}</span>
-          <span onclick="event.stopPropagation(); react('${k.id}','shares')">🔗 ${k.shares||0} Pataje</span>
+          <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗 ${k.shares||0} Pataje</span>
         </div>
       </div>
     </div>`;
@@ -973,6 +978,23 @@ async function react(courseId, field){
   await incrementField('courses', courseId, field, 1);
 }
 window.react = react;
+
+async function shareCourse(courseId, title){
+  const url = window.location.href.split('#')[0] + '#course-' + courseId;
+  const shareData = { title: 'Trace Publicité — ' + title, text: 'Gade fòmasyon sa a sou Trace Publicité: ' + title, url };
+  try {
+    if(navigator.share){
+      await navigator.share(shareData);
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast('Lyen kou a kopye — ou ka kole l pou pataje l');
+    }
+    await incrementField('courses', courseId, 'shares', 1);
+  } catch(e){
+    // Anilasyon pataj la (moun nan chanje lide) — pa konte kòm yon pataj
+  }
+}
+window.shareCourse = shareCourse;
 
 async function openCourse(id){
   state.currentCourse = id;
@@ -1116,14 +1138,31 @@ function computeAccessCode(tel){
 window.computeAccessCode = computeAccessCode;
 
 /* ===================== KLASMAN ===================== */
+let rankTab = 'vant';
+function selectRankTab(tab){
+  rankTab = tab;
+  document.getElementById('rank_vant').classList.toggle('selected', tab==='vant');
+  document.getElementById('rank_abone').classList.toggle('selected', tab==='abone');
+  document.getElementById('rank_elev').classList.toggle('selected', tab==='elev');
+  renderRanking();
+}
+window.selectRankTab = selectRankTab;
+
 function renderRanking(){
-  document.getElementById('rankList').innerHTML = companies
-    .slice().sort((a,b)=>(b.students||0)-(a.students||0))
-    .map((c,i)=>`
+  const companyCourseIds = (companyId) => courses.filter(k=>k.companyId===companyId).map(k=>k.id);
+  const rows = companies.map(c=>{
+    const courseIds = companyCourseIds(c.id);
+    const salesCount = purchases.filter(p=>courseIds.includes(p.courseId)).length;
+    const uniqueBuyers = new Set(purchases.filter(p=>courseIds.includes(p.courseId)).map(p=>p.userId)).size;
+    return { c, vant: salesCount, abone: uniqueBuyers, elev: c.students||0 };
+  });
+  const labelMap = { vant:'vant', abone:'aboné', elev:'elèv' };
+  const sorted = rows.slice().sort((a,b)=> b[rankTab] - a[rankTab]);
+  document.getElementById('rankList').innerHTML = sorted.length ? sorted.map((r,i)=>`
       <div class="company-row">
         <div class="avatar">${i+1}</div>
-        <div class="info"><div class="name">${c.name}</div><div class="meta">${c.students||0} elèv</div></div>
-      </div>`).join('');
+        <div class="info"><div class="name">${r.c.name}</div><div class="meta">${r[rankTab]} ${labelMap[rankTab]}</div></div>
+      </div>`).join('') : `<div class="empty">Pa gen done pou kounye a.</div>`;
 }
 
 /* ===================== WÈ TOUT ITILIZATÈ ===================== */
@@ -1252,6 +1291,8 @@ function renderAdmin(){
     document.getElementById('iconSupportPreview').innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center ${settings.paymentIcons.supportPos ?? 50}%;">`;
   }
   document.getElementById('admin_trial').value = settings.trialDays;
+  document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
+  updateTeacherFeeText();
 
   const sel = document.getElementById('newCourseCompany');
   if(sel) sel.innerHTML = companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -1475,9 +1516,20 @@ window.adjustSupportPosition = adjustSupportPosition;
 async function saveAdminSettings(){
   const price = Number(document.getElementById('admin_price').value);
   const trialDays = Number(document.getElementById('admin_trial').value);
-  await updateRow('settings', 'main', { price, trialDays });
+  const teacherFee = Number(document.getElementById('admin_teacherFee').value);
+  await updateRow('settings', 'main', { price, trialDays, teacherFee });
+  settings.price = price; settings.trialDays = trialDays; settings.teacherFee = teacherFee;
+  updateTeacherFeeText();
   toast('Chanjman anrejistre');
 }
+
+function updateTeacherFeeText(){
+  const feeEl = document.getElementById('teacherFeeText');
+  const trialEl = document.getElementById('teacherTrialText');
+  if(feeEl) feeEl.textContent = settings.teacherFee ?? 3000;
+  if(trialEl) trialEl.textContent = settings.trialDays ?? 20;
+}
+window.updateTeacherFeeText = updateTeacherFeeText;
 
 /* ===================== JESYON ETAP KOU (videyo/imaj/vwa) ===================== */
 function renderStepList(){
