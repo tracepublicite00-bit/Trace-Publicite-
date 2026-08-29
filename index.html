@@ -996,6 +996,9 @@ window.checkAccessCode = checkAccessCode;
 
 async function react(courseId, field){
   await incrementField('courses', courseId, field, 1);
+  const k = courses.find(c=>c.id===courseId);
+  if(k) k[field] = (k[field]||0) + 1;
+  rerenderCourseViews();
 }
 window.react = react;
 
@@ -1010,11 +1013,21 @@ async function shareCourse(courseId, title){
       toast('Lyen kou a kopye — ou ka kole l pou pataje l');
     }
     await incrementField('courses', courseId, 'shares', 1);
+    const k = courses.find(c=>c.id===courseId);
+    if(k) k.shares = (k.shares||0) + 1;
+    rerenderCourseViews();
   } catch(e){
     // Anilasyon pataj la (moun nan chanje lide) — pa konte kòm yon pataj
   }
 }
 window.shareCourse = shareCourse;
+
+function rerenderCourseViews(){
+  if(document.getElementById('akey')?.classList.contains('active')) renderAkey();
+  if(document.getElementById('touFormasyon')?.classList.contains('active')) renderCourseListFull();
+  if(document.getElementById('pajAntrepriz')?.classList.contains('active') && state.currentCompany) openCompany(state.currentCompany);
+}
+window.rerenderCourseViews = rerenderCourseViews;
 
 async function openCourse(id){
   state.currentCourse = id;
