@@ -283,10 +283,14 @@ window.addEventListener('unhandledrejection', function(e) {
 
       <label>Metòd Disponib</label>
       <div class="pay-method-row selected" id="pm_moncash" onclick="selectMethod('moncash')">
-        <div class="circ">MC</div><div><b>MonCash</b><br><small style="color:var(--tex-mou)">Pèman Mobil</small></div>
+        <div class="circ" style="background:#EE7623;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2.5" fill="#fff"/><circle cx="12" cy="12" r="3" fill="#EE7623"/><rect x="5.5" y="8.3" width="2" height="1.4" rx="0.5" fill="#EE7623"/></svg>
+        </div><div><b>MonCash</b><br><small style="color:var(--tex-mou)">Pèman Mobil</small></div>
       </div>
       <div class="pay-method-row" id="pm_natcash" onclick="selectMethod('natcash')">
-        <div class="circ">NC</div><div><b>NatCash</b><br><small style="color:var(--tex-mou)">Pèman Mobil</small></div>
+        <div class="circ" style="background:#0072BC;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2.5" fill="#fff"/><circle cx="12" cy="12" r="3" fill="#0072BC"/><rect x="5.5" y="8.3" width="2" height="1.4" rx="0.5" fill="#0072BC"/></svg>
+        </div><div><b>NatCash</b><br><small style="color:var(--tex-mou)">Pèman Mobil</small></div>
       </div>
 
       <div class="benef-box" id="benefBox"></div>
@@ -311,17 +315,22 @@ window.addEventListener('unhandledrejection', function(e) {
   <section id="support" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Sèvis Kliyan</span></div>
     <div class="card" style="text-align:center;">
-      <svg width="88" height="88" viewBox="0 0 100 100" style="margin:0 auto;display:block;">
+      <div id="supportAvatarBox">
+      <svg width="96" height="96" viewBox="0 0 100 100" style="margin:0 auto;display:block;">
         <circle cx="50" cy="50" r="48" fill="#EEF3FA"/>
-        <circle cx="50" cy="43" r="18" fill="#1B3A6B"/>
-        <path d="M22 88c0-16 12.5-29 28-29s28 13 28 29" fill="#1B3A6B"/>
-        <path d="M25 40a25 25 0 0 1 50 0" fill="none" stroke="#E8A33D" stroke-width="5" stroke-linecap="round"/>
-        <rect x="19" y="37" width="9" height="16" rx="4" fill="#E8A33D"/>
-        <rect x="72" y="37" width="9" height="16" rx="4" fill="#E8A33D"/>
-        <rect x="70" y="47" width="14" height="7" rx="3.5" fill="#C77F1F"/>
-        <line x1="77" y1="54" x2="63" y2="60" stroke="#C77F1F" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="61" cy="61" r="3.5" fill="#C77F1F"/>
+        <path d="M18 90c0-18 14.3-32 32-32s32 14 32 32" fill="#1B3A6B"/>
+        <circle cx="50" cy="46" r="20" fill="#E8B090"/>
+        <path d="M30 40c0-13 9-21 20-21s20 8 20 21c0-3-2-5-5-5-2 6-8 4-8-1-3 5-9 6-14 3-5 4-11 3-13-3-3 0-5 2-5 6z" fill="#3B2314"/>
+        <circle cx="42" cy="47" r="1.6" fill="#3B2314"/>
+        <circle cx="58" cy="47" r="1.6" fill="#3B2314"/>
+        <path d="M44 55c2 2 10 2 12 0" stroke="#8A4B36" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <path d="M22 38a28 28 0 0 1 56 0" fill="none" stroke="#22262E" stroke-width="5" stroke-linecap="round"/>
+        <rect x="16" y="35" width="10" height="17" rx="5" fill="#E8A33D"/>
+        <rect x="74" y="35" width="10" height="17" rx="5" fill="#E8A33D"/>
+        <path d="M79 50c0 9-6 14-14 15" fill="none" stroke="#C77F1F" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="65" cy="65" r="4" fill="#C77F1F"/>
       </svg>
+      </div>
       <p style="margin:10px 0;">Nou la pou ede w! Peze bouton anba a pou voye yon mesaj dirèkteman bay pwopriyetè platfòm nan sou WhatsApp.</p>
       <a class="btn btn-primary" style="text-decoration:none;" href="https://wa.me/50955989871" target="_blank">Kontakte sou WhatsApp</a>
     </div>
@@ -510,6 +519,20 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
 
     <div class="card">
+      <div class="section-title">Icon Metòd Peman</div>
+      <label>Icon MonCash (chwazi nan galri ou)</label>
+      <input id="iconMoncashFile" type="file" accept="image/*" onchange="uploadPaymentIcon('moncash', this)">
+      <div id="iconMoncashPreview" style="margin-top:8px;"></div>
+      <label>Icon NatCash (chwazi nan galri ou)</label>
+      <input id="iconNatcashFile" type="file" accept="image/*" onchange="uploadPaymentIcon('natcash', this)">
+      <div id="iconNatcashPreview" style="margin-top:8px;"></div>
+      <label>Avatar Sèvis Kliyan (chwazi nan galri ou)</label>
+      <input id="iconSupportFile" type="file" accept="image/*" onchange="uploadPaymentIcon('support', this)">
+      <div id="iconSupportPreview" style="margin-top:8px;"></div>
+      <p id="iconUploadStatus" class="hint" style="margin-top:6px;"></p>
+    </div>
+
+    <div class="card">
       <label>Chanje pri fòmasyon (G)</label>
       <input id="admin_price" type="number" value="1000">
       <label>Chanje kantite jou esè gratis antrepriz</label>
@@ -673,6 +696,7 @@ async function refreshSettings(){
   const s = await fetchOne('settings','main');
   if(s) settings = s;
   if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+  if(document.getElementById('depoze').classList.contains('active')) renderDepositBox();
 }
 async function refreshAccessRequests(){
   accessRequests = await fetchAll('access_requests');
@@ -767,6 +791,7 @@ function go(pageId){
   if(pageId==='achat') renderCompanyListFull();
   if(pageId==='touFormasyon') renderCourseListFull();
   if(pageId==='depoze') renderDepositBox();
+  if(pageId==='support') renderSupportAvatar();
   if(pageId==='klasman') renderRanking();
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
@@ -1019,6 +1044,12 @@ function renderDepositBox(){
     <div class="row"><span>Non Benefisyè</span><b>${info.nom}</b></div>
     <div class="row"><span>Numewo</span><b>${info.num}</b> <button class="copy-btn" onclick="copyText('${info.num}')">Kopye</button></div>
   `;
+  const mcIcon = settings.paymentIcons?.moncash;
+  const ncIcon = settings.paymentIcons?.natcash;
+  const mcCirc = document.querySelector('#pm_moncash .circ');
+  const ncCirc = document.querySelector('#pm_natcash .circ');
+  if(mcCirc && mcIcon){ mcCirc.innerHTML = `<img src="${mcIcon}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; mcCirc.style.background='transparent'; }
+  if(ncCirc && ncIcon){ ncCirc.innerHTML = `<img src="${ncIcon}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; ncCirc.style.background='transparent'; }
 }
 async function submitDeposit(){
   const montan = document.getElementById('dep_montan').value;
@@ -1208,6 +1239,15 @@ function renderAdmin(){
     </div>`).join('');
 
   document.getElementById('admin_price').value = settings.price;
+  if(settings.paymentIcons?.moncash){
+    document.getElementById('iconMoncashPreview').innerHTML = `<img src="${settings.paymentIcons.moncash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  }
+  if(settings.paymentIcons?.natcash){
+    document.getElementById('iconNatcashPreview').innerHTML = `<img src="${settings.paymentIcons.natcash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  }
+  if(settings.paymentIcons?.support){
+    document.getElementById('iconSupportPreview').innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  }
   document.getElementById('admin_trial').value = settings.trialDays;
 
   const sel = document.getElementById('newCourseCompany');
@@ -1377,6 +1417,38 @@ window.deleteCourse = deleteCourse;
 async function toggleUserBlock(id, currentlyBlocked){
   await updateRow('users', id, { blocked: !currentlyBlocked });
 }
+
+async function uploadPaymentIcon(method, inputEl){
+  const file = inputEl.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('iconUploadStatus');
+  statusEl.textContent = 'Ap telechaje icon la...';
+  const url = await uploadCourseFile(file, 'payment-icons');
+  if(url){
+    const paymentIcons = { ...(settings.paymentIcons||{}), [method]: url };
+    await updateRow('settings', 'main', { paymentIcons });
+    settings.paymentIcons = paymentIcons;
+    const previewMap = { moncash:'iconMoncashPreview', natcash:'iconNatcashPreview', support:'iconSupportPreview' };
+    document.getElementById(previewMap[method]).innerHTML =
+      `<img src="${url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+    statusEl.textContent = 'Icon anrejistre ✅';
+    renderDepositBox();
+    renderSupportAvatar();
+    setTimeout(()=>{ statusEl.textContent=''; }, 2500);
+  } else {
+    statusEl.textContent = 'Erè telechajman — reyeseye';
+  }
+}
+window.uploadPaymentIcon = uploadPaymentIcon;
+
+function renderSupportAvatar(){
+  const box = document.getElementById('supportAvatarBox');
+  const url = settings.paymentIcons?.support;
+  if(box && url){
+    box.innerHTML = `<img src="${url}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;margin:0 auto;display:block;">`;
+  }
+}
+window.renderSupportAvatar = renderSupportAvatar;
 
 async function saveAdminSettings(){
   const price = Number(document.getElementById('admin_price').value);
