@@ -268,6 +268,17 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
+  <!-- ============ KÒMANTÈ ============ -->
+  <section id="komantè" class="page">
+    <div class="back-row"><button class="back-btn" onclick="go('touFormasyon')">←</button><span class="page-title">Kòmantè — <span id="komantèKouTitre"></span></span></div>
+    <div class="card">
+      <label>Ekri yon kòmantè</label>
+      <textarea id="newCommentText" placeholder="Ekri kòmantè ou isit..."></textarea>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="submitComment()">Voye Kòmantè</button>
+    </div>
+    <div id="commentListBox"></div>
+  </section>
+
   <!-- ============ DEPOZE ============ -->
   <section id="depoze" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Depoze Lajan</span></div>
@@ -654,6 +665,7 @@ let accessRequests = [];
 let visits = [];
 let purchases = [];
 let notifications = [];
+let courseComments = [];
 let settings = { price: 1000, trialDays: 20 };
 let currentUser = JSON.parse(localStorage.getItem('tp_current_user')) || null;
 
@@ -738,6 +750,12 @@ async function refreshVisits(){
 async function refreshPurchases(){
   purchases = await fetchAll('purchases');
 }
+async function refreshCourseComments(){
+  courseComments = await fetchAll('course_comments');
+  if(document.getElementById('touFormasyon')?.classList.contains('active')) renderCourseListFull();
+  if(document.getElementById('akey')?.classList.contains('active')) renderAkey();
+  if(document.getElementById('komantè')?.classList.contains('active')) renderComments();
+}
 async function refreshNotifications(){
   if(!currentUser) return;
   const all = await fetchAll('notifications');
@@ -797,6 +815,7 @@ function listenAll(){
     ['access_requests', refreshAccessRequests],
     ['visits', refreshVisits],
     ['purchases', refreshPurchases],
+    ['course_comments', refreshCourseComments],
     ['notifications', refreshNotifications]
   ];
   tables.forEach(([table, refreshFn])=>{
@@ -825,6 +844,7 @@ function go(pageId){
   if(pageId==='lisPwofese') renderTeacherList();
   if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); }
   if(pageId==='profil') renderNotifications();
+  if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
 }
 
@@ -967,7 +987,7 @@ function courseCardHtml(k){
         <div class="price">${k.price} Goud</div>
         <div class="icon-row">
           <span onclick="event.stopPropagation(); react('${k.id}','likes')">👍 ${k.likes||0}</span>
-          <span onclick="event.stopPropagation(); react('${k.id}','comments')">💬 ${k.comments||0}</span>
+          <span onclick="event.stopPropagation(); openComments('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">💬 ${courseComments.filter(c=>c.courseId===k.id).length}</span>
           <span>👁️ ${k.views||0}</span>
           <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗 ${k.shares||0} Pataje</span>
         </div>
@@ -1028,6 +1048,43 @@ function rerenderCourseViews(){
   if(document.getElementById('pajAntrepriz')?.classList.contains('active') && state.currentCompany) openCompany(state.currentCompany);
 }
 window.rerenderCourseViews = rerenderCourseViews;
+
+function openComments(courseId, title){
+  state.currentCommentCourse = courseId;
+  document.getElementById('komantèKouTitre').textContent = title || '';
+  document.getElementById('newCommentText').value = '';
+  go('komantè');
+}
+window.openComments = openComments;
+
+function renderComments(){
+  const box = document.getElementById('commentListBox');
+  if(!box) return;
+  const list = courseComments.filter(c=>c.courseId===state.currentCommentCourse)
+    .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  box.innerHTML = list.length ? list.map(c=>`
+    <div class="card">
+      <div style="font-weight:700;font-size:13.5px;">${c.userName||'Anonim'}</div>
+      <div style="font-size:14px;margin-top:4px;color:var(--tex);">${c.text}</div>
+    </div>`).join('') : `<div class="empty">Pa gen kòmantè pou kou sa a — se ou ki premye!</div>`;
+}
+window.renderComments = renderComments;
+
+async function submitComment(){
+  const text = document.getElementById('newCommentText').value.trim();
+  if(!text){ toast('Ekri yon kòmantè anvan ou voye l'); return; }
+  if(!currentUser){ toast('Ou dwe enskri anvan pou kòmante'); return; }
+  await insertRow('course_comments', {
+    courseId: state.currentCommentCourse,
+    userId: currentUser.id,
+    userName: currentUser.non,
+    text
+  });
+  await incrementField('courses', state.currentCommentCourse, 'comments', 1);
+  document.getElementById('newCommentText').value = '';
+  toast('Kòmantè voyé');
+}
+window.submitComment = submitComment;
 
 async function openCourse(id){
   state.currentCourse = id;
