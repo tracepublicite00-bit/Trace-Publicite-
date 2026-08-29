@@ -235,7 +235,7 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Numewo Telefòn *</label><input id="reg_tel" placeholder="(509) 3xxx xxxx">
       <label>Peyi *</label><input id="reg_peyi" placeholder="Ayiti">
       <label>Vil *</label><input id="reg_vil" placeholder="Pòtoprens">
-      <button class="btn btn-primary" style="margin-top:18px;" onclick="submitRegister()">Kreye kont mwen</button>
+      <button id="regSubmitBtn" class="btn btn-primary" style="margin-top:18px;" onclick="submitRegister()">Kreye kont mwen</button>
     </div>
   </section>
 
@@ -890,6 +890,8 @@ window.togglePublicProfile = togglePublicProfile;
 function logoutUser(){
   localStorage.removeItem('tp_current_user');
   currentUser = null;
+  const btn = document.getElementById('regSubmitBtn');
+  if(btn){ btn.disabled = false; btn.textContent = 'Kreye kont mwen'; }
   toast('Ou dekonekte');
   go('enskripsyon');
 }
@@ -1232,19 +1234,31 @@ async function submitDeposit(){
 
 /* ===================== ENSKRIPSYON ===================== */
 async function submitRegister(){
+  const btn = document.getElementById('regSubmitBtn');
+  if(btn.disabled) return;
   const non = document.getElementById('reg_non').value;
   const email = document.getElementById('reg_email').value;
   const tel = document.getElementById('reg_tel').value;
   const peyi = document.getElementById('reg_peyi').value;
   const vil = document.getElementById('reg_vil').value;
   if(!non||!email||!tel||!peyi||!vil){ toast('Tanpri ranpli tout chan yo'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Ap kreye kont...';
 
   const accessCode = computeAccessCode(tel);
 
-  const newUser = await insertRow('users', {
-    non, email, tel, peyi, vil, blocked:false,
-    achte:0, fini:0, mwaAktif:0, piblik:true, accessCode
-  });
+  let newUser;
+  try {
+    newUser = await insertRow('users', {
+      non, email, tel, peyi, vil, blocked:false,
+      achte:0, fini:0, mwaAktif:0, piblik:true, accessCode
+    });
+  } catch(e){
+    btn.disabled = false;
+    btn.textContent = 'Kreye kont mwen';
+    toast('Erè — reyeseye');
+    return;
+  }
 
   currentUser = { id: newUser.id, non, email, tel, peyi, vil, accessCode };
   localStorage.setItem('tp_current_user', JSON.stringify(currentUser));
