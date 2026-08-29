@@ -529,6 +529,9 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Avatar Sèvis Kliyan (chwazi nan galri ou)</label>
       <input id="iconSupportFile" type="file" accept="image/*" onchange="uploadPaymentIcon('support', this)">
       <div id="iconSupportPreview" style="margin-top:8px;"></div>
+      <label>Ajiste pozisyon figi a nan avatar la</label>
+      <input id="supportPosSlider" type="range" min="0" max="100" value="50" oninput="adjustSupportPosition(this.value)">
+      <p class="hint">Deplase kizòt la si figi a koupe — anwo/anba</p>
       <p id="iconUploadStatus" class="hint" style="margin-top:6px;"></p>
     </div>
 
@@ -1246,7 +1249,7 @@ function renderAdmin(){
     document.getElementById('iconNatcashPreview').innerHTML = `<img src="${settings.paymentIcons.natcash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
   }
   if(settings.paymentIcons?.support){
-    document.getElementById('iconSupportPreview').innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+    document.getElementById('iconSupportPreview').innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center ${settings.paymentIcons.supportPos ?? 50}%;">`;
   }
   document.getElementById('admin_trial').value = settings.trialDays;
 
@@ -1444,11 +1447,30 @@ window.uploadPaymentIcon = uploadPaymentIcon;
 function renderSupportAvatar(){
   const box = document.getElementById('supportAvatarBox');
   const url = settings.paymentIcons?.support;
+  const pos = settings.paymentIcons?.supportPos ?? 50;
   if(box && url){
-    box.innerHTML = `<img src="${url}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;margin:0 auto;display:block;">`;
+    box.innerHTML = `<img src="${url}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;object-position:center ${pos}%;margin:0 auto;display:block;">`;
   }
+  const slider = document.getElementById('supportPosSlider');
+  if(slider) slider.value = pos;
 }
 window.renderSupportAvatar = renderSupportAvatar;
+
+let supportPosDebounce = null;
+async function adjustSupportPosition(val){
+  const box = document.getElementById('supportAvatarBox');
+  const img = box?.querySelector('img');
+  if(img) img.style.objectPosition = `center ${val}%`;
+  const preview = document.getElementById('iconSupportPreview')?.querySelector('img');
+  if(preview) preview.style.objectPosition = `center ${val}%`;
+  clearTimeout(supportPosDebounce);
+  supportPosDebounce = setTimeout(async ()=>{
+    const paymentIcons = { ...(settings.paymentIcons||{}), supportPos: Number(val) };
+    await updateRow('settings', 'main', { paymentIcons });
+    settings.paymentIcons = paymentIcons;
+  }, 500);
+}
+window.adjustSupportPosition = adjustSupportPosition;
 
 async function saveAdminSettings(){
   const price = Number(document.getElementById('admin_price').value);
