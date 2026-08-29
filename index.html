@@ -292,11 +292,21 @@ window.addEventListener('unhandledrejection', function(e) {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2.5" fill="#fff"/><circle cx="12" cy="12" r="3" fill="#0072BC"/><rect x="5.5" y="8.3" width="2" height="1.4" rx="0.5" fill="#0072BC"/></svg>
         </div><div><b>NatCash</b><br><small style="color:var(--tex-mou)">Pèman Mobil</small></div>
       </div>
+      <div class="pay-method-row" id="pm_buh" style="display:none;" onclick="selectMethod('buh')">
+        <div class="circ" style="background:#1B3A6B;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2.5" fill="#fff"/><circle cx="12" cy="12" r="3" fill="#1B3A6B"/><rect x="5.5" y="8.3" width="2" height="1.4" rx="0.5" fill="#1B3A6B"/></svg>
+        </div><div><b>BUH</b><br><small style="color:var(--tex-mou)">Kont Bankè (USD)</small></div>
+      </div>
+      <div class="pay-method-row" id="pm_meru" style="display:none;" onclick="selectMethod('meru')">
+        <div class="circ" style="background:#2F9E44;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2.5" fill="#fff"/><circle cx="12" cy="12" r="3" fill="#2F9E44"/><rect x="5.5" y="8.3" width="2" height="1.4" rx="0.5" fill="#2F9E44"/></svg>
+        </div><div><b>Kont Meru USD</b><br><small style="color:var(--tex-mou)">Imèl / Tag</small></div>
+      </div>
 
       <div class="benef-box" id="benefBox"></div>
 
       <label>Kontinye ak <span id="methodLabel">MonCash</span></label>
-      <label>Kantite lajan (G) * <span class="hint">— minimòm 1000 G</span></label>
+      <label id="montanLabel">Kantite lajan (G) * <span class="hint">— minimòm 1000 G</span></label>
       <input id="dep_montan" type="number" placeholder="1000">
       <label>Prenon *</label><input id="dep_prenon" placeholder="Prenon">
       <label>Siyati *</label><input id="dep_siyati" placeholder="Siyati">
@@ -528,6 +538,12 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Icon NatCash (chwazi nan galri ou)</label>
       <input id="iconNatcashFile" type="file" accept="image/*" onchange="uploadPaymentIcon('natcash', this)">
       <div id="iconNatcashPreview" style="margin-top:8px;"></div>
+      <label>Icon BUH (chwazi nan galri ou)</label>
+      <input id="iconBuhFile" type="file" accept="image/*" onchange="uploadPaymentIcon('buh', this)">
+      <div id="iconBuhPreview" style="margin-top:8px;"></div>
+      <label>Icon Kont Meru USD (chwazi nan galri ou)</label>
+      <input id="iconMeruFile" type="file" accept="image/*" onchange="uploadPaymentIcon('meru', this)">
+      <div id="iconMeruPreview" style="margin-top:8px;"></div>
       <label>Avatar Sèvis Kliyan (chwazi nan galri ou)</label>
       <input id="iconSupportFile" type="file" accept="image/*" onchange="uploadPaymentIcon('support', this)">
       <div id="iconSupportPreview" style="margin-top:8px;"></div>
@@ -643,7 +659,9 @@ let state = { tip:'manyel', dev:'htg', method:'moncash', currentCompany:null, cu
 
 const benefInfo = {
   moncash: {label:'MonCash', num:'(509) 4878-9614', nom:'Sarah Fleuranvil'},
-  natcash: {label:'NatCash', num:'(509) 4078-8131', nom:'Sarah Fleuranvil'}
+  natcash: {label:'NatCash', num:'(509) 4078-8131', nom:'Sarah Fleuranvil'},
+  buh: {label:'BUH', nom:'Sarah Fleuranvil', accountNum:'2000-0074-455', devise:'USD', montanRef:'20 USD'},
+  meru: {label:'Kont Meru USD', nom:'Sarah Fleuranvil', email:'Sarahfleuranvil00@gmail.com', tag:'$Samimy', numero:'40788131', devise:'USD', montanRef:'20 USD'}
 };
 
 /* ===================== SEMANS DONE DEPA (yon sèl fwa) ===================== */
@@ -1055,26 +1073,57 @@ function selectDev(v){
   state.dev=v;
   document.getElementById('dev_htg').classList.toggle('selected', v==='htg');
   document.getElementById('dev_usd').classList.toggle('selected', v==='usd');
+  document.getElementById('pm_moncash').style.display = v==='htg' ? 'flex' : 'none';
+  document.getElementById('pm_natcash').style.display = v==='htg' ? 'flex' : 'none';
+  document.getElementById('pm_buh').style.display = v==='usd' ? 'flex' : 'none';
+  document.getElementById('pm_meru').style.display = v==='usd' ? 'flex' : 'none';
+  document.getElementById('montanLabel').innerHTML = v==='htg'
+    ? 'Kantite lajan (G) * <span class="hint">— minimòm 1000 G</span>'
+    : 'Kantite lajan (USD) * <span class="hint">— minimòm 20 USD</span>';
+  document.getElementById('dep_montan').placeholder = v==='htg' ? '1000' : '20';
+  selectMethod(v==='htg' ? 'moncash' : 'buh');
 }
 function selectMethod(v){
   state.method=v;
-  document.getElementById('pm_moncash').classList.toggle('selected', v==='moncash');
-  document.getElementById('pm_natcash').classList.toggle('selected', v==='natcash');
+  ['moncash','natcash','buh','meru'].forEach(m=>{
+    const el = document.getElementById('pm_'+m);
+    if(el) el.classList.toggle('selected', v===m);
+  });
   renderDepositBox();
 }
 function renderDepositBox(){
   const info = benefInfo[state.method];
   document.getElementById('methodLabel').textContent = info.label;
-  document.getElementById('benefBox').innerHTML = `
-    <div class="row"><span>Non Benefisyè</span><b>${info.nom}</b></div>
-    <div class="row"><span>Numewo</span><b>${info.num}</b> <button class="copy-btn" onclick="copyText('${info.num}')">Kopye</button></div>
-  `;
-  const mcIcon = settings.paymentIcons?.moncash;
-  const ncIcon = settings.paymentIcons?.natcash;
-  const mcCirc = document.querySelector('#pm_moncash .circ');
-  const ncCirc = document.querySelector('#pm_natcash .circ');
-  if(mcCirc && mcIcon){ mcCirc.innerHTML = `<img src="${mcIcon}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; mcCirc.style.background='transparent'; }
-  if(ncCirc && ncIcon){ ncCirc.innerHTML = `<img src="${ncIcon}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; ncCirc.style.background='transparent'; }
+  let rows = `<div class="row"><span>Non Benefisyè</span><b>${info.nom}</b></div>`;
+  if(info.num){
+    rows += `<div class="row"><span>Numewo</span><b>${info.num}</b> <button class="copy-btn" onclick="copyText('${info.num}')">Kopye</button></div>`;
+  }
+  if(info.accountNum){
+    rows += `<div class="row"><span>Nimewo Kont</span><b>${info.accountNum}</b> <button class="copy-btn" onclick="copyText('${info.accountNum}')">Kopye</button></div>`;
+  }
+  if(info.email){
+    rows += `<div class="row"><span>Imèl</span><b style="font-size:14px;">${info.email}</b> <button class="copy-btn" onclick="copyText('${info.email}')">Kopye</button></div>`;
+  }
+  if(info.tag){
+    rows += `<div class="row"><span>Tag</span><b>${info.tag}</b> <button class="copy-btn" onclick="copyText('${info.tag}')">Kopye</button></div>`;
+  }
+  if(info.numero){
+    rows += `<div class="row"><span>Numewo</span><b>${info.numero}</b> <button class="copy-btn" onclick="copyText('${info.numero}')">Kopye</button></div>`;
+  }
+  if(info.montanRef){
+    rows += `<div class="row"><span>Montan referans</span><b>${info.montanRef}</b></div>`;
+  }
+  if(state.method==='meru'){
+    rows += `<p class="hint" style="margin-top:10px;">ℹ️ Sa yo se enfòmasyon (imèl, tag, ak nimewo) pou w itilize pou voye kòb la sou Kont Meru.</p>`;
+  }
+  document.getElementById('benefBox').innerHTML = rows;
+
+  const iconMap = { moncash:'moncash', natcash:'natcash', buh:'buh', meru:'meru' };
+  Object.keys(iconMap).forEach(m=>{
+    const icon = settings.paymentIcons?.[iconMap[m]];
+    const circ = document.querySelector('#pm_'+m+' .circ');
+    if(circ && icon){ circ.innerHTML = `<img src="${icon}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; circ.style.background='transparent'; }
+  });
 }
 async function submitDeposit(){
   const montan = document.getElementById('dep_montan').value;
@@ -1082,17 +1131,18 @@ async function submitDeposit(){
   const siyati = document.getElementById('dep_siyati').value;
   const tel = document.getElementById('dep_tel').value;
   const foto = document.getElementById('dep_foto').files[0];
-  if(!montan || montan < 1000){ toast('Montan minimòm se 1000 G'); return; }
+  const minAmount = state.dev==='usd' ? 20 : 1000;
+  if(!montan || montan < minAmount){ toast(`Montan minimòm se ${minAmount} ${state.dev==='usd'?'USD':'G'}`); return; }
   if(!prenon || !siyati || !tel){ toast('Tanpri ranpli tout chan yo'); return; }
   if(!foto){ toast('Mete yon foto kòm prèv depo'); return; }
 
   await insertRow('deposits', {
-    montan: Number(montan), prenon, siyati, tel, method:state.method, status:'atant',
+    montan: Number(montan), devise: state.dev, prenon, siyati, tel, method:state.method, status:'atant',
     userId: currentUser?.id || null,
     courseId: document.getElementById('depForCourse')?.value || null
   });
 
-  toast('Reyisi! ' + montan + ' HTG — depo an atant konfimasyon');
+  toast('Reyisi! ' + montan + ' ' + (state.dev==='usd'?'USD':'HTG') + ' — depo an atant konfimasyon');
   document.getElementById('dep_montan').value='';
   document.getElementById('dep_prenon').value='';
   document.getElementById('dep_siyati').value='';
@@ -1287,6 +1337,12 @@ function renderAdmin(){
   if(settings.paymentIcons?.natcash){
     document.getElementById('iconNatcashPreview').innerHTML = `<img src="${settings.paymentIcons.natcash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
   }
+  if(settings.paymentIcons?.buh){
+    document.getElementById('iconBuhPreview').innerHTML = `<img src="${settings.paymentIcons.buh}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  }
+  if(settings.paymentIcons?.meru){
+    document.getElementById('iconMeruPreview').innerHTML = `<img src="${settings.paymentIcons.meru}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  }
   if(settings.paymentIcons?.support){
     document.getElementById('iconSupportPreview').innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center ${settings.paymentIcons.supportPos ?? 50}%;">`;
   }
@@ -1472,7 +1528,7 @@ async function uploadPaymentIcon(method, inputEl){
     const paymentIcons = { ...(settings.paymentIcons||{}), [method]: url };
     await updateRow('settings', 'main', { paymentIcons });
     settings.paymentIcons = paymentIcons;
-    const previewMap = { moncash:'iconMoncashPreview', natcash:'iconNatcashPreview', support:'iconSupportPreview' };
+    const previewMap = { moncash:'iconMoncashPreview', natcash:'iconNatcashPreview', buh:'iconBuhPreview', meru:'iconMeruPreview', support:'iconSupportPreview' };
     document.getElementById(previewMap[method]).innerHTML =
       `<img src="${url}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
     statusEl.textContent = 'Icon anrejistre ✅';
