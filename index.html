@@ -1679,7 +1679,7 @@ function renderStepList(){
     <div class="kv">
       <span class="k">${i+1}. ${v.title} ${v.videoUrl?'🎬':''}${v.youtubeUrl?'▶️':''}${(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':''}${v.audioUrl?'🎤':''}</span>
       <span style="display:flex;align-items:center;gap:8px;">
-        ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 10px;font-size:11px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Telechajman OK':'Bloke'}</button>` : ''}
+        ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 10px;font-size:11px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Debloke':'Bloke'}</button>` : ''}
         <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCourseStep('${k.id}', ${i})">Efase</button>
       </span>
     </div>`).join('') || `<div class="empty">Pa gen etap pou kou sa a.</div>`;
