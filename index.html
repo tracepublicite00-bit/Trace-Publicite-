@@ -1423,7 +1423,7 @@ async function uploadPaymentIcon(method, inputEl){
   if(!file) return;
   const statusEl = document.getElementById('iconUploadStatus');
   statusEl.textContent = 'Ap telechaje icon la...';
-  const url = await uploadCourseFile(file, 'payment-icons');
+  const url = await uploadCourseFile(file, 'images');
   if(url){
     const paymentIcons = { ...(settings.paymentIcons||{}), [method]: url };
     await updateRow('settings', 'main', { paymentIcons });
