@@ -157,7 +157,8 @@
   .back-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
   .back-btn{background:var(--bleu);color:#fff;border:none;width:42px;height:42px;border-radius:50%;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .page-title{font-size:19px;font-weight:700;}
-  .admin-tag{background:var(--bleu-fonse);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px;}
+  .admin-tag{background:var(--bleu-fonse);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px;margin-left:8px;}.notif-badge{position:absolute;top:2px;right:8px;background:var(--wouj,#e63946);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+#nav_profil,#nav_admin{position:relative;}
 </style>
 </head>
 <body>
@@ -342,6 +343,10 @@ window.addEventListener('unhandledrejection', function(e) {
   <!-- ============ PWOFIL ============ -->
   <section id="profil" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Pwofil Mwen</span></div>
+    <div class="card">
+      <div class="section-title">🔔 Notifikasyon</div>
+      <div id="notifList"></div>
+    </div>
     <div class="card" style="text-align:center;">
       <div class="avatar" id="profAvatar" style="margin:0 auto 10px;width:64px;height:64px;font-size:22px;overflow:hidden;">👤</div>
       <div style="font-weight:700;font-size:16px;" id="prof_non">Elèv Anonim</div>
@@ -412,6 +417,7 @@ window.addEventListener('unhandledrejection', function(e) {
 
     <div class="card">
       <div class="section-title">Depo an atant</div>
+      <button class="btn btn-gold" style="margin-bottom:10px;" onclick="enableNotifications()">🔔 Aktive notifikasyon sou telefòn nan</button>
       <div id="adminDeposits"></div>
     </div>
 
@@ -479,7 +485,7 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
 
     <div class="card">
-      <div class="section-title">Dènye vizit yo</div>
+      <div class="section-title">Dènye vizit yo <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;float:right;" onclick="deleteAllVisits()">Efase tout</button></div>
       <div id="adminVisits"></div>
     </div>
 
@@ -506,8 +512,8 @@ window.addEventListener('unhandledrejection', function(e) {
     <button id="nav_akey" class="active" onclick="go('akey')"><span class="ic">🏠</span>Akèy</button>
     <button id="nav_touFormasyon" onclick="go('touFormasyon')"><span class="ic">🎬</span>Kou</button>
     <button id="nav_depoze" onclick="go('depoze')"><span class="ic">💳</span>Depoze</button>
-    <button id="nav_profil" onclick="go('profil')"><span class="ic">👤</span>Pwofil</button>
-    <button id="nav_admin" onclick="go('admin')"><span class="ic">🛠️</span>Admin</button>
+    <button id="nav_profil" onclick="go('profil')"><span class="ic">👤</span>Pwofil<span class="notif-badge" id="badge_profil" style="display:none;"></span></button>
+    <button id="nav_admin" onclick="go('admin')"><span class="ic">🛠️</span>Admin<span class="notif-badge" id="badge_admin" style="display:none;"></span></button>
   </nav>
 
   <div class="toast" id="toast"></div>
@@ -574,6 +580,7 @@ let deposits = [];
 let accessRequests = [];
 let visits = [];
 let purchases = [];
+let notifications = [];
 let settings = { price: 1000, trialDays: 20 };
 let currentUser = JSON.parse(localStorage.getItem('tp_current_user')) || null;
 
@@ -623,7 +630,13 @@ async function refreshUsers(){
   if(document.getElementById('admin').classList.contains('active')) renderAdmin();
 }
 async function refreshDeposits(){
+  const prevPending = deposits.filter(d=>d.status==='atant').length;
   deposits = await fetchAll('deposits');
+  const newPending = deposits.filter(d=>d.status==='atant').length;
+  if(newPending > prevPending && typeof Notification !== 'undefined' && Notification.permission === 'granted'){
+    new Notification('Trace Publicité', { body: 'Yon nouvo depo rive — al konfime li nan Panèl Admin.' });
+  }
+  updateBadges();
   if(document.getElementById('admin').classList.contains('active')) renderAdmin();
 }
 async function refreshTeachers(){
@@ -648,6 +661,43 @@ async function refreshVisits(){
 async function refreshPurchases(){
   purchases = await fetchAll('purchases');
 }
+async function refreshNotifications(){
+  if(!currentUser) return;
+  const all = await fetchAll('notifications');
+  notifications = all.filter(n=>n.userId===currentUser.id);
+  updateBadges();
+  if(document.getElementById('profil').classList.contains('active')) renderNotifications();
+}
+function updateBadges(){
+  const pendingDeposits = deposits.filter(d=>d.status==='atant').length;
+  const badgeAdmin = document.getElementById('badge_admin');
+  if(badgeAdmin){ badgeAdmin.style.display = pendingDeposits>0 ? 'flex' : 'none'; badgeAdmin.textContent = pendingDeposits; }
+
+  const unread = notifications.filter(n=>!n.isRead).length;
+  const badgeProfil = document.getElementById('badge_profil');
+  if(badgeProfil){ badgeProfil.style.display = unread>0 ? 'flex' : 'none'; badgeProfil.textContent = unread; }
+}
+async function enableNotifications(){
+  if(typeof Notification === 'undefined'){ toast('Navigatè a pa sipòte notifikasyon'); return; }
+  const perm = await Notification.requestPermission();
+  if(perm === 'granted'){ toast('Notifikasyon aktive ✅'); new Notification('Trace Publicité', { body:'Ou ap resevwa notifikasyon lè yon depo rive.' }); }
+  else { toast('Notifikasyon pa aktive'); }
+}
+window.enableNotifications = enableNotifications;
+function renderNotifications(){
+  const box = document.getElementById('notifList');
+  if(!box) return;
+  box.innerHTML = notifications.length
+    ? notifications.map(n=>`
+      <div class="kv" style="${n.isRead?'opacity:0.6;':''}" onclick="markNotifRead('${n.id}')">
+        <span class="k">${n.message}</span>
+      </div>`).join('')
+    : `<div class="empty">Ou pa gen notifikasyon.</div>`;
+}
+async function markNotifRead(id){
+  await updateRow('notifications', id, { isRead:true });
+}
+window.markNotifRead = markNotifRead;
 
 /* ---- Telechajman fichye nan Supabase Storage (videyo/imaj/vwa) ---- */
 async function uploadCourseFile(file, folder){
@@ -669,7 +719,8 @@ function listenAll(){
     ['settings', refreshSettings],
     ['access_requests', refreshAccessRequests],
     ['visits', refreshVisits],
-    ['purchases', refreshPurchases]
+    ['purchases', refreshPurchases],
+    ['notifications', refreshNotifications]
   ];
   tables.forEach(([table, refreshFn])=>{
     db.channel('public:'+table)
@@ -695,6 +746,7 @@ function go(pageId){
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
   if(pageId==='admin'){ renderAdmin(); renderAccessAndVisits(); }
+  if(pageId==='profil') renderNotifications();
   window.scrollTo(0,0);
 }
 
@@ -1203,10 +1255,22 @@ function renderAccessAndVisits(){
   const visitBox = document.getElementById('adminVisits');
   if(visitBox){
     visitBox.innerHTML = visits.length
-      ? visits.map(v=>`<div class="kv"><span class="k">${v.userName}</span><span class="v hint">vizite</span></div>`).join('')
+      ? visits.map(v=>`<div class="kv"><span class="k">${v.userName}</span><span class="v" style="display:flex;align-items:center;gap:8px;"><span class="hint">vizite</span><button class="btn btn-danger" style="width:auto;padding:3px 8px;font-size:11px;" onclick="deleteVisit('${v.id}')">✕</button></span></div>`).join('')
       : `<div class="empty">Pa gen vizit anrejistre.</div>`;
   }
 }
+
+async function deleteVisit(id){
+  await deleteRow('visits', id);
+  toast('Vizit efase');
+}
+window.deleteVisit = deleteVisit;
+
+async function deleteAllVisits(){
+  for(const v of visits){ await deleteRow('visits', v.id); }
+  toast('Tout vizit efase');
+}
+window.deleteAllVisits = deleteAllVisits;
 
 async function approveAccessRequest(reqId, companyId, userId){
   await updateRow('access_requests', reqId, { status:'apwouve' });
@@ -1235,6 +1299,11 @@ async function confirmDeposit(id){
     if(dep.courseId){
       await insertRow('purchases', { userId:dep.userId, courseId:dep.courseId });
     }
+    await insertRow('notifications', {
+      userId: dep.userId,
+      message: `✅ Depo ou a (${dep.montan} G) konfime! Ou gen aksè kounye a nan kou a.`,
+      isRead: false
+    });
   }
   toast('Depo konfime — aksè bay itilizatè a');
 }
