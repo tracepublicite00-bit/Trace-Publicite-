@@ -311,7 +311,17 @@ window.addEventListener('unhandledrejection', function(e) {
   <section id="support" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Sèvis Kliyan</span></div>
     <div class="card" style="text-align:center;">
-      <div style="font-size:44px;">👩‍🚒</div>
+      <svg width="88" height="88" viewBox="0 0 100 100" style="margin:0 auto;display:block;">
+        <circle cx="50" cy="50" r="48" fill="#EEF3FA"/>
+        <circle cx="50" cy="43" r="18" fill="#1B3A6B"/>
+        <path d="M22 88c0-16 12.5-29 28-29s28 13 28 29" fill="#1B3A6B"/>
+        <path d="M25 40a25 25 0 0 1 50 0" fill="none" stroke="#E8A33D" stroke-width="5" stroke-linecap="round"/>
+        <rect x="19" y="37" width="9" height="16" rx="4" fill="#E8A33D"/>
+        <rect x="72" y="37" width="9" height="16" rx="4" fill="#E8A33D"/>
+        <rect x="70" y="47" width="14" height="7" rx="3.5" fill="#C77F1F"/>
+        <line x1="77" y1="54" x2="63" y2="60" stroke="#C77F1F" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="61" cy="61" r="3.5" fill="#C77F1F"/>
+      </svg>
       <p style="margin:10px 0;">Nou la pou ede w! Peze bouton anba a pou voye yon mesaj dirèkteman bay pwopriyetè platfòm nan sou WhatsApp.</p>
       <a class="btn btn-primary" style="text-decoration:none;" href="https://wa.me/50955989871" target="_blank">Kontakte sou WhatsApp</a>
     </div>
@@ -458,8 +468,8 @@ window.addEventListener('unhandledrejection', function(e) {
       <div id="stepVideoPreview"></div>
       <label>OSWA lyen YouTube</label>
       <input id="stepYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
-      <label>Imaj (opsyonèl)</label>
-      <input id="stepImageFile" type="file" accept="image/*" onchange="previewStepFile('stepImageFile','stepImagePreview','image')">
+      <label>Imaj (opsyonèl — ou ka chwazi plizyè)</label>
+      <input id="stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('stepImageFile','stepImagePreview','image')">
       <div id="stepImagePreview"></div>
       <label>Nòt vwa (opsyonèl)</label>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -955,8 +965,9 @@ async function openCourse(id){
           </div>` : ''}
         ${v.videoUrl ? `<video src="${v.videoUrl}" controls style="width:100%;border-radius:10px;margin-top:8px;"></video>` : ''}
         ${v.imageUrl ? `<img src="${v.imageUrl}" style="width:100%;border-radius:10px;margin-top:8px;">` : ''}
+        ${(v.imageUrls && v.imageUrls.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${v.imageUrls.map(u=>`<img src="${u}" style="width:100%;max-width:100%;border-radius:10px;">`).join('')}</div>` : ''}
         ${v.audioUrl ? `<audio src="${v.audioUrl}" controls style="width:100%;margin-top:8px;"></audio>` : ''}
-        ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
+        ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl && !(v.imageUrls && v.imageUrls.length)) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
       </div>`).join('') || `<div class="empty">Pa gen etap kreye pou kou sa a.</div>`;
   } else {
     document.getElementById('videoArea').innerHTML = `
@@ -1383,22 +1394,27 @@ function renderStepList(){
   if(!k){ box.innerHTML=''; return; }
   box.innerHTML = (k.videos||[]).map((v,i)=>`
     <div class="kv">
-      <span class="k">${i+1}. ${v.title} ${v.videoUrl?'🎬':''}${v.youtubeUrl?'▶️':''}${v.imageUrl?'🖼️':''}${v.audioUrl?'🎤':''}</span>
+      <span class="k">${i+1}. ${v.title} ${v.videoUrl?'🎬':''}${v.youtubeUrl?'▶️':''}${(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':''}${v.audioUrl?'🎤':''}</span>
       <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCourseStep('${k.id}', ${i})">Efase</button>
     </div>`).join('') || `<div class="empty">Pa gen etap pou kou sa a.</div>`;
 }
 document.addEventListener('change', (e)=>{ if(e.target.id==='stepCourseSelect') renderStepList(); });
 
 function previewStepFile(inputId, previewId, kind){
-  const file = document.getElementById(inputId).files[0];
+  const files = document.getElementById(inputId).files;
   const box = document.getElementById(previewId);
-  if(!file){ box.innerHTML=''; return; }
-  const url = URL.createObjectURL(file);
+  if(!files || files.length===0){ box.innerHTML=''; return; }
   if(kind==='video'){
+    const url = URL.createObjectURL(files[0]);
     box.innerHTML = `<video src="${url}" controls style="width:100%;border-radius:10px;margin-top:8px;max-height:240px;"></video>`;
   } else if(kind==='image'){
-    box.innerHTML = `<img src="${url}" style="width:100%;border-radius:10px;margin-top:8px;max-height:240px;object-fit:contain;">`;
+    box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">` +
+      Array.from(files).map(f=>{
+        const url = URL.createObjectURL(f);
+        return `<img src="${url}" style="width:90px;height:90px;border-radius:10px;object-fit:cover;">`;
+      }).join('') + `</div>`;
   } else if(kind==='audio'){
+    const url = URL.createObjectURL(files[0]);
     box.innerHTML = `<audio src="${url}" controls style="width:100%;margin-top:8px;"></audio>`;
   }
 }
@@ -1446,7 +1462,7 @@ async function addCourseStep(){
   if(!courseId || !title){ toast('Chwazi yon kou epi antre tit etap la'); return; }
   const statusEl = document.getElementById('stepUploadStatus');
   const videoFile = document.getElementById('stepVideoFile').files[0];
-  const imageFile = document.getElementById('stepImageFile').files[0];
+  const imageFiles = document.getElementById('stepImageFile').files;
   const audioFile = document.getElementById('stepAudioFile').files[0];
   const youtubeUrl = document.getElementById('stepYoutubeUrl').value.trim();
 
@@ -1454,7 +1470,16 @@ async function addCourseStep(){
   const step = { id: 'v'+Date.now(), title, locked:false };
   if(youtubeUrl) step.youtubeUrl = youtubeUrl;
   if(videoFile){ statusEl.textContent='Ap telechaje videyo...'; const url = await uploadCourseFile(videoFile, 'videos'); if(url) step.videoUrl = url; }
-  if(imageFile){ statusEl.textContent='Ap telechaje imaj...'; const url = await uploadCourseFile(imageFile, 'images'); if(url) step.imageUrl = url; }
+  if(imageFiles && imageFiles.length>0){
+    statusEl.textContent = `Ap telechaje ${imageFiles.length} imaj...`;
+    const urls = [];
+    for(const f of imageFiles){
+      const url = await uploadCourseFile(f, 'images');
+      if(url) urls.push(url);
+    }
+    if(urls.length===1){ step.imageUrl = urls[0]; }
+    else if(urls.length>1){ step.imageUrls = urls; }
+  }
   if(audioFile){ statusEl.textContent='Ap telechaje nòt vwa...'; const url = await uploadCourseFile(audioFile, 'audio'); if(url) step.audioUrl = url; }
   else if(recordedBlob){ statusEl.textContent='Ap telechaje nòt vwa...'; const recFile = new File([recordedBlob], 'nòt-vwa.webm', { type:'audio/webm' }); const url = await uploadCourseFile(recFile, 'audio'); if(url) step.audioUrl = url; }
 
