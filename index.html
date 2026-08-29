@@ -760,7 +760,7 @@ function go(pageId){
   if(pageId==='klasman') renderRanking();
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
-  if(pageId==='admin'){ renderAdmin(); renderAccessAndVisits(); }
+  if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); }
   if(pageId==='profil') renderNotifications();
   window.scrollTo(0,0);
 }
@@ -942,10 +942,11 @@ async function openCourse(id){
   const k = courses.find(x=>x.id===id);
   document.getElementById('kouTitre').textContent = k.title;
 
-  const hasAccess = currentUser && purchases.some(p=>p.userId===currentUser.id && p.courseId===id);
+  const isAdmin = localStorage.getItem('tp_is_admin') === '1';
+  const hasAccess = isAdmin || (currentUser && purchases.some(p=>p.userId===currentUser.id && p.courseId===id));
 
   if(hasAccess){
-    document.getElementById('videoArea').innerHTML = `<div class="hint" style="padding:6px 2px;">Ou gen aksè — gade etap yo anba a 👇</div>`;
+    document.getElementById('videoArea').innerHTML = `<div class="hint" style="padding:6px 2px;">${isAdmin ? 'Ou gen aksè admin — gade etap yo anba a 👇' : 'Ou gen aksè — gade etap yo anba a 👇'}</div>`;
     document.getElementById('videoListEtap').innerHTML = (k.videos||[]).map((v,i)=>`
       <div class="card" style="margin-top:10px;">
         <div class="k" style="font-weight:700;margin-bottom:8px;">${i+1}. ${v.title}</div>
