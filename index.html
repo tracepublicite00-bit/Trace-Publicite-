@@ -1692,6 +1692,8 @@ async function toggleStepDownload(courseId, index){
   const videos = [...(k.videos||[])];
   videos[index] = { ...videos[index], allowDownload: !videos[index].allowDownload };
   await updateRow('courses', courseId, { videos });
+  k.videos = videos;
+  renderStepList();
   toast(videos[index].allowDownload ? 'Telechajman pèmèt' : 'Telechajman bloke');
 }
 window.toggleStepDownload = toggleStepDownload;
@@ -1783,6 +1785,8 @@ async function addCourseStep(){
   const k = courses.find(c=>c.id===courseId);
   const videos = [...(k?.videos||[]), step];
   await updateRow('courses', courseId, { videos });
+  if(k) k.videos = videos;
+  renderStepList();
 
   statusEl.textContent = 'Etap ajoute avèk siksè ✅';
   document.getElementById('stepTitle').value = '';
@@ -1816,6 +1820,8 @@ async function deleteCourseStep(courseId, index){
   if(!k) return;
   const videos = (k.videos||[]).filter((_,i)=>i!==index);
   await updateRow('courses', courseId, { videos });
+  k.videos = videos;
+  renderStepList();
   toast('Etap efase');
 }
 window.deleteCourseStep = deleteCourseStep;
