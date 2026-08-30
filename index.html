@@ -918,9 +918,11 @@ function initials(name){
 
 /* ===================== AKÈY ===================== */
 function renderAkey(){
+  const isAdmin = localStorage.getItem('tp_is_admin') === '1';
+  const countedUsers = (isAdmin && currentUser) ? allUsers.filter(u=>u.id!==currentUser.id) : allUsers;
   const vant = deposits.filter(d=>d.status==='konfime').length;
-  const abone = allUsers.length;
-  const elev = allUsers.length;
+  const abone = countedUsers.length;
+  const elev = countedUsers.length;
   document.getElementById('stat_vant').textContent = vant;
   document.getElementById('stat_abone').textContent = abone;
   document.getElementById('stat_elev').textContent = elev;
