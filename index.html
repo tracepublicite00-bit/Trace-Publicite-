@@ -1501,6 +1501,7 @@ function renderAdmin(){
 
 async function toggleTeacherBlock(id, currentlyBlocked){
   await updateRow('teachers', id, { blocked: !currentlyBlocked });
+  await refreshTeachers();
 }
 window.toggleTeacherBlock = toggleTeacherBlock;
 
@@ -1528,12 +1529,14 @@ function renderAccessAndVisits(){
 
 async function deleteVisit(id){
   await deleteRow('visits', id);
+  await refreshVisits();
   toast('Vizit efase');
 }
 window.deleteVisit = deleteVisit;
 
 async function deleteAllVisits(){
   for(const v of visits){ await deleteRow('visits', v.id); }
+  await refreshVisits();
   toast('Tout vizit efase');
 }
 window.deleteAllVisits = deleteAllVisits;
@@ -1544,12 +1547,15 @@ async function approveAccessRequest(reqId, companyId, userId){
   const approvedUsers = c?.approvedUsers || [];
   if(!approvedUsers.includes(userId)) approvedUsers.push(userId);
   await updateRow('companies', companyId, { approvedUsers });
+  await refreshAccessRequests();
+  await refreshCompanies();
   toast('Aksè apwouve pou itilizatè a');
 }
 window.approveAccessRequest = approveAccessRequest;
 
 async function approveTeacher(id){
   await updateRow('teachers', id, { status:'apwouve' });
+  await refreshTeachers();
   toast('Pwofesè apwouve');
 }
 window.approveTeacher = approveTeacher;
@@ -1572,6 +1578,9 @@ async function confirmDeposit(id){
     });
   }
   toast('Depo konfime — aksè bay itilizatè a');
+  await refreshDeposits();
+  await refreshUsers();
+  await refreshPurchases();
 }
 
 async function toggleCompanyApproval(id){
@@ -1583,6 +1592,7 @@ async function toggleCompanyApproval(id){
     updateData.trialDays = settings.trialDays;
   }
   await updateRow('companies', id, updateData);
+  await refreshCompanies();
 }
 window.toggleCompanyApproval = toggleCompanyApproval;
 
@@ -1617,6 +1627,7 @@ window.deleteCourse = deleteCourse;
 
 async function toggleUserBlock(id, currentlyBlocked){
   await updateRow('users', id, { blocked: !currentlyBlocked });
+  await refreshUsers();
 }
 
 async function uploadPaymentIcon(method, inputEl){
