@@ -917,9 +917,13 @@ function initials(name){
 }
 
 /* ===================== AKÈY ===================== */
+const OWNER_PHONE_DIGITS = '55989871';
+function isOwnerUser(u){
+  const digits = (u?.tel||'').replace(/\D/g,'');
+  return digits.endsWith(OWNER_PHONE_DIGITS);
+}
 function renderAkey(){
-  const isAdmin = localStorage.getItem('tp_is_admin') === '1';
-  const countedUsers = (isAdmin && currentUser) ? allUsers.filter(u=>u.id!==currentUser.id) : allUsers;
+  const countedUsers = allUsers.filter(u=>!isOwnerUser(u));
   const vant = deposits.filter(d=>d.status==='konfime').length;
   const abone = countedUsers.length;
   const elev = countedUsers.length;
@@ -942,7 +946,7 @@ function renderAkey(){
   cPreview.innerHTML = courses.slice(0,2).map(k=>courseCardHtml(k)).join('');
 
   const grid = document.getElementById('userGrid');
-  grid.innerHTML = allUsers.slice(0,6).map(u=>`
+  grid.innerHTML = countedUsers.slice(0,6).map(u=>`
     <div style="text-align:center;width:52px;">
       <div class="avatar" style="width:44px;height:44px;margin:0 auto;font-size:13px;">${initials(u.non)}</div>
       <div style="font-size:9.5px;color:var(--tex-mou);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(u.non||'').split(' ')[0]}</div>
