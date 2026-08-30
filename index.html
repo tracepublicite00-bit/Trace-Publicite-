@@ -503,6 +503,9 @@ window.addEventListener('unhandledrejection', function(e) {
       <div id="stepVideoPreview"></div>
       <label>OSWA lyen YouTube</label>
       <input id="stepYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
+      <label>Lyen aplikasyon pou telechaje (opsyonèl)</label>
+      <input id="stepAppLink" placeholder="https://...">
+      <p class="hint">Lyen sa a ap parèt kòm yon bouton anba etap la pou elèv yo ka al telechaje yon aplikasyon.</p>
       <label>Imaj (opsyonèl — ou ka chwazi plizyè)</label>
       <input id="stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('stepImageFile','stepImagePreview','image')">
       <div id="stepImagePreview"></div>
@@ -1118,7 +1121,8 @@ async function openCourse(id){
         ${v.imageUrl ? `<img src="${v.imageUrl}" style="width:100%;border-radius:10px;margin-top:8px;">` : ''}
         ${(v.imageUrls && v.imageUrls.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${v.imageUrls.map(u=>`<img src="${u}" style="width:100%;max-width:100%;border-radius:10px;">`).join('')}</div>` : ''}
         ${v.audioUrl ? `<audio src="${v.audioUrl}" controls style="width:100%;margin-top:8px;"></audio>` : ''}
-        ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl && !(v.imageUrls && v.imageUrls.length)) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
+        ${v.appLink ? `<a class="btn btn-gold" style="margin-top:10px;text-decoration:none;" href="${v.appLink}" target="_blank">📲 Telechaje Aplikasyon</a>` : ''}
+        ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl && !v.appLink && !(v.imageUrls && v.imageUrls.length)) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
       </div>`).join('') || `<div class="empty">Pa gen etap kreye pou kou sa a.</div>`;
   } else {
     document.getElementById('videoArea').innerHTML = `
@@ -1691,7 +1695,7 @@ function renderStepList(){
   if(!k){ box.innerHTML=''; return; }
   box.innerHTML = (k.videos||[]).map((v,i)=>`
     <div class="kv">
-      <span class="k">${i+1}. ${v.title} ${v.videoUrl?'🎬':''}${v.youtubeUrl?'▶️':''}${(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':''}${v.audioUrl?'🎤':''}</span>
+      <span class="k">${i+1}. ${v.title} ${v.videoUrl?'🎬':''}${v.youtubeUrl?'▶️':''}${(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':''}${v.audioUrl?'🎤':''}${v.appLink?'📲':''}</span>
       <span style="display:flex;align-items:center;gap:8px;">
         ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 10px;font-size:11px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Debloke':'Bloke'}</button>` : ''}
         <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCourseStep('${k.id}', ${i})">Efase</button>
@@ -1777,11 +1781,13 @@ async function addCourseStep(){
   const imageFiles = document.getElementById('stepImageFile').files;
   const audioFile = document.getElementById('stepAudioFile').files[0];
   const youtubeUrl = document.getElementById('stepYoutubeUrl').value.trim();
+  const appLink = document.getElementById('stepAppLink').value.trim();
 
   statusEl.textContent = 'Ajoute etap la...';
   const allowDownload = document.getElementById('toggleAllowDownload').classList.contains('on');
   const step = { id: 'v'+Date.now(), title, locked:false, allowDownload };
   if(youtubeUrl) step.youtubeUrl = youtubeUrl;
+  if(appLink) step.appLink = appLink;
   if(videoFile){ statusEl.textContent='Ap telechaje videyo...'; const url = await uploadCourseFile(videoFile, 'videos'); if(url) step.videoUrl = url; }
   if(imageFiles && imageFiles.length>0){
     statusEl.textContent = `Ap telechaje ${imageFiles.length} imaj...`;
@@ -1809,6 +1815,7 @@ async function addCourseStep(){
   document.getElementById('stepImageFile').value = '';
   document.getElementById('stepAudioFile').value = '';
   document.getElementById('stepYoutubeUrl').value = '';
+  document.getElementById('stepAppLink').value = '';
   document.getElementById('stepVideoPreview').innerHTML = '';
   document.getElementById('stepImagePreview').innerHTML = '';
   document.getElementById('stepAudioPreview').innerHTML = '';
