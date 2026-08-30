@@ -663,6 +663,24 @@ async function incrementField(table, id, field, delta=1){
 }
 function nowIso(){ return new Date().toISOString(); }
 
+/* ---- Idantifikasyon pa nimewo telefòn (menm prensip ak isOwnerUser) ---- */
+function normalizePhone(tel){
+  const digits = (tel||'').replace(/\D/g,'');
+  return digits.startsWith('509') ? digits.slice(3) : digits;
+}
+function dedupeByPhone(list){
+  const seen = new Set();
+  const out = [];
+  for(const item of list){
+    const key = normalizePhone(item.tel);
+    if(!key){ out.push(item); continue; }
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 /* ===================== ETA LOKAL (kach) ===================== */
 let companies = [];
 let courses = [];
@@ -923,7 +941,7 @@ function isOwnerUser(u){
   return digits.endsWith(OWNER_PHONE_DIGITS);
 }
 function renderAkey(){
-  const countedUsers = allUsers.filter(u=>!isOwnerUser(u));
+  const countedUsers = dedupeByPhone(allUsers.filter(u=>!isOwnerUser(u)));
   const vant = deposits.filter(d=>d.status==='konfime').length;
   const abone = countedUsers.length;
   const elev = countedUsers.length;
@@ -1256,13 +1274,24 @@ async function submitRegister(){
   btn.textContent = 'Ap kreye kont...';
 
   const accessCode = computeAccessCode(tel);
+  const normTel = normalizePhone(tel);
 
-  let newUser;
+  let newUser = null;
+  let reconnected = false;
   try {
-    newUser = await insertRow('users', {
-      non, email, tel, peyi, vil, blocked:false,
-      achte:0, fini:0, mwaAktif:0, piblik:true, accessCode
-    });
+    // Chèche si yon kont deja egziste ak menm nimewo telefòn nan
+    // (evite kreye yon doublon lè menm moun nan konekte sou yon lòt aparèy)
+    const existingUsers = await fetchAll('users');
+    const match = normTel ? existingUsers.find(u => normalizePhone(u.tel) === normTel) : null;
+    if(match){
+      newUser = match;
+      reconnected = true;
+    } else {
+      newUser = await insertRow('users', {
+        non, email, tel, peyi, vil, blocked:false,
+        achte:0, fini:0, mwaAktif:0, piblik:true, accessCode
+      });
+    }
   } catch(e){
     btn.disabled = false;
     btn.textContent = 'Kreye kont mwen';
@@ -1270,16 +1299,24 @@ async function submitRegister(){
     return;
   }
 
-  currentUser = { id: newUser.id, non, email, tel, peyi, vil, accessCode };
+  currentUser = {
+    id: newUser.id,
+    non: newUser.non || non,
+    email: newUser.email || email,
+    tel: newUser.tel || tel,
+    peyi: newUser.peyi || peyi,
+    vil: newUser.vil || vil,
+    accessCode: newUser.accessCode || accessCode
+  };
   localStorage.setItem('tp_current_user', JSON.stringify(currentUser));
-  document.getElementById('prof_non').textContent = non;
-  document.getElementById('prof_tel').textContent = tel;
+  document.getElementById('prof_non').textContent = currentUser.non;
+  document.getElementById('prof_tel').textContent = currentUser.tel;
   document.getElementById('prof_id').textContent = 'TP-' + newUser.id.slice(0,6).toUpperCase();
-  document.getElementById('prof_code').textContent = accessCode;
-  document.getElementById('prof_achte').textContent = '0';
-  document.getElementById('prof_fini').textContent = '0';
-  document.getElementById('prof_mwa').textContent = '0';
-  toast('Kont kreye! Kòd aksè ou se ' + accessCode);
+  document.getElementById('prof_code').textContent = currentUser.accessCode;
+  document.getElementById('prof_achte').textContent = newUser.achte ?? 0;
+  document.getElementById('prof_fini').textContent = newUser.fini ?? 0;
+  document.getElementById('prof_mwa').textContent = newUser.mwaAktif ?? 0;
+  toast(reconnected ? 'Byenveni ankò! Kòd aksè ou se ' + currentUser.accessCode : 'Kont kreye! Kòd aksè ou se ' + currentUser.accessCode);
   go('akey');
 }
 
@@ -1322,7 +1359,8 @@ function renderRanking(){
 
 /* ===================== WÈ TOUT ITILIZATÈ ===================== */
 function renderAllUsers(){
-  document.getElementById('allUsersList').innerHTML = allUsers.map(u=>`
+  const deduped = dedupeByPhone(allUsers);
+  document.getElementById('allUsersList').innerHTML = deduped.map(u=>`
     <div class="company-row">
       <div class="avatar">${initials(u.non)}</div>
       <div class="info"><div class="name">${u.non}</div><div class="meta">${u.tel}</div></div>
@@ -1332,7 +1370,7 @@ function renderAllUsers(){
 
 /* ===================== LIS PWOFESÈ ===================== */
 function renderTeacherList(){
-  const approved = teachers.filter(t=>t.status==='apwouve');
+  const approved = dedupeByPhone(teachers.filter(t=>t.status==='apwouve'));
   document.getElementById('teacherListFull').innerHTML = approved.length
     ? approved.map(t=>`
       <div class="company-row">
@@ -1351,6 +1389,16 @@ async function submitTeacherKyc(){
   const konpetans = document.getElementById('kyc_konpetans').value;
   const poukisa = document.getElementById('kyc_poukisa').value;
   if(!non||!tel||!domenn||!konpetans||!poukisa){ toast('Tanpri ranpli tout chan yo'); return; }
+
+  const normTel = normalizePhone(tel);
+  const existingTeachers = await fetchAll('teachers');
+  const match = normTel ? existingTeachers.find(t => normalizePhone(t.tel) === normTel) : null;
+  if(match){
+    toast('Ou gen deja yon demand oswa yon kont fòmatè ak nimewo telefòn sa a');
+    go('profil');
+    return;
+  }
+
   await insertRow('teachers', {
     non, tel, piece, domenn, konpetans, poukisa, status:'atant',
     userId: currentUser?.id || null
