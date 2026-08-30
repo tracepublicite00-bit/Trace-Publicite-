@@ -1603,12 +1603,14 @@ window.createCompany = createCompany;
 
 async function deleteCompany(id){
   await deleteRow('companies', id);
+  await refreshCompanies();
   toast('Antrepriz efase');
 }
 window.deleteCompany = deleteCompany;
 
 async function deleteCourse(id){
   await deleteRow('courses', id);
+  await refreshCourses();
   toast('Kou efase');
 }
 window.deleteCourse = deleteCourse;
