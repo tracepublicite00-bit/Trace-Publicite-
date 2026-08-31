@@ -853,8 +853,7 @@ function hideUploadProgress(){
 function uploadFileWithProgress(file, folder, onProgress){
   return new Promise((resolve)=>{
     if(file.size > MAX_UPLOAD_MB * 1024 * 1024){
-      toast(`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo) — maksimòm ${MAX_UPLOAD_MB} Mo. Konprese l anvan.`);
-      resolve(null);
+      resolve({ url:null, error:`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo) — maksimòm ${MAX_UPLOAD_MB} Mo. Konprese l anvan.` });
       return;
     }
     const ext = file.name.split('.').pop();
@@ -872,19 +871,17 @@ function uploadFileWithProgress(file, folder, onProgress){
     xhr.onload = ()=>{
       if(xhr.status >= 200 && xhr.status < 300){
         const { data } = db.storage.from('course-media').getPublicUrl(path);
-        resolve(data.publicUrl);
+        resolve({ url:data.publicUrl, error:null });
       } else {
         let msg = 'Erè telechajman (kòd ' + xhr.status + ')';
         try{ const j = JSON.parse(xhr.responseText); if(j.message) msg = j.message; }catch(e){}
         console.error('Erè telechajman fichye:', msg);
-        toast('Erè: ' + msg);
-        resolve(null);
+        resolve({ url:null, error: msg + ' (kòd ' + xhr.status + ')' });
       }
     };
     xhr.onerror = ()=>{
       console.error('Erè rezo pandan telechajman fichye');
-      toast('Erè rezo — verifye koneksyon entènèt ou epi reyeseye');
-      resolve(null);
+      resolve({ url:null, error:'Erè rezo — verifye koneksyon entènèt ou epi reyeseye' });
     };
     xhr.send(file);
   });
@@ -1922,11 +1919,12 @@ async function addCourseStep(){
   if(youtubeUrl) step.youtubeUrl = youtubeUrl;
   if(appLink) step.appLink = appLink;
   let uploadFailed = false;
+  let uploadErrors = [];
   if(videoFile){
     statusEl.textContent = 'Ap telechaje videyo... 0%';
     showUploadProgress(0);
-    const url = await uploadFileWithProgress(videoFile, 'videos', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje videyo... ${pct}%`; });
-    if(url) step.videoUrl = url; else uploadFailed = true;
+    const res = await uploadFileWithProgress(videoFile, 'videos', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje videyo... ${pct}%`; });
+    if(res.url) step.videoUrl = res.url; else { uploadFailed = true; uploadErrors.push('Videyo: ' + res.error); }
   }
   if(imageFiles && imageFiles.length>0){
     const urls = [];
@@ -1934,8 +1932,8 @@ async function addCourseStep(){
       const f = imageFiles[i];
       statusEl.textContent = `Ap telechaje imaj ${i+1}/${imageFiles.length}... 0%`;
       showUploadProgress(0);
-      const url = await uploadFileWithProgress(f, 'images', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje imaj ${i+1}/${imageFiles.length}... ${pct}%`; });
-      if(url) urls.push(url); else uploadFailed = true;
+      const res = await uploadFileWithProgress(f, 'images', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje imaj ${i+1}/${imageFiles.length}... ${pct}%`; });
+      if(res.url) urls.push(res.url); else { uploadFailed = true; uploadErrors.push(`Imaj ${i+1}: ` + res.error); }
     }
     if(urls.length===1){ step.imageUrl = urls[0]; }
     else if(urls.length>1){ step.imageUrls = urls; }
@@ -1943,18 +1941,19 @@ async function addCourseStep(){
   if(audioFile){
     statusEl.textContent = 'Ap telechaje nòt vwa... 0%';
     showUploadProgress(0);
-    const url = await uploadFileWithProgress(audioFile, 'audio', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
-    if(url) step.audioUrl = url; else uploadFailed = true;
+    const res = await uploadFileWithProgress(audioFile, 'audio', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
+    if(res.url) step.audioUrl = res.url; else { uploadFailed = true; uploadErrors.push('Nòt vwa: ' + res.error); }
   } else if(recordedBlob){
     statusEl.textContent = 'Ap telechaje nòt vwa... 0%';
     showUploadProgress(0);
     const recFile = new File([recordedBlob], 'nòt-vwa.webm', { type:'audio/webm' });
-    const url = await uploadFileWithProgress(recFile, 'audio', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
-    if(url) step.audioUrl = url; else uploadFailed = true;
+    const res = await uploadFileWithProgress(recFile, 'audio', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
+    if(res.url) step.audioUrl = res.url; else { uploadFailed = true; uploadErrors.push('Nòt vwa: ' + res.error); }
   }
   hideUploadProgress();
   if(uploadFailed){
-    statusEl.textContent = '⚠️ Yon fichye pa t telechaje — gade mesaj erè a anlè a. Etap la ap ajoute ak sa ki reyisi yo sèlman.';
+    statusEl.innerHTML = '⚠️ ' + uploadErrors.join('<br>⚠️ ') + '<br><small>Etap la ap ajoute ak sa ki reyisi yo sèlman.</small>';
+    statusEl.style.color = 'var(--wouj)';
   }
 
   const k = courses.find(c=>c.id===courseId);
@@ -1963,7 +1962,7 @@ async function addCourseStep(){
   if(k) k.videos = videos;
   renderStepList();
 
-  if(!uploadFailed){ statusEl.textContent = 'Etap ajoute avèk siksè ✅'; }
+  if(!uploadFailed){ statusEl.style.color = ''; statusEl.textContent = 'Etap ajoute avèk siksè ✅'; }
   document.getElementById('stepTitle').value = '';
   document.getElementById('toggleAllowDownload').classList.remove('on');
   document.getElementById('stepVideoFile').value = '';
