@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = 'trace-publicite-' + CACHE_VERSION;
 const CORE_ASSETS = [
   './',
@@ -25,10 +25,10 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  // Paj HTML la: toujou eseye rezo a AVAN — konsa nouvo vèsyon parèt san moun pa bezwen efase anyen
+  // Paj HTML la: toujou eseye rezo a AVAN, san okenn kachèt HTTP — konsa nouvo vèsyon parèt san moun pa bezwen efase anyen
   if (req.mode === 'navigate' || req.destination === 'document') {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-store' })
         .then((res) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, res.clone()));
           return res;
