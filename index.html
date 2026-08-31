@@ -522,6 +522,11 @@ window.addEventListener('unhandledrejection', function(e) {
       </div>
       <div id="stepAudioPreview"></div>
       <button class="btn btn-primary" style="margin-top:14px;" onclick="addCourseStep()">Ajoute etap la</button>
+      <div id="stepUploadProgressWrap" style="display:none;margin-top:10px;">
+        <div style="width:100%;height:10px;background:var(--gri);border-radius:6px;overflow:hidden;">
+          <div id="stepUploadProgressBar" style="height:100%;width:0%;background:var(--vet);transition:width .15s;"></div>
+        </div>
+      </div>
       <p id="stepUploadStatus" class="hint" style="margin-top:8px;"></p>
       <div id="stepList" style="margin-top:14px;"></div>
     </div>
@@ -571,6 +576,7 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Ajiste pozisyon figi a nan avatar la</label>
       <input id="supportPosSlider" type="range" min="0" max="100" value="50" oninput="adjustSupportPosition(this.value)">
       <p class="hint">Deplase kizòt la si figi a koupe — anwo/anba</p>
+      <button type="button" class="btn btn-primary" style="margin-top:10px;" onclick="saveSupportPosition()">💾 Sovgade pozisyon</button>
       <p id="iconUploadStatus" class="hint" style="margin-top:6px;"></p>
     </div>
 
@@ -828,6 +834,60 @@ async function uploadCourseFile(file, folder){
   if(error){ console.error('Erè telechajman fichye:', error); toast('Erè telechajman — verifye bucket "course-media" egziste'); return null; }
   const { data } = db.storage.from('course-media').getPublicUrl(path);
   return data.publicUrl;
+}
+
+/* ---- Telechajman ak bare pwogrè + mesaj erè reyèl (itilize pou videyo/imaj/vwa nan etap kou) ---- */
+const MAX_UPLOAD_MB = 50;
+function showUploadProgress(pct){
+  const wrap = document.getElementById('stepUploadProgressWrap');
+  const bar = document.getElementById('stepUploadProgressBar');
+  if(wrap) wrap.style.display = 'block';
+  if(bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+function hideUploadProgress(){
+  const wrap = document.getElementById('stepUploadProgressWrap');
+  const bar = document.getElementById('stepUploadProgressBar');
+  if(wrap) wrap.style.display = 'none';
+  if(bar) bar.style.width = '0%';
+}
+function uploadFileWithProgress(file, folder, onProgress){
+  return new Promise((resolve)=>{
+    if(file.size > MAX_UPLOAD_MB * 1024 * 1024){
+      toast(`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo) — maksimòm ${MAX_UPLOAD_MB} Mo. Konprese l anvan.`);
+      resolve(null);
+      return;
+    }
+    const ext = file.name.split('.').pop();
+    const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const url = `${SUPABASE_URL}/storage/v1/object/course-media/${path}`;
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
+    xhr.setRequestHeader('apikey', SUPABASE_KEY);
+    xhr.setRequestHeader('x-upsert', 'true');
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (e)=>{
+      if(e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = ()=>{
+      if(xhr.status >= 200 && xhr.status < 300){
+        const { data } = db.storage.from('course-media').getPublicUrl(path);
+        resolve(data.publicUrl);
+      } else {
+        let msg = 'Erè telechajman (kòd ' + xhr.status + ')';
+        try{ const j = JSON.parse(xhr.responseText); if(j.message) msg = j.message; }catch(e){}
+        console.error('Erè telechajman fichye:', msg);
+        toast('Erè: ' + msg);
+        resolve(null);
+      }
+    };
+    xhr.onerror = ()=>{
+      console.error('Erè rezo pandan telechajman fichye');
+      toast('Erè rezo — verifye koneksyon entènèt ou epi reyeseye');
+      resolve(null);
+    };
+    xhr.send(file);
+  });
 }
 
 function listenAll(){
@@ -1496,8 +1556,11 @@ function renderAdmin(){
   if(settings.paymentIcons?.meru){
     document.getElementById('iconMeruPreview').innerHTML = `<img src="${settings.paymentIcons.meru}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
   }
-  if(settings.paymentIcons?.support){
+  const sliderIsActive = document.activeElement && document.activeElement.id === 'supportPosSlider';
+  if(settings.paymentIcons?.support && !sliderIsActive){
     document.getElementById('iconSupportPreview').innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center ${settings.paymentIcons.supportPos ?? 50}%;">`;
+    const supportSlider = document.getElementById('supportPosSlider');
+    if(supportSlider) supportSlider.value = settings.paymentIcons.supportPos ?? 50;
   }
   document.getElementById('admin_trial').value = settings.trialDays;
   document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
@@ -1720,20 +1783,23 @@ function renderSupportAvatar(){
 window.renderSupportAvatar = renderSupportAvatar;
 
 let supportPosDebounce = null;
-async function adjustSupportPosition(val){
+function adjustSupportPosition(val){
   const box = document.getElementById('supportAvatarBox');
   const img = box?.querySelector('img');
   if(img) img.style.objectPosition = `center ${val}%`;
   const preview = document.getElementById('iconSupportPreview')?.querySelector('img');
   if(preview) preview.style.objectPosition = `center ${val}%`;
-  clearTimeout(supportPosDebounce);
-  supportPosDebounce = setTimeout(async ()=>{
-    const paymentIcons = { ...(settings.paymentIcons||{}), supportPos: Number(val) };
-    await updateRow('settings', 'main', { paymentIcons });
-    settings.paymentIcons = paymentIcons;
-  }, 500);
 }
 window.adjustSupportPosition = adjustSupportPosition;
+
+async function saveSupportPosition(){
+  const val = document.getElementById('supportPosSlider')?.value ?? 50;
+  const paymentIcons = { ...(settings.paymentIcons||{}), supportPos: Number(val) };
+  await updateRow('settings', 'main', { paymentIcons });
+  settings.paymentIcons = paymentIcons;
+  toast('Pozisyon avata a sovgade ✅');
+}
+window.saveSupportPosition = saveSupportPosition;
 
 async function saveAdminSettings(){
   const price = Number(document.getElementById('admin_price').value);
@@ -1855,19 +1921,41 @@ async function addCourseStep(){
   const step = { id: 'v'+Date.now(), title, locked:false, allowDownload };
   if(youtubeUrl) step.youtubeUrl = youtubeUrl;
   if(appLink) step.appLink = appLink;
-  if(videoFile){ statusEl.textContent='Ap telechaje videyo...'; const url = await uploadCourseFile(videoFile, 'videos'); if(url) step.videoUrl = url; }
+  let uploadFailed = false;
+  if(videoFile){
+    statusEl.textContent = 'Ap telechaje videyo... 0%';
+    showUploadProgress(0);
+    const url = await uploadFileWithProgress(videoFile, 'videos', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje videyo... ${pct}%`; });
+    if(url) step.videoUrl = url; else uploadFailed = true;
+  }
   if(imageFiles && imageFiles.length>0){
-    statusEl.textContent = `Ap telechaje ${imageFiles.length} imaj...`;
     const urls = [];
-    for(const f of imageFiles){
-      const url = await uploadCourseFile(f, 'images');
-      if(url) urls.push(url);
+    for(let i=0;i<imageFiles.length;i++){
+      const f = imageFiles[i];
+      statusEl.textContent = `Ap telechaje imaj ${i+1}/${imageFiles.length}... 0%`;
+      showUploadProgress(0);
+      const url = await uploadFileWithProgress(f, 'images', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje imaj ${i+1}/${imageFiles.length}... ${pct}%`; });
+      if(url) urls.push(url); else uploadFailed = true;
     }
     if(urls.length===1){ step.imageUrl = urls[0]; }
     else if(urls.length>1){ step.imageUrls = urls; }
   }
-  if(audioFile){ statusEl.textContent='Ap telechaje nòt vwa...'; const url = await uploadCourseFile(audioFile, 'audio'); if(url) step.audioUrl = url; }
-  else if(recordedBlob){ statusEl.textContent='Ap telechaje nòt vwa...'; const recFile = new File([recordedBlob], 'nòt-vwa.webm', { type:'audio/webm' }); const url = await uploadCourseFile(recFile, 'audio'); if(url) step.audioUrl = url; }
+  if(audioFile){
+    statusEl.textContent = 'Ap telechaje nòt vwa... 0%';
+    showUploadProgress(0);
+    const url = await uploadFileWithProgress(audioFile, 'audio', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
+    if(url) step.audioUrl = url; else uploadFailed = true;
+  } else if(recordedBlob){
+    statusEl.textContent = 'Ap telechaje nòt vwa... 0%';
+    showUploadProgress(0);
+    const recFile = new File([recordedBlob], 'nòt-vwa.webm', { type:'audio/webm' });
+    const url = await uploadFileWithProgress(recFile, 'audio', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
+    if(url) step.audioUrl = url; else uploadFailed = true;
+  }
+  hideUploadProgress();
+  if(uploadFailed){
+    statusEl.textContent = '⚠️ Yon fichye pa t telechaje — gade mesaj erè a anlè a. Etap la ap ajoute ak sa ki reyisi yo sèlman.';
+  }
 
   const k = courses.find(c=>c.id===courseId);
   const videos = [...(k?.videos||[]), step];
@@ -1875,7 +1963,7 @@ async function addCourseStep(){
   if(k) k.videos = videos;
   renderStepList();
 
-  statusEl.textContent = 'Etap ajoute avèk siksè ✅';
+  if(!uploadFailed){ statusEl.textContent = 'Etap ajoute avèk siksè ✅'; }
   document.getElementById('stepTitle').value = '';
   document.getElementById('toggleAllowDownload').classList.remove('on');
   document.getElementById('stepVideoFile').value = '';
