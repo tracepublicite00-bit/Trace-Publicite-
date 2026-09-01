@@ -37,7 +37,6 @@
   h1,h2,h3,.logo-text{font-family:'Poppins',sans-serif;}
   .app{max-width:480px;margin:0 auto;background:var(--fon);min-height:100vh;position:relative;box-shadow:0 0 30px rgba(0,0,0,0.06);}
 
-  /* HEADER */
   header.topbar{
     background:linear-gradient(135deg,var(--bleu),var(--bleu-fonse));
     color:#fff;padding:18px 16px;display:flex;align-items:center;gap:10px;
@@ -52,23 +51,19 @@
   .topbar-actions{margin-left:auto;display:flex;gap:14px;align-items:center;}
   .icon-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;border:none;color:#fff;}
 
-  /* PAGES */
   .page{display:none;padding:16px;animation:fade .25s ease;}
   .page.active{display:block;}
   @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 
-  /* CARDS */
   .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
   .section-title{font-size:17px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
   .section-title a{font-size:14px;color:var(--bleu);font-weight:700;text-decoration:none;}
 
-  /* Ranking strip */
   .ranking{display:flex;gap:10px;}
   .rank-item{flex:1;text-align:center;background:var(--gri);border-radius:12px;padding:12px 6px;cursor:pointer;}
   .rank-item .num{font-size:20px;font-weight:800;color:var(--bleu);}
   .rank-item .lbl{font-size:11px;color:var(--tex-mou);margin-top:2px;}
 
-  /* Deposit banner */
   .deposit-banner{
     background:linear-gradient(135deg,var(--or),var(--or-fonse));
     border-radius:14px;padding:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;cursor:pointer;
@@ -77,7 +72,6 @@
   .deposit-banner .txt small{opacity:.9;}
   .deposit-banner .arrow{font-size:30px;font-weight:700;}
 
-  /* Company / course list */
   .company-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
   .company-row:last-child{border-bottom:none;}
   .avatar{width:46px;height:46px;border-radius:12px;background:var(--bleu);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
@@ -94,7 +88,6 @@
   .course-body .price{color:var(--or-fonse);font-weight:700;font-size:13px;}
   .icon-row{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--tex-mou);}
 
-  /* Buttons */
   .btn{display:block;width:100%;text-align:center;padding:13px;border-radius:10px;border:none;font-weight:600;font-size:14px;cursor:pointer;}
   .btn-primary{background:var(--bleu);color:#fff;}
   .btn-gold{background:var(--or);color:#1B1B1B;}
@@ -102,7 +95,6 @@
   .btn-danger{background:#fff;border:1.5px solid var(--wouj);color:var(--wouj);}
   .btn:disabled{opacity:.5;cursor:not-allowed;}
 
-  /* Forms */
   label{display:block;font-size:12.5px;font-weight:600;margin:12px 0 5px;color:var(--tex);}
   input,select,textarea{
     width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;
@@ -123,7 +115,6 @@
   .benef-box .row b{word-break:break-word;}
   .copy-btn{font-size:14px;color:var(--bleu);font-weight:700;cursor:pointer;background:none;border:none;padding:6px 10px;}
 
-  /* Bottom nav */
   nav.bottomnav{
     position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
     background:#fff;border-top:1px solid var(--border);display:flex;z-index:30;
@@ -134,12 +125,10 @@
   nav.bottomnav button.active{color:var(--bleu);font-weight:700;}
   nav.bottomnav .ic{font-size:19px;}
 
-  /* Blocked pill */
   .status-pill{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;}
   .status-pill.ok{background:#E7F6EA;color:var(--vet);}
   .status-pill.blocked{background:#FBEAEA;color:var(--wouj);}
 
-  /* Toggle switch */
   .toggle{width:42px;height:24px;border-radius:20px;background:var(--border);position:relative;cursor:pointer;transition:.2s;}
   .toggle.on{background:var(--vet);}
   .toggle .dot{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:.2s;}
@@ -189,7 +178,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </header>
 
-  <!-- ============ AKÈY ============ -->
   <section id="akey" class="page active">
     <div class="deposit-banner" onclick="go('depoze')">
       <div class="txt"><b>💰 Depoze Lajan</b><small>MonCash · NatCash</small></div>
@@ -226,7 +214,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ ENSKRIPSYON ============ -->
   <section id="enskripsyon" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Kreye Kont</span></div>
     <div class="card">
@@ -239,26 +226,22 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ ACHAT (tout antrepriz) ============ -->
   <section id="achat" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Antrepriz yo</span></div>
     <div class="card"><div id="companyListFull"></div></div>
   </section>
 
-  <!-- ============ PAJ ANTREPRIZ ============ -->
   <section id="pajAntrepriz" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('achat')">←</button><span class="page-title" id="companyPageName">Antrepriz</span></div>
     <div class="card" id="companyAccessNotice"></div>
     <div id="companyCourses"></div>
   </section>
 
-  <!-- ============ TOUT FÒMASYON ============ -->
   <section id="touFormasyon" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Tout Fòmasyon</span></div>
     <div id="courseListFull"></div>
   </section>
 
-  <!-- ============ PAJ VIDÉYO / KOU ============ -->
   <section id="pajKou" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('touFormasyon')">←</button><span class="page-title" id="kouTitre">Kou</span></div>
     <div class="card" id="videoArea"></div>
@@ -268,7 +251,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ KÒMANTÈ ============ -->
   <section id="komantè" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('touFormasyon')">←</button><span class="page-title">Kòmantè — <span id="komantèKouTitre"></span></span></div>
     <div class="card">
@@ -279,7 +261,6 @@ window.addEventListener('unhandledrejection', function(e) {
     <div id="commentListBox"></div>
   </section>
 
-  <!-- ============ DEPOZE ============ -->
   <section id="depoze" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Depoze Lajan</span></div>
     <div class="card">
@@ -334,7 +315,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ SÈVIS KLIYAN ============ -->
   <section id="support" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Sèvis Kliyan</span></div>
     <div class="card" style="text-align:center;">
@@ -359,7 +339,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ KLASMAN ============ -->
   <section id="klasman" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Klasman</span></div>
     <div class="card">
@@ -372,19 +351,16 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ LIS PWOFESÈ ============ -->
   <section id="lisPwofese" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Lis Pwofesè</span></div>
     <div class="card" id="teacherListFull"></div>
   </section>
 
-  <!-- ============ WÈ TOUT ITILIZATÈ ============ -->
   <section id="weTout" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Tout Itilizatè</span></div>
     <div class="card" id="allUsersList"></div>
   </section>
 
-  <!-- ============ PWOFIL ============ -->
   <section id="profil" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Pwofil Mwen</span></div>
     <div class="card">
@@ -423,7 +399,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ ENSKRIPSYON FÒMATÈ (KYC) ============ -->
   <section id="enskripsyonFormatè" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('profil')">←</button><span class="page-title">Vin Fòmatè</span></div>
     <div class="card">
@@ -446,7 +421,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ GALERI (info) ============ -->
   <section id="galeriInfo" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('profil')">←</button><span class="page-title">Foto Pwofil</span></div>
     <div class="card" style="text-align:center;">
@@ -456,7 +430,6 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
   </section>
 
-  <!-- ============ ADMIN ============ -->
   <section id="admin" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Panèl Admin <span class="admin-tag">Propriyetè</span></span></div>
 
@@ -472,8 +445,16 @@ window.addEventListener('unhandledrejection', function(e) {
       <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
         <label>Non antrepriz la</label>
         <input id="newCompanyName" placeholder="Ex: Antrepriz XYZ">
+        <label>Pousantaj komisyon platfòm (%)</label>
+        <input id="newCompanyCommission" type="number" value="20" min="0" max="100">
+        <p class="hint">Sa se pousantaj OU kenbe sou chak vant kou antrepriz sa a fè. Rès la se sa antrepriz la dwe resevwa.</p>
         <button class="btn btn-primary" style="margin-top:10px;" onclick="createCompany()">Kreye antrepriz</button>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">💰 Kont Antrepriz yo (Komisyon)</div>
+      <div id="adminCompanyFinance"></div>
     </div>
 
     <div class="card">
@@ -603,12 +584,10 @@ window.addEventListener('unhandledrejection', function(e) {
 </div>
 
 <script>
-// ===================== SUPABASE SETUP =====================
 const SUPABASE_URL = "https://pifxgwbxntkcprbxezyd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_pVFNe-WZUznWuPbNvq1Mxw_B2mIGUgt";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ---- Service worker (obligatwa pou notifikasyon Android/Chrome) ---- */
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW erè:', err));
 }
@@ -623,7 +602,6 @@ async function showNotif(title, body){
   try { new Notification(title, { body }); } catch(e){ console.error('Notif erè:', e); }
 }
 
-/* ---- Konvèsyon non chan: snake_case (Supabase) <-> camelCase (kòd la) ---- */
 function toCamelKey(s){ return s.replace(/_([a-z0-9])/g, (_,c)=>c.toUpperCase()); }
 function toSnakeKey(s){ return s.replace(/[A-Z]/g, c=>'_'+c.toLowerCase()); }
 function rowToCamel(row){
@@ -638,7 +616,6 @@ function objToSnake(obj){
   return out;
 }
 
-/* ---- Ekivalan senp pou operasyon Firestore ---- */
 async function fetchAll(table){
   const { data, error } = await db.from(table).select('*').order('created_at', { ascending:false });
   if(error){ console.error('Erè Supabase ('+table+'):', error); return []; }
@@ -669,7 +646,6 @@ async function incrementField(table, id, field, delta=1){
 }
 function nowIso(){ return new Date().toISOString(); }
 
-/* ---- Idantifikasyon pa nimewo telefòn (menm prensip ak isOwnerUser) ---- */
 function normalizePhone(tel){
   const digits = (tel||'').replace(/\D/g,'');
   return digits.startsWith('509') ? digits.slice(3) : digits;
@@ -687,7 +663,6 @@ function dedupeByPhone(list){
   return out;
 }
 
-/* ===================== ETA LOKAL (kach) ===================== */
 let companies = [];
 let courses = [];
 let allUsers = [];
@@ -710,7 +685,6 @@ const benefInfo = {
   meru: {label:'Kont Meru USD', nom:'Sarah Fleuranvil', email:'Sarahfleuranvil00@gmail.com', tag:'$Samimy', numero:'40788131', devise:'USD', montanRef:'20 USD'}
 };
 
-/* ===================== SEMANS DONE DEPA (yon sèl fwa) ===================== */
 async function seedIfEmpty(){
   const existing = await fetchAll('companies');
   if (existing.length === 0){
@@ -729,7 +703,6 @@ async function seedIfEmpty(){
   }
 }
 
-/* ===================== KONEKSYON AN TAN REYÈL ===================== */
 async function refreshCompanies(){
   companies = await fetchAll('companies');
   if(document.getElementById('akey').classList.contains('active')) renderAkey();
@@ -781,6 +754,7 @@ async function refreshVisits(){
 }
 async function refreshPurchases(){
   purchases = await fetchAll('purchases');
+  if(document.getElementById('admin').classList.contains('active')) renderCompanyFinance();
 }
 async function refreshCourseComments(){
   courseComments = await fetchAll('course_comments');
@@ -826,7 +800,6 @@ async function markNotifRead(id){
 }
 window.markNotifRead = markNotifRead;
 
-/* ---- Telechajman fichye nan Supabase Storage (videyo/imaj/vwa) ---- */
 async function uploadCourseFile(file, folder){
   const ext = file.name.split('.').pop();
   const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
@@ -836,7 +809,6 @@ async function uploadCourseFile(file, folder){
   return data.publicUrl;
 }
 
-/* ---- Telechajman ak bare pwogrè + mesaj erè reyèl (itilize pou videyo/imaj/vwa nan etap kou) ---- */
 const MAX_UPLOAD_MB = 200;
 function showUploadProgress(pct){
   const wrap = document.getElementById('stepUploadProgressWrap');
@@ -906,11 +878,9 @@ function listenAll(){
       .on('postgres_changes', {event:'*', schema:'public', table}, ()=>{ refreshFn(); })
       .subscribe();
   });
-  // premye chajman done yo
   return Promise.all(tables.map(([,fn])=>fn()));
 }
 
-/* ===================== NAVIGASYON ===================== */
 function go(pageId){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
@@ -925,7 +895,7 @@ function go(pageId){
   if(pageId==='klasman') renderRanking();
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
-  if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); }
+  if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); }
   if(pageId==='profil') renderNotifications();
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
@@ -991,7 +961,6 @@ function initials(name){
   return (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 }
 
-/* ===================== AKÈY ===================== */
 const OWNER_PHONE_DIGITS = '55989871';
 function isOwnerUser(u){
   const digits = (u?.tel||'').replace(/\D/g,'');
@@ -1028,7 +997,6 @@ function renderAkey(){
     </div>`).join('');
 }
 
-/* ===================== ANTREPRIZ ===================== */
 function renderCompanyListFull(){
   document.getElementById('companyListFull').innerHTML = companies.map(c=>`
     <div class="company-row" onclick="openCompany('${c.id}')">
@@ -1066,7 +1034,6 @@ async function requestCompanyAccess(companyId){
 }
 window.requestCompanyAccess = requestCompanyAccess;
 
-/* ===================== KOU / FÒMASYON ===================== */
 function courseCardHtml(k){
   return `
     <div class="course-card" onclick="openCourse('${k.id}')">
@@ -1128,7 +1095,6 @@ async function shareCourse(courseId, title){
     if(k) k.shares = (k.shares||0) + 1;
     rerenderCourseViews();
   } catch(e){
-    // Anilasyon pataj la (moun nan chanje lide) — pa konte kòm yon pataj
   }
 }
 window.shareCourse = shareCourse;
@@ -1231,7 +1197,6 @@ function ytEmbed(url){
   return id ? `https://www.youtube.com/embed/${id}` : url;
 }
 
-/* ===================== DEPOZE ===================== */
 function selectTip(v){
   state.tip=v;
   document.getElementById('tip_manyel').classList.toggle('selected', v==='manyel');
@@ -1317,7 +1282,6 @@ async function submitDeposit(){
   document.getElementById('dep_tel').value='';
 }
 
-/* ===================== ENSKRIPSYON ===================== */
 async function submitRegister(){
   const btn = document.getElementById('regSubmitBtn');
   if(btn.disabled) return;
@@ -1336,8 +1300,6 @@ async function submitRegister(){
   let newUser = null;
   let reconnected = false;
   try {
-    // Chèche si yon kont deja egziste ak menm nimewo telefòn nan
-    // (evite kreye yon doublon lè menm moun nan konekte sou yon lòt aparèy)
     const existingUsers = await fetchAll('users');
     const match = normTel ? existingUsers.find(u => normalizePhone(u.tel) === normTel) : null;
     if(match){
@@ -1377,16 +1339,14 @@ async function submitRegister(){
   go('akey');
 }
 
-/* Kalkile kòd aksè a: 4 premye chif apre prefiks 509 la nan nimewo telefòn nan */
 function computeAccessCode(tel){
-  const digits = (tel||'').replace(/\D/g,''); // retire tout sa ki pa chif
+  const digits = (tel||'').replace(/\D/g,'');
   let afterPrefix = digits;
   if (digits.startsWith('509')) afterPrefix = digits.slice(3);
   return afterPrefix.slice(0,4).padEnd(4,'0');
 }
 window.computeAccessCode = computeAccessCode;
 
-/* ===================== KLASMAN ===================== */
 let rankTab = 'vant';
 function selectRankTab(tab){
   rankTab = tab;
@@ -1414,7 +1374,6 @@ function renderRanking(){
       </div>`).join('') : `<div class="empty">Pa gen done pou kounye a.</div>`;
 }
 
-/* ===================== WÈ TOUT ITILIZATÈ ===================== */
 function renderAllUsers(){
   const deduped = dedupeByPhone(allUsers);
   document.getElementById('allUsersList').innerHTML = deduped.map(u=>`
@@ -1425,7 +1384,6 @@ function renderAllUsers(){
     </div>`).join('');
 }
 
-/* ===================== LIS PWOFESÈ ===================== */
 function renderTeacherList(){
   const approved = dedupeByPhone(teachers.filter(t=>t.status==='apwouve'));
   document.getElementById('teacherListFull').innerHTML = approved.length
@@ -1464,7 +1422,6 @@ async function submitTeacherKyc(){
   go('profil');
 }
 
-/* ===================== KREYE KOU (ADMIN) ===================== */
 async function createCourse(){
   const companyId = document.getElementById('newCourseCompany').value;
   const title = document.getElementById('newCourseTitle').value;
@@ -1479,7 +1436,6 @@ async function createCourse(){
   document.getElementById('newCourseTitle').value = '';
 }
 
-/* ===================== FOTO PWOFIL ===================== */
 function uploadProfilePhoto(event){
   const file = event.target.files[0];
   if(!file) return;
@@ -1505,7 +1461,6 @@ function uploadProfilePhoto(event){
   reader.readAsDataURL(file);
 }
 
-/* ===================== ADMIN ===================== */
 function renderAdmin(){
   const pending = deposits.filter(d=>d.status==='atant');
   document.getElementById('adminDeposits').innerHTML = pending.length
@@ -1611,7 +1566,83 @@ function renderAdmin(){
         </div>`).join('')
       : `<div class="empty">Pa gen pwofesè apwouve.</div>`;
   }
+  renderCompanyFinance();
 }
+
+function renderCompanyFinance(){
+  const box = document.getElementById('adminCompanyFinance');
+  if(!box) return;
+  if(!companies.length){ box.innerHTML = `<div class="empty">Pa gen antrepriz kreye pou kounye a.</div>`; return; }
+
+  box.innerHTML = companies.map(c=>{
+    const courseIds = courses.filter(k=>k.companyId===c.id).map(k=>k.id);
+    const confirmedDeps = deposits.filter(d=>d.status==='konfime' && courseIds.includes(d.courseId));
+    const totalHtg = confirmedDeps.filter(d=>d.devise!=='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
+    const totalUsd = confirmedDeps.filter(d=>d.devise==='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
+    const rate = c.commissionRate ?? 20;
+    const shareHtg = totalHtg * (100 - rate) / 100;
+    const shareUsd = totalUsd * (100 - rate) / 100;
+    const paidHtg = c.amountPaidOutHtg || 0;
+    const paidUsd = c.amountPaidOutUsd || 0;
+    const owedHtg = Math.max(0, shareHtg - paidHtg);
+    const owedUsd = Math.max(0, shareUsd - paidUsd);
+
+    return `
+    <div class="card" style="background:var(--gri);margin-bottom:10px;">
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px;">${c.name}</div>
+      <div class="kv"><span class="k">Total vant (G)</span><span class="v">${totalHtg.toFixed(0)} G</span></div>
+      <div class="kv"><span class="k">Total vant (USD)</span><span class="v">${totalUsd.toFixed(2)} USD</span></div>
+      <div class="kv">
+        <span class="k">Komisyon platfòm (%)</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input id="commRate_${c.id}" type="number" value="${rate}" min="0" max="100" style="width:60px;padding:4px 6px;font-size:12px;">
+          <button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:11px;" onclick="saveCommissionRate('${c.id}')">OK</button>
+        </span>
+      </div>
+      <div class="kv"><span class="k">Ou dwe antrepriz la (G)</span><span class="v" style="color:var(--vet);">${owedHtg.toFixed(0)} G</span></div>
+      <div class="kv"><span class="k">Ou dwe antrepriz la (USD)</span><span class="v" style="color:var(--vet);">${owedUsd.toFixed(2)} USD</span></div>
+      <button class="btn btn-gold" style="margin-top:8px;" onclick="markCompanyPayout('${c.id}')">💸 Make peman fèt</button>
+    </div>`;
+  }).join('');
+}
+window.renderCompanyFinance = renderCompanyFinance;
+
+async function saveCommissionRate(companyId){
+  const input = document.getElementById('commRate_'+companyId);
+  const rate = Number(input.value);
+  if(isNaN(rate) || rate < 0 || rate > 100){ toast('Pousantaj dwe ant 0 ak 100'); return; }
+  await updateRow('companies', companyId, { commissionRate: rate });
+  const c = companies.find(x=>x.id===companyId);
+  if(c) c.commissionRate = rate;
+  renderCompanyFinance();
+  toast('Pousantaj komisyon mete ajou');
+}
+window.saveCommissionRate = saveCommissionRate;
+
+async function markCompanyPayout(companyId){
+  const devise = prompt('Ki deviz ou peye a? Tape "G" pou Goud oswa "USD" pou dola.', 'G');
+  if(!devise) return;
+  const isUsd = devise.trim().toUpperCase() === 'USD';
+  const montanStr = prompt(`Konbyen ${isUsd?'USD':'G'} ou fèk voye bay antrepriz la?`);
+  if(!montanStr) return;
+  const montan = Number(montanStr);
+  if(isNaN(montan) || montan <= 0){ toast('Montan pa valab'); return; }
+
+  const c = companies.find(x=>x.id===companyId);
+  if(!c) return;
+  if(isUsd){
+    const newPaid = (c.amountPaidOutUsd || 0) + montan;
+    await updateRow('companies', companyId, { amountPaidOutUsd: newPaid });
+    c.amountPaidOutUsd = newPaid;
+  } else {
+    const newPaid = (c.amountPaidOutHtg || 0) + montan;
+    await updateRow('companies', companyId, { amountPaidOutHtg: newPaid });
+    c.amountPaidOutHtg = newPaid;
+  }
+  renderCompanyFinance();
+  toast('Peman anrejistre — ' + montan + ' ' + (isUsd?'USD':'G'));
+}
+window.markCompanyPayout = markCompanyPayout;
 
 async function toggleTeacherBlock(id, currentlyBlocked){
   await updateRow('teachers', id, { blocked: !currentlyBlocked });
@@ -1713,14 +1744,20 @@ window.toggleCompanyApproval = toggleCompanyApproval;
 async function createCompany(){
   const nameEl = document.getElementById('newCompanyName');
   const name = nameEl.value.trim();
+  const commEl = document.getElementById('newCompanyCommission');
+  const commissionRate = commEl ? Number(commEl.value) : 20;
   if(!name){ toast('Antre non antrepriz la'); return; }
   await insertRow('companies', {
     name,
     approved: true,
     trialStart: new Date().toISOString(),
-    trialDays: settings.trialDays
+    trialDays: settings.trialDays,
+    commissionRate: isNaN(commissionRate) ? 20 : commissionRate,
+    amountPaidOutHtg: 0,
+    amountPaidOutUsd: 0
   });
   nameEl.value = '';
+  if(commEl) commEl.value = '20';
   toast('Antrepriz kreye');
 }
 window.createCompany = createCompany;
@@ -1816,7 +1853,6 @@ function updateTeacherFeeText(){
 }
 window.updateTeacherFeeText = updateTeacherFeeText;
 
-/* ===================== JESYON ETAP KOU (videyo/imaj/vwa) ===================== */
 function renderStepList(){
   const stepSel = document.getElementById('stepCourseSelect');
   const box = document.getElementById('stepList');
@@ -1866,7 +1902,6 @@ function previewStepFile(inputId, previewId, kind){
 }
 window.previewStepFile = previewStepFile;
 
-/* ---- Anrejistreman vwa dirèkteman nan aplikasyon an ---- */
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordedBlob = null;
@@ -2001,7 +2036,6 @@ async function deleteCourseStep(courseId, index){
 }
 window.deleteCourseStep = deleteCourseStep;
 
-/* ===================== EXPOSE GLOBAL (pou onclick= nan HTML) ===================== */
 window.go = go;
 window.toast = toast;
 window.copyText = copyText;
@@ -2017,7 +2051,6 @@ window.toggleCompanyApproval = toggleCompanyApproval;
 window.toggleUserBlock = toggleUserBlock;
 window.saveAdminSettings = saveAdminSettings;
 
-/* ===================== INIT ===================== */
 document.addEventListener('DOMContentLoaded', async ()=>{
   renderDepositBox();
   try {
