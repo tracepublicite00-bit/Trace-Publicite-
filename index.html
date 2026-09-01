@@ -454,6 +454,11 @@ window.addEventListener('unhandledrejection', function(e) {
 
     <div class="card">
       <div class="section-title">💰 Kont Antrepriz yo (Komisyon)</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+        <input id="bulkCommissionRate" type="number" placeholder="Ex: 20" min="0" max="100" style="flex:1;">
+        <button class="btn btn-outline" style="width:auto;padding:10px 14px;white-space:nowrap;" onclick="applyCommissionToAll()">Aplike pou tout</button>
+      </div>
+      <p class="hint" style="margin-top:-8px;margin-bottom:14px;">Mete yon pousantaj epi peze "Aplike pou tout" pou chanje komisyon TOUT antrepriz yo yon sèl kou.</p>
       <div id="adminCompanyFinance"></div>
     </div>
 
@@ -1606,6 +1611,20 @@ function renderCompanyFinance(){
   }).join('');
 }
 window.renderCompanyFinance = renderCompanyFinance;
+
+async function applyCommissionToAll(){
+  const input = document.getElementById('bulkCommissionRate');
+  const rate = Number(input.value);
+  if(isNaN(rate) || rate < 0 || rate > 100){ toast('Antre yon pousantaj valab (0-100)'); return; }
+  if(!companies.length){ toast('Pa gen antrepriz pou modifye'); return; }
+  for(const c of companies){
+    await updateRow('companies', c.id, { commissionRate: rate });
+    c.commissionRate = rate;
+  }
+  renderCompanyFinance();
+  toast(`Komisyon ${rate}% aplike sou ${companies.length} antrepriz`);
+}
+window.applyCommissionToAll = applyCommissionToAll;
 
 async function saveCommissionRate(companyId){
   const input = document.getElementById('commRate_'+companyId);
