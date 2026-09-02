@@ -392,6 +392,10 @@ window.addEventListener('unhandledrejection', function(e) {
       </div>
     </div>
     <div class="card">
+      <div class="section-title">🧾 Istorik Resi</div>
+      <div id="receiptList"></div>
+    </div>
+    <div class="card">
       <a class="btn btn-outline" style="text-decoration:none;display:block;" href="guide.pdf" target="_blank">📘 Gid Itilizatè</a>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="go('enskripsyonFormatè')">🎓 Vin Fòmatè (KYC)</button>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="logoutUser()">🚪 Dekonèkte</button>
@@ -650,6 +654,11 @@ async function incrementField(table, id, field, delta=1){
   await updateRow(table, id, { [field]: cur + delta });
 }
 function nowIso(){ return new Date().toISOString(); }
+function formatDateTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+}
 
 function normalizePhone(tel){
   const digits = (tel||'').replace(/\D/g,'');
@@ -735,6 +744,7 @@ async function refreshDeposits(){
   }
   updateBadges();
   if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+  if(document.getElementById('profil').classList.contains('active')) renderReceipts();
 }
 async function refreshTeachers(){
   teachers = await fetchAll('teachers');
@@ -772,7 +782,7 @@ async function refreshNotifications(){
   const all = await fetchAll('notifications');
   notifications = all.filter(n=>n.userId===currentUser.id);
   updateBadges();
-  if(document.getElementById('profil').classList.contains('active')) renderNotifications();
+  if(document.getElementById('profil').classList.contains('active')){ renderNotifications(); renderReceipts(); }
 }
 function updateBadges(){
   const pendingDeposits = deposits.filter(d=>d.status==='atant').length;
@@ -804,6 +814,48 @@ async function markNotifRead(id){
   await updateRow('notifications', id, { isRead:true });
 }
 window.markNotifRead = markNotifRead;
+
+function renderReceipts(){
+  const box = document.getElementById('receiptList');
+  if(!box) return;
+  if(!currentUser){ box.innerHTML = `<div class="empty">Konekte pou wè resi ou yo.</div>`; return; }
+  const mine = deposits.filter(d=>d.userId===currentUser.id && d.status==='konfime')
+    .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  box.innerHTML = mine.length
+    ? mine.map(d=>`
+      <div class="kv" style="cursor:pointer;" onclick="showReceipt('${d.id}')">
+        <span class="k">${d.montan} ${d.devise==='usd'?'USD':'G'} — ${d.createdAt ? new Date(d.createdAt).toLocaleDateString('fr-FR') : ''}</span>
+        <span class="v" style="color:var(--bleu);">Wè resi ➜</span>
+      </div>`).join('')
+    : `<div class="empty">Pa gen resi pou kounye a.</div>`;
+}
+window.renderReceipts = renderReceipts;
+
+function showReceipt(id){
+  const dep = deposits.find(d=>d.id===id);
+  if(!dep) return;
+  const dateStr = dep.createdAt ? new Date(dep.createdAt).toLocaleString('fr-FR') : '';
+  const box = document.createElement('div');
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:380px;width:100%;text-align:center;">
+      <div class="logo-mark" style="margin:0 auto 10px;">TP</div>
+      <div style="font-weight:800;font-size:17px;color:var(--bleu);">Trace <span style="color:var(--or-fonse);">Publicité</span></div>
+      <div style="margin-top:14px;font-size:13px;color:var(--tex-mou);">Resi Depo</div>
+      <div style="font-size:26px;font-weight:800;margin:6px 0 16px;">${dep.montan} ${dep.devise==='usd'?'USD':'G'}</div>
+      <div style="text-align:left;border-top:1px solid var(--border);padding-top:12px;">
+        <div class="kv"><span class="k">Non elèv</span><span class="v">${dep.prenon} ${dep.siyati}</span></div>
+        <div class="kv"><span class="k">Metòd</span><span class="v">${dep.method}</span></div>
+        <div class="kv"><span class="k">Referans</span><span class="v">${dep.id.slice(0,8).toUpperCase()}</span></div>
+        <div class="kv"><span class="k">Dat</span><span class="v">${dateStr}</span></div>
+        <div class="kv"><span class="k">Estati</span><span class="v" style="color:var(--vet);">Konfime ✅</span></div>
+      </div>
+      <button class="btn btn-outline" style="margin-top:16px;" onclick="this.closest('div[style*=fixed]').remove()">Fèmen</button>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.showReceipt = showReceipt;
 
 async function uploadCourseFile(file, folder){
   const ext = file.name.split('.').pop();
@@ -901,7 +953,7 @@ function go(pageId){
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
   if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); }
-  if(pageId==='profil') renderNotifications();
+  if(pageId==='profil'){ renderNotifications(); renderReceipts(); }
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
 }
@@ -1264,6 +1316,8 @@ function renderDepositBox(){
   });
 }
 async function submitDeposit(){
+  const btn = document.querySelector('#depoze .btn-gold');
+  if(btn && btn.disabled) return;
   const montan = document.getElementById('dep_montan').value;
   const prenon = document.getElementById('dep_prenon').value;
   const siyati = document.getElementById('dep_siyati').value;
@@ -1274,10 +1328,17 @@ async function submitDeposit(){
   if(!prenon || !siyati || !tel){ toast('Tanpri ranpli tout chan yo'); return; }
   if(!foto){ toast('Mete yon foto kòm prèv depo'); return; }
 
+  if(btn){ btn.disabled = true; btn.textContent = 'Ap voye...'; }
+
+  let fotoUrl = null;
+  const res = await uploadFileWithProgress(foto, 'deposits', ()=>{});
+  if(res.url) fotoUrl = res.url;
+
   await insertRow('deposits', {
     montan: Number(montan), devise: state.dev, prenon, siyati, tel, method:state.method, status:'atant',
     userId: currentUser?.id || null,
-    courseId: document.getElementById('depForCourse')?.value || null
+    courseId: document.getElementById('depForCourse')?.value || null,
+    fotoUrl
   });
 
   toast('Reyisi! ' + montan + ' ' + (state.dev==='usd'?'USD':'HTG') + ' — depo an atant konfimasyon');
@@ -1285,6 +1346,8 @@ async function submitDeposit(){
   document.getElementById('dep_prenon').value='';
   document.getElementById('dep_siyati').value='';
   document.getElementById('dep_tel').value='';
+  document.getElementById('dep_foto').value='';
+  if(btn){ btn.disabled = false; btn.textContent = 'Konfime Depo'; }
 }
 
 async function submitRegister(){
@@ -1384,7 +1447,7 @@ function renderAllUsers(){
   document.getElementById('allUsersList').innerHTML = deduped.map(u=>`
     <div class="company-row">
       <div class="avatar">${initials(u.non)}</div>
-      <div class="info"><div class="name">${u.non}</div><div class="meta">${u.tel}</div></div>
+      <div class="info"><div class="name">${u.non}</div><div class="meta">${u.tel} · Enskri: ${formatDateTime(u.createdAt)}</div></div>
       <span class="status-pill ${u.blocked?'blocked':'ok'}">${u.blocked?'Bloke':'Aktif'}</span>
     </div>`).join('');
 }
@@ -1395,7 +1458,7 @@ function renderTeacherList(){
     ? approved.map(t=>`
       <div class="company-row">
         <div class="avatar">${initials(t.non)}</div>
-        <div class="info"><div class="name">${t.non}</div><div class="meta">${t.domenn||''}</div></div>
+        <div class="info"><div class="name">${t.non}</div><div class="meta">${t.domenn||''} · Enskri: ${formatDateTime(t.createdAt)}</div></div>
         <span class="status-pill ${t.blocked?'blocked':'ok'}">${t.blocked?'Bloke':'Aktif'}</span>
       </div>`).join('')
     : `<div class="empty">Pa gen pwofesè apwouve pou kounye a.</div>`;
@@ -1470,9 +1533,12 @@ function renderAdmin(){
   const pending = deposits.filter(d=>d.status==='atant');
   document.getElementById('adminDeposits').innerHTML = pending.length
     ? pending.map(d=>`
-      <div class="kv">
-        <span class="k">${d.prenon} ${d.siyati} — ${d.montan} G (${d.method})</span>
-        <button class="btn btn-primary" style="width:auto;padding:6px 12px;font-size:12px;" onclick="confirmDeposit('${d.id}')">Konfime</button>
+      <div class="kv" style="flex-direction:column;align-items:stretch;gap:6px;">
+        <span class="k" style="cursor:pointer;text-decoration:underline;" onclick="viewDepositProof('${d.id}')">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.method})</span>
+        <span style="display:flex;gap:8px;">
+          <button class="btn btn-primary" id="confBtn_${d.id}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="confirmDeposit('${d.id}')">Konfime</button>
+          <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;" onclick="rejectDeposit('${d.id}')">Efase</button>
+        </span>
       </div>`).join('')
     : `<div class="empty">Pa gen depo an atant.</div>`;
 
@@ -1495,8 +1561,8 @@ function renderAdmin(){
   }).join('');
 
   document.getElementById('adminUsers').innerHTML = allUsers.map(u=>`
-    <div class="kv">
-      <span class="k">${u.non}</span>
+    <div class="kv" style="align-items:flex-start;">
+      <span class="k">${u.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(u.createdAt)}</small></span>
       <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
     </div>`).join('');
 
@@ -1565,8 +1631,8 @@ function renderAdmin(){
   if(teachBox){
     teachBox.innerHTML = approvedTeachers.length
       ? approvedTeachers.map(t=>`
-        <div class="kv">
-          <span class="k">${t.non}</span>
+        <div class="kv" style="align-items:flex-start;">
+          <span class="k">${t.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(t.createdAt)}</small></span>
           <button class="btn ${t.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="toggleTeacherBlock('${t.id}', ${!!t.blocked})">${t.blocked?'Debloke':'Bloke'}</button>
         </div>`).join('')
       : `<div class="empty">Pa gen pwofesè apwouve.</div>`;
@@ -1728,6 +1794,8 @@ window.submitTeacherKyc = submitTeacherKyc;
 window.uploadProfilePhoto = uploadProfilePhoto;
 
 async function confirmDeposit(id){
+  const btn = document.getElementById('confBtn_'+id);
+  if(btn){ if(btn.disabled) return; btn.disabled = true; btn.textContent = 'Ap konfime...'; }
   const dep = deposits.find(d=>d.id===id);
   await updateRow('deposits', id, { status:'konfime' });
   if(dep?.userId){
@@ -1737,15 +1805,41 @@ async function confirmDeposit(id){
     }
     await insertRow('notifications', {
       userId: dep.userId,
-      message: `✅ Depo ou a (${dep.montan} G) konfime! Ou gen aksè kounye a nan kou a.`,
+      message: `✅ Depo ou a (${dep.montan} ${dep.devise==='usd'?'USD':'G'}) konfime! Ou gen aksè kounye a nan kou a. Gade resi a nan pwofil ou.`,
       isRead: false
     });
   }
-  toast('Depo konfime — aksè bay itilizatè a');
+  toast('✅ Depo konfime — aksè bay itilizatè a');
   await refreshDeposits();
   await refreshUsers();
   await refreshPurchases();
 }
+
+async function rejectDeposit(id){
+  const sur = confirm('Efase demand depo sa a? Aksyon sa a pa ka anile.');
+  if(!sur) return;
+  await deleteRow('deposits', id);
+  await refreshDeposits();
+  toast('Depo efase');
+}
+window.rejectDeposit = rejectDeposit;
+
+function viewDepositProof(id){
+  const dep = deposits.find(d=>d.id===id);
+  if(!dep){ toast('Depo pa jwenn'); return; }
+  const box = document.createElement('div');
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:420px;width:100%;max-height:90vh;overflow:auto;">
+      <div style="font-weight:700;margin-bottom:8px;">${dep.prenon} ${dep.siyati} — ${dep.montan} ${dep.devise==='usd'?'USD':'G'}</div>
+      <div style="font-size:12.5px;color:var(--tex-mou);margin-bottom:10px;">Telefòn: ${dep.tel||'—'} · Metòd: ${dep.method}</div>
+      ${dep.fotoUrl ? `<img src="${dep.fotoUrl}" style="width:100%;border-radius:10px;">` : `<div class="empty">Pa gen foto prèv anrejistre pou depo sa a (li te fèt anvan chanjman sa a).</div>`}
+      <button class="btn btn-outline" style="margin-top:14px;" onclick="this.closest('div[style*=fixed]').remove()">Fèmen</button>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.viewDepositProof = viewDepositProof;
 
 async function toggleCompanyApproval(id){
   const c = companies.find(x=>x.id===id);
