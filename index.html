@@ -1752,7 +1752,7 @@ function renderAccessAndVisits(){
   const visitBox = document.getElementById('adminVisits');
   if(visitBox){
     visitBox.innerHTML = visits.length
-      ? visits.map(v=>`<div class="kv"><span class="k">${v.userName}</span><span class="v" style="display:flex;align-items:center;gap:8px;"><span class="hint">vizite</span><button class="btn btn-danger" style="width:auto;padding:3px 8px;font-size:11px;" onclick="deleteVisit('${v.id}')">✕</button></span></div>`).join('')
+      ? visits.map(v=>`<div class="kv" style="align-items:flex-start;"><span class="k">${v.userName}<br><small style="color:var(--tex-mou);">${formatDateTime(v.createdAt)}</small></span><span class="v" style="display:flex;align-items:center;gap:8px;"><button class="btn btn-danger" style="width:auto;padding:3px 8px;font-size:11px;" onclick="deleteVisit('${v.id}')">✕</button></span></div>`).join('')
       : `<div class="empty">Pa gen vizit anrejistre.</div>`;
   }
 }
@@ -1972,16 +1972,26 @@ function renderStepList(){
   if(!stepSel || !box) return;
   const k = courses.find(c=>c.id===stepSel.value);
   if(!k){ box.innerHTML=''; return; }
-  box.innerHTML = (k.videos||[]).map((v,i)=>`
-    <div class="kv">
-      <span class="k">${i+1}. ${v.title} ${v.videoUrl?'🎬':''}${v.youtubeUrl?'▶️':''}${(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':''}${v.audioUrl?'🎤':''}${v.appLink?'📲':''}</span>
-      <span style="display:flex;align-items:center;gap:8px;">
-        ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 10px;font-size:11px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Debloke':'Bloke'}</button>` : ''}
-        <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCourseStep('${k.id}', ${i})">Efase</button>
-      </span>
-    </div>`).join('') || `<div class="empty">Pa gen etap pou kou sa a.</div>`;
+  const steps = k.videos||[];
+  if(!steps.length){ box.innerHTML = `<div class="empty">Pa gen etap pou kou sa a.</div>`; return; }
+  box.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">` +
+    steps.map((v,i)=>`
+      <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;">
+        <div style="height:64px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;">
+          ${v.videoUrl?'🎬':v.youtubeUrl?'▶️':(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':v.audioUrl?'🎤':'📄'}
+        </div>
+        <div style="padding:8px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;line-height:1.3;">${i+1}. ${v.title}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Debloke':'Bloke'}</button>` : ''}
+            <button class="btn btn-danger" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="deleteCourseStep('${k.id}', ${i})">Efase</button>
+          </div>
+        </div>
+      </div>`).join('')
+    + `</div>`;
 }
 document.addEventListener('change', (e)=>{ if(e.target.id==='stepCourseSelect') renderStepList(); });
+
 
 async function toggleStepDownload(courseId, index){
   const k = courses.find(c=>c.id===courseId);
