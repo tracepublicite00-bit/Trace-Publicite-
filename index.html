@@ -410,6 +410,18 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Telefòn *</label><input id="kyc_tel" placeholder="(509) 3xxx xxxx">
       <label>Tip Pyès *</label>
       <select id="kyc_piece"><option>CIN (Kat Idantite Nasyonal)</option><option>Paspò</option><option>Pèmi Kondwi</option></select>
+      <label>Foto Pyès Idantite (Avan) *</label>
+      <input id="kyc_piece_front" type="file" accept="image/*" onchange="previewStepFile('kyc_piece_front','kycFrontPreview','image')">
+      <div id="kycFrontPreview"></div>
+      <p class="hint">Pran foto a oswa chwazi l nan galeri telefòn ou.</p>
+      <label>Foto Pyès Idantite (Vèso)</label>
+      <input id="kyc_piece_back" type="file" accept="image/*" onchange="previewStepFile('kyc_piece_back','kycBackPreview','image')">
+      <div id="kycBackPreview"></div>
+      <p class="hint">Opsyonèl — kite vid si pyès ou a pa gen vèso (pa egzanp Paspò).</p>
+      <label>Foto Figi Ou (Selfi) *</label>
+      <input id="kyc_selfie" type="file" accept="image/*" onchange="previewStepFile('kyc_selfie','kycSelfiePreview','image')">
+      <div id="kycSelfiePreview"></div>
+      <p class="hint">Sa pèmèt nou verifye idantite ou koresponn ak pyès ou voye a.</p>
       <label>Domèn Ekspètiz *</label><input id="kyc_domenn" placeholder="Ex: Pwogram òdinatè, Kont, Anglè...">
       <label>Enfòmasyon ak Konpetans *</label><textarea id="kyc_konpetans" placeholder="Eksplike motivasyon ou..."></textarea>
       <label>Poukisa ou vle vin fòmatè? *</label><textarea id="kyc_poukisa" placeholder="Ekri isit..."></textarea>
@@ -1471,7 +1483,12 @@ async function submitTeacherKyc(){
   const domenn = document.getElementById('kyc_domenn').value;
   const konpetans = document.getElementById('kyc_konpetans').value;
   const poukisa = document.getElementById('kyc_poukisa').value;
+  const frontFile = document.getElementById('kyc_piece_front').files[0];
+  const backFile = document.getElementById('kyc_piece_back').files[0];
+  const selfieFile = document.getElementById('kyc_selfie').files[0];
   if(!non||!tel||!domenn||!konpetans||!poukisa){ toast('Tanpri ranpli tout chan yo'); return; }
+  if(!frontFile){ toast('Mete yon foto pyès idantite (avan)'); return; }
+  if(!selfieFile){ toast('Mete yon foto figi ou (selfi)'); return; }
 
   const normTel = normalizePhone(tel);
   const existingTeachers = await fetchAll('teachers');
@@ -1482,8 +1499,15 @@ async function submitTeacherKyc(){
     return;
   }
 
+  toast('Ap voye demand la...');
+  const frontRes = await uploadFileWithProgress(frontFile, 'kyc', ()=>{});
+  const backRes = backFile ? await uploadFileWithProgress(backFile, 'kyc', ()=>{}) : { url:null };
+  const selfieRes = await uploadFileWithProgress(selfieFile, 'kyc', ()=>{});
+  if(!frontRes.url || !selfieRes.url){ toast('Erè telechajman foto — reyeseye'); return; }
+
   await insertRow('teachers', {
     non, tel, piece, domenn, konpetans, poukisa, status:'atant',
+    pieceFrontUrl: frontRes.url, pieceBackUrl: backRes.url, selfieUrl: selfieRes.url,
     userId: currentUser?.id || null
   });
   toast('Demand KYC voyé — n ap tann apwobasyon');
@@ -1619,8 +1643,14 @@ function renderAdmin(){
   if(reqBox){
     reqBox.innerHTML = pendingTeachers.length
       ? pendingTeachers.map(t=>`
-        <div class="kv">
-          <span class="k">${t.non} — ${t.domenn}</span>
+        <div class="card" style="background:var(--gri);margin-bottom:10px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${t.non} — ${t.domenn}</div>
+          <div class="hint" style="margin-bottom:8px;">${t.tel} · ${t.piece||''}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            ${t.pieceFrontUrl ? `<img src="${t.pieceFrontUrl}" style="width:90px;height:70px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="viewKycPhoto('${t.pieceFrontUrl}')">` : `<span class="hint">Pa gen foto pyès (avan)</span>`}
+            ${t.pieceBackUrl ? `<img src="${t.pieceBackUrl}" style="width:90px;height:70px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="viewKycPhoto('${t.pieceBackUrl}')">` : ''}
+            ${t.selfieUrl ? `<img src="${t.selfieUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:50%;cursor:pointer;" onclick="viewKycPhoto('${t.selfieUrl}')">` : `<span class="hint">Pa gen selfi</span>`}
+          </div>
           <button class="btn btn-primary" style="width:auto;padding:6px 12px;font-size:12px;" onclick="approveTeacher('${t.id}')">Apwouve</button>
         </div>`).join('')
       : `<div class="empty">Pa gen demand an atant.</div>`;
@@ -1841,6 +1871,15 @@ function viewDepositProof(id){
 }
 window.viewDepositProof = viewDepositProof;
 
+function viewKycPhoto(url){
+  const box = document.createElement('div');
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:85vh;border-radius:10px;">`;
+  box.onclick = ()=> box.remove();
+  document.body.appendChild(box);
+}
+window.viewKycPhoto = viewKycPhoto;
+
 async function toggleCompanyApproval(id){
   const c = companies.find(x=>x.id===id);
   const willApprove = !c.approved;
@@ -1973,23 +2012,49 @@ function renderStepList(){
   const k = courses.find(c=>c.id===stepSel.value);
   if(!k){ box.innerHTML=''; return; }
   const steps = k.videos||[];
-  if(!steps.length){ box.innerHTML = `<div class="empty">Pa gen etap pou kou sa a.</div>`; return; }
-  box.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">` +
-    steps.map((v,i)=>`
-      <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;">
-        <div style="height:64px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;">
-          ${v.videoUrl?'🎬':v.youtubeUrl?'▶️':(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':v.audioUrl?'🎤':'📄'}
-        </div>
-        <div style="padding:8px;">
-          <div style="font-size:12px;font-weight:600;margin-bottom:8px;line-height:1.3;">${i+1}. ${v.title}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Debloke':'Bloke'}</button>` : ''}
-            <button class="btn btn-danger" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="deleteCourseStep('${k.id}', ${i})">Efase</button>
-          </div>
-        </div>
-      </div>`).join('')
-    + `</div>`;
+  box.innerHTML = `
+    <div class="course-card" onclick="openStepListModal('${k.id}')">
+      <div class="course-thumb" style="background:linear-gradient(135deg,var(--or),var(--or-fonse));">🎬</div>
+      <div class="course-body">
+        <div class="title">${k.title}</div>
+        <div class="price">${steps.length} etap ajoute</div>
+      </div>
+    </div>`;
 }
+function stepThumbHtml(v){
+  return v.videoUrl?'🎬':v.youtubeUrl?'▶️':(v.imageUrl||(v.imageUrls&&v.imageUrls.length))?'🖼️':v.audioUrl?'🎤':'📄';
+}
+function openStepListModal(courseId){
+  const k = courses.find(c=>c.id===courseId);
+  if(!k) return;
+  const steps = k.videos||[];
+  const box = document.createElement('div');
+  box.id = 'stepModalOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:460px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:15px;">${k.title}</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('stepModalOverlay').remove()">Fèmen</button>
+      </div>
+      ${steps.length ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">` +
+        steps.map((v,i)=>`
+          <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;">
+            <div style="height:64px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;">${stepThumbHtml(v)}</div>
+            <div style="padding:8px;">
+              <div style="font-size:12px;font-weight:600;margin-bottom:8px;line-height:1.3;">${i+1}. ${v.title}</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Debloke':'Bloke'}</button>` : ''}
+                <button class="btn btn-danger" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="deleteCourseStep('${k.id}', ${i}); document.getElementById('stepModalOverlay').remove();">Efase</button>
+              </div>
+            </div>
+          </div>`).join('')
+        + `</div>` : `<div class="empty">Pa gen etap pou kou sa a.</div>`}
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.openStepListModal = openStepListModal;
 document.addEventListener('change', (e)=>{ if(e.target.id==='stepCourseSelect') renderStepList(); });
 
 
