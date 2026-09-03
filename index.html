@@ -411,15 +411,30 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Tip Pyès *</label>
       <select id="kyc_piece"><option>CIN (Kat Idantite Nasyonal)</option><option>Paspò</option><option>Pèmi Kondwi</option></select>
       <label>Foto Pyès Idantite (Avan) *</label>
-      <input id="kyc_piece_front" type="file" accept="image/*" onchange="previewStepFile('kyc_piece_front','kycFrontPreview','image')">
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('kyc_front_cam').click()">📷 Kamera</button>
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('kyc_front_gal').click()">🖼️ Galeri</button>
+      </div>
+      <input id="kyc_front_cam" type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleKycFile('front', this)">
+      <input id="kyc_front_gal" type="file" accept="image/*" style="display:none;" onchange="handleKycFile('front', this)">
       <div id="kycFrontPreview"></div>
-      <p class="hint">Pran foto a oswa chwazi l nan galeri telefòn ou.</p>
+      <p class="hint">Kenbe pyès la byen vizib lè w pran foto a.</p>
       <label>Foto Pyès Idantite (Vèso)</label>
-      <input id="kyc_piece_back" type="file" accept="image/*" onchange="previewStepFile('kyc_piece_back','kycBackPreview','image')">
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('kyc_back_cam').click()">📷 Kamera</button>
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('kyc_back_gal').click()">🖼️ Galeri</button>
+      </div>
+      <input id="kyc_back_cam" type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleKycFile('back', this)">
+      <input id="kyc_back_gal" type="file" accept="image/*" style="display:none;" onchange="handleKycFile('back', this)">
       <div id="kycBackPreview"></div>
       <p class="hint">Opsyonèl — kite vid si pyès ou a pa gen vèso (pa egzanp Paspò).</p>
       <label>Foto Figi Ou (Selfi) *</label>
-      <input id="kyc_selfie" type="file" accept="image/*" onchange="previewStepFile('kyc_selfie','kycSelfiePreview','image')">
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('kyc_selfie_cam').click()">📷 Kamera</button>
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('kyc_selfie_gal').click()">🖼️ Galeri</button>
+      </div>
+      <input id="kyc_selfie_cam" type="file" accept="image/*" capture="user" style="display:none;" onchange="handleKycFile('selfie', this)">
+      <input id="kyc_selfie_gal" type="file" accept="image/*" style="display:none;" onchange="handleKycFile('selfie', this)">
       <div id="kycSelfiePreview"></div>
       <p class="hint">Sa pèmèt nou verifye idantite ou koresponn ak pyès ou voye a.</p>
       <label>Domèn Ekspètiz *</label><input id="kyc_domenn" placeholder="Ex: Pwogram òdinatè, Kont, Anglè...">
@@ -1476,6 +1491,31 @@ function renderTeacherList(){
     : `<div class="empty">Pa gen pwofesè apwouve pou kounye a.</div>`;
 }
 
+let kycFiles = { front:null, back:null, selfie:null };
+function handleKycFile(key, inputEl){
+  const file = inputEl.files[0];
+  if(!file) return;
+  kycFiles[key] = file;
+  const previewId = key==='front'?'kycFrontPreview':key==='back'?'kycBackPreview':'kycSelfiePreview';
+  const url = URL.createObjectURL(file);
+  document.getElementById(previewId).innerHTML = `<div style="position:relative;display:inline-block;margin-top:8px;">
+    <img src="${url}" style="width:100px;height:100px;border-radius:10px;object-fit:cover;display:block;">
+    <button type="button" class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;margin-top:6px;" onclick="clearKycFile('${key}')">🗑️ Efase</button>
+  </div>`;
+}
+window.handleKycFile = handleKycFile;
+
+function clearKycFile(key){
+  kycFiles[key] = null;
+  const previewId = key==='front'?'kycFrontPreview':key==='back'?'kycBackPreview':'kycSelfiePreview';
+  document.getElementById(previewId).innerHTML = '';
+  const camInput = document.getElementById('kyc_'+key+'_cam');
+  const galInput = document.getElementById('kyc_'+key+'_gal');
+  if(camInput) camInput.value = '';
+  if(galInput) galInput.value = '';
+}
+window.clearKycFile = clearKycFile;
+
 async function submitTeacherKyc(){
   const non = document.getElementById('kyc_non').value;
   const tel = document.getElementById('kyc_tel').value;
@@ -1483,9 +1523,9 @@ async function submitTeacherKyc(){
   const domenn = document.getElementById('kyc_domenn').value;
   const konpetans = document.getElementById('kyc_konpetans').value;
   const poukisa = document.getElementById('kyc_poukisa').value;
-  const frontFile = document.getElementById('kyc_piece_front').files[0];
-  const backFile = document.getElementById('kyc_piece_back').files[0];
-  const selfieFile = document.getElementById('kyc_selfie').files[0];
+  const frontFile = kycFiles.front;
+  const backFile = kycFiles.back;
+  const selfieFile = kycFiles.selfie;
   if(!non||!tel||!domenn||!konpetans||!poukisa){ toast('Tanpri ranpli tout chan yo'); return; }
   if(!frontFile){ toast('Mete yon foto pyès idantite (avan)'); return; }
   if(!selfieFile){ toast('Mete yon foto figi ou (selfi)'); return; }
@@ -1510,6 +1550,7 @@ async function submitTeacherKyc(){
     pieceFrontUrl: frontRes.url, pieceBackUrl: backRes.url, selfieUrl: selfieRes.url,
     userId: currentUser?.id || null
   });
+  kycFiles = { front:null, back:null, selfie:null };
   toast('Demand KYC voyé — n ap tann apwobasyon');
   go('profil');
 }
