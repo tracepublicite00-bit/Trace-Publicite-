@@ -471,12 +471,12 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Chanje modpas Admin</label>
       <div style="position:relative;">
         <input id="admin_newPin" type="password" placeholder="Nouvo modpas" style="padding-right:44px;">
-        <button type="button" onclick="toggleAdminPinVisibility('admin_newPin', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">👁️</button>
+        <button type="button" onclick="toggleAdminPinVisibility('admin_newPin', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">🙈</button>
       </div>
       <label style="margin-top:8px;">Konfime nouvo modpas</label>
       <div style="position:relative;">
         <input id="admin_newPinConfirm" type="password" placeholder="Retape nouvo modpas" style="padding-right:44px;">
-        <button type="button" onclick="toggleAdminPinVisibility('admin_newPinConfirm', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">👁️</button>
+        <button type="button" onclick="toggleAdminPinVisibility('admin_newPinConfirm', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">🙈</button>
       </div>
       <button class="btn btn-primary" style="margin-top:10px;" onclick="changeAdminPin()">Sovgade nouvo modpas</button>
     </div>
@@ -1065,10 +1065,10 @@ function toggleAdminPinVisibility(inputId, btn){
   if(!input) return;
   if(input.type === 'password'){
     input.type = 'text';
-    btn.textContent = '🙈';
+    btn.textContent = '👁️';
   } else {
     input.type = 'password';
-    btn.textContent = '👁️';
+    btn.textContent = '🙈';
   }
 }
 window.toggleAdminPinVisibility = toggleAdminPinVisibility;
