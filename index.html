@@ -467,6 +467,15 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Panèl Admin <span class="admin-tag">Propriyetè</span></span></div>
 
     <div class="card">
+      <div class="section-title">🔒 Sekirite</div>
+      <label>Chanje modpas Admin</label>
+      <input id="admin_newPin" type="password" placeholder="Nouvo modpas">
+      <label style="margin-top:8px;">Konfime nouvo modpas</label>
+      <input id="admin_newPinConfirm" type="password" placeholder="Retape nouvo modpas">
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="changeAdminPin()">Sovgade nouvo modpas</button>
+    </div>
+
+    <div class="card">
       <div class="section-title">🔔 Notifikasyon</div>
       <div class="kv"><span class="k">Estati notifikasyon</span><span class="v" id="notifStatusBadgeAdmin">—</span></div>
       <button class="btn btn-gold" style="margin-top:8px;margin-bottom:14px;" id="notifStatusBtnAdmin" onclick="checkNotifStatus()">🔔 Verifye / Aktive notifikasyon</button>
@@ -1013,7 +1022,7 @@ function listenAll(){
   return Promise.all(tables.map(([,fn])=>fn()));
 }
 
-const ADMIN_PIN = '1993';
+const DEFAULT_ADMIN_PIN = '1993';
 function updateAdminNavVisibility(){
   const navBtn = document.getElementById('nav_admin');
   if(!navBtn) return;
@@ -1024,13 +1033,26 @@ function checkAdminAccess(){
   if(sessionStorage.getItem('tp_admin_ok') === '1') return true;
   const entered = prompt('Antre modpas Admin la:');
   if(entered === null) return false;
-  if(entered.trim() === ADMIN_PIN){
+  const currentPin = settings.adminPin || DEFAULT_ADMIN_PIN;
+  if(entered.trim() === currentPin){
     sessionStorage.setItem('tp_admin_ok','1');
     return true;
   }
   toast('Modpas la pa bon ❌');
   return false;
 }
+async function changeAdminPin(){
+  const p1 = document.getElementById('admin_newPin').value.trim();
+  const p2 = document.getElementById('admin_newPinConfirm').value.trim();
+  if(!p1 || p1.length < 4){ toast('Modpas la dwe gen omwen 4 karaktè'); return; }
+  if(p1 !== p2){ toast('De modpas yo pa menm ❌'); return; }
+  await updateRow('settings', 'main', { adminPin: p1 });
+  settings.adminPin = p1;
+  document.getElementById('admin_newPin').value = '';
+  document.getElementById('admin_newPinConfirm').value = '';
+  toast('Nouvo modpas Admin sovgade ✅');
+}
+window.changeAdminPin = changeAdminPin;
 function go(pageId){
   if(pageId==='admin'){
     if(!checkAdminAccess()){ return; }
