@@ -617,7 +617,7 @@ window.addEventListener('unhandledrejection', function(e) {
     <button id="nav_touFormasyon" onclick="go('touFormasyon')"><span class="ic">🎬</span>Kou</button>
     <button id="nav_depoze" onclick="go('depoze')"><span class="ic">💳</span>Depoze</button>
     <button id="nav_profil" onclick="go('profil')"><span class="ic">👤</span>Pwofil<span class="notif-badge" id="badge_profil" style="display:none;"></span></button>
-    <button id="nav_admin" onclick="go('admin')"><span class="ic">🛠️</span>Admin<span class="notif-badge" id="badge_admin" style="display:none;"></span></button>
+    <button id="nav_admin" style="display:none;" onclick="go('admin')"><span class="ic">🛠️</span>Admin<span class="notif-badge" id="badge_admin" style="display:none;"></span></button>
   </nav>
 
   <div class="toast" id="toast"></div>
@@ -1013,7 +1013,28 @@ function listenAll(){
   return Promise.all(tables.map(([,fn])=>fn()));
 }
 
+const ADMIN_PIN = '1993';
+function updateAdminNavVisibility(){
+  const navBtn = document.getElementById('nav_admin');
+  if(!navBtn) return;
+  navBtn.style.display = isOwnerUser(currentUser) ? '' : 'none';
+}
+window.updateAdminNavVisibility = updateAdminNavVisibility;
+function checkAdminAccess(){
+  if(sessionStorage.getItem('tp_admin_ok') === '1') return true;
+  const entered = prompt('Antre modpas Admin la:');
+  if(entered === null) return false;
+  if(entered.trim() === ADMIN_PIN){
+    sessionStorage.setItem('tp_admin_ok','1');
+    return true;
+  }
+  toast('Modpas la pa bon ❌');
+  return false;
+}
 function go(pageId){
+  if(pageId==='admin'){
+    if(!checkAdminAccess()){ return; }
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
   document.querySelectorAll('.bottomnav button').forEach(b=>b.classList.remove('active'));
@@ -1070,6 +1091,7 @@ window.togglePublicProfile = togglePublicProfile;
 function logoutUser(){
   localStorage.removeItem('tp_current_user');
   currentUser = null;
+  updateAdminNavVisibility();
   const btn = document.getElementById('regSubmitBtn');
   if(btn){ btn.disabled = false; btn.textContent = 'Kreye kont mwen'; }
   toast('Ou dekonekte');
@@ -1471,6 +1493,7 @@ async function submitRegister(){
     accessCode: newUser.accessCode || accessCode
   };
   localStorage.setItem('tp_current_user', JSON.stringify(currentUser));
+  updateAdminNavVisibility();
   document.getElementById('prof_non').textContent = currentUser.non;
   document.getElementById('prof_tel').textContent = currentUser.tel;
   document.getElementById('prof_id').textContent = 'TP-' + newUser.id.slice(0,6).toUpperCase();
@@ -2331,6 +2354,7 @@ window.saveAdminSettings = saveAdminSettings;
 document.addEventListener('DOMContentLoaded', async ()=>{
   renderDepositBox();
   renderNotifStatus();
+  updateAdminNavVisibility();
   try {
     await seedIfEmpty();
     await listenAll();
