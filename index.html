@@ -467,8 +467,10 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Panèl Admin <span class="admin-tag">Propriyetè</span></span></div>
 
     <div class="card">
+      <div class="section-title">🔔 Notifikasyon</div>
+      <div class="kv"><span class="k">Estati notifikasyon</span><span class="v" id="notifStatusBadgeAdmin">—</span></div>
+      <button class="btn btn-gold" style="margin-top:8px;margin-bottom:14px;" id="notifStatusBtnAdmin" onclick="checkNotifStatus()">🔔 Verifye / Aktive notifikasyon</button>
       <div class="section-title">Depo an atant</div>
-      <button class="btn btn-gold" style="margin-bottom:10px;" onclick="enableNotifications()">🔔 Aktive notifikasyon sou telefòn nan</button>
       <div id="adminDeposits"></div>
     </div>
 
@@ -831,29 +833,33 @@ async function enableNotifications(){
 window.enableNotifications = enableNotifications;
 
 function renderNotifStatus(){
-  const badge = document.getElementById('notifStatusBadge');
-  const btn = document.getElementById('notifStatusBtn');
-  if(!badge || !btn) return;
-  if(typeof Notification === 'undefined'){
-    badge.textContent = '❌ Pa sipòte sou aparèy la';
-    badge.style.color = '#e74c3c';
-    btn.style.display = 'none';
-    return;
-  }
-  btn.style.display = 'block';
-  const perm = Notification.permission;
-  if(perm === 'granted'){
-    badge.textContent = '✅ Aktive';
-    badge.style.color = '#2ecc71';
-    btn.textContent = '✅ Notifikasyon aktive';
-  } else if(perm === 'denied'){
-    badge.textContent = '❌ Dezaktive';
-    badge.style.color = '#e74c3c';
-    btn.textContent = '⚠️ Kijan pou aktive l (gade nòt anba)';
-  } else {
-    badge.textContent = '⏳ Poko aktive';
-    badge.style.color = '#f7b733';
-    btn.textContent = '🔔 Aktive notifikasyon';
+  const pairs = [
+    [document.getElementById('notifStatusBadge'), document.getElementById('notifStatusBtn')],
+    [document.getElementById('notifStatusBadgeAdmin'), document.getElementById('notifStatusBtnAdmin')]
+  ];
+  for(const [badge, btn] of pairs){
+    if(!badge || !btn) continue;
+    if(typeof Notification === 'undefined'){
+      badge.textContent = '❌ Pa sipòte sou aparèy la';
+      badge.style.color = '#e74c3c';
+      btn.style.display = 'none';
+      continue;
+    }
+    btn.style.display = 'block';
+    const perm = Notification.permission;
+    if(perm === 'granted'){
+      badge.textContent = '✅ Aktive';
+      badge.style.color = '#2ecc71';
+      btn.textContent = '✅ Notifikasyon aktive';
+    } else if(perm === 'denied'){
+      badge.textContent = '❌ Dezaktive';
+      badge.style.color = '#e74c3c';
+      btn.textContent = '⚠️ Kijan pou aktive l (gade nòt anba)';
+    } else {
+      badge.textContent = '⏳ Poko aktive';
+      badge.style.color = '#f7b733';
+      btn.textContent = '🔔 Aktive notifikasyon';
+    }
   }
 }
 window.renderNotifStatus = renderNotifStatus;
@@ -1021,7 +1027,7 @@ function go(pageId){
   if(pageId==='klasman') renderRanking();
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
-  if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); }
+  if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); renderNotifStatus(); }
   if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); }
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
