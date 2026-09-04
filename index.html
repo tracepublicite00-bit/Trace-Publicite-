@@ -467,7 +467,7 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Panèl Admin <span class="admin-tag">Propriyetè</span></span></div>
 
     <div class="card">
-      <div class="section-title">💳 Enfo Peman (MonCash / NatCash / BUH / Meru)</div>
+      <div class="section-title">💳 MonCash / NatCash</div>
 
       <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
         <b>MonCash</b>
@@ -478,7 +478,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('moncash')">Sovgade MonCash</button>
       </div>
 
-      <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
+      <div>
         <b>NatCash</b>
         <label style="margin-top:6px;">Non benefisyè</label>
         <input id="pay_natcash_nom" placeholder="Sarah Fleuranvil">
@@ -486,6 +486,10 @@ window.addEventListener('unhandledrejection', function(e) {
         <input id="pay_natcash_num" placeholder="(509) 0000-0000">
         <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('natcash')">Sovgade NatCash</button>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">💳 BUH / Meru</div>
 
       <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
         <b>BUH</b>
