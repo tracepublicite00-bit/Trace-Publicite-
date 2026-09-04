@@ -521,8 +521,8 @@ window.addEventListener('unhandledrejection', function(e) {
 
     <div class="card">
       <div class="section-title">Kreye yon nouvo kou</div>
-      <label>Antrepriz</label>
-      <select id="newCourseCompany"></select>
+      <label>Antrepriz (opsyonèl)</label>
+      <select id="newCourseCompany"><option value="">— San antrepriz (fòmatè endepandan) —</option></select>
       <label>Tit kou a</label>
       <input id="newCourseTitle" placeholder="Ex: Baz Marketing Facebook">
       <label>Pri (Goud)</label>
@@ -1756,9 +1756,9 @@ async function createCourse(){
   const companyId = document.getElementById('newCourseCompany').value;
   const title = document.getElementById('newCourseTitle').value;
   const price = Number(document.getElementById('newCoursePrice').value);
-  if(!companyId || !title || !price){ toast('Tanpri ranpli tout chan yo'); return; }
+  if(!title || !price){ toast('Tanpri ranpli tout chan yo'); return; }
   await insertRow('courses', {
-    companyId, title, price,
+    companyId: companyId || null, title, price,
     videos: [{id:'v'+Date.now(), title:'Etap 1', locked:true}],
     likes:0, comments:0, views:0, shares:0
   });
@@ -1853,7 +1853,7 @@ function renderAdmin(){
   updateTeacherFeeText();
 
   const sel = document.getElementById('newCourseCompany');
-  if(sel) sel.innerHTML = companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  if(sel) sel.innerHTML = `<option value="">— San antrepriz (fòmatè endepandan) —</option>` + companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 
   const stepSel = document.getElementById('stepCourseSelect');
   if(stepSel){
