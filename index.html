@@ -469,9 +469,15 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="card">
       <div class="section-title">🔒 Sekirite</div>
       <label>Chanje modpas Admin</label>
-      <input id="admin_newPin" type="password" placeholder="Nouvo modpas">
+      <div style="position:relative;">
+        <input id="admin_newPin" type="password" placeholder="Nouvo modpas" style="padding-right:44px;">
+        <button type="button" onclick="toggleAdminPinVisibility('admin_newPin', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">👁️</button>
+      </div>
       <label style="margin-top:8px;">Konfime nouvo modpas</label>
-      <input id="admin_newPinConfirm" type="password" placeholder="Retape nouvo modpas">
+      <div style="position:relative;">
+        <input id="admin_newPinConfirm" type="password" placeholder="Retape nouvo modpas" style="padding-right:44px;">
+        <button type="button" onclick="toggleAdminPinVisibility('admin_newPinConfirm', this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;padding:4px;">👁️</button>
+      </div>
       <button class="btn btn-primary" style="margin-top:10px;" onclick="changeAdminPin()">Sovgade nouvo modpas</button>
     </div>
 
@@ -1053,6 +1059,19 @@ async function changeAdminPin(){
   toast('Nouvo modpas Admin sovgade ✅');
 }
 window.changeAdminPin = changeAdminPin;
+
+function toggleAdminPinVisibility(inputId, btn){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  if(input.type === 'password'){
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+window.toggleAdminPinVisibility = toggleAdminPinVisibility;
 function go(pageId){
   if(pageId==='admin'){
     if(!checkAdminAccess()){ return; }
