@@ -502,7 +502,9 @@ window.addEventListener('unhandledrejection', function(e) {
         <input id="newCompanyName" placeholder="Ex: Antrepriz XYZ">
         <label>Pousantaj komisyon platfòm (%)</label>
         <input id="newCompanyCommission" type="number" value="20" min="0" max="100">
-        <p class="hint">Sa se pousantaj OU kenbe sou chak vant kou antrepriz sa a fè. Rès la se sa antrepriz la dwe resevwa.</p>
+        <label>Nimewo telefòn pwopriyetè (opsyonèl)</label>
+        <input id="newCompanyOwnerPhone" placeholder="Ex: 38112233">
+        <p class="hint">Sa se pousantaj OU kenbe sou chak vant kou antrepriz sa a fè. Rès la se sa antrepriz la dwe resevwa. Si pwopriyetè a gen yon kont sou app la ak nimewo telefòn sa a, l ap resevwa notifikasyon nan pwofil li lè w make yon peman fèt.</p>
         <button class="btn btn-primary" style="margin-top:10px;" onclick="createCompany()">Kreye antrepriz</button>
       </div>
     </div>
@@ -1812,8 +1814,9 @@ function renderAdmin(){
     }
     return `
     <div class="kv">
-      <span class="k">${c.name} ${trialInfo}</span>
-      <span style="display:flex;align-items:center;gap:8px;">
+      <span class="k">${c.name} ${trialInfo}${c.ownerPhone?`<br><small style="color:var(--tex-mou);">📞 ${c.ownerPhone}</small>`:''}</span>
+      <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:11px;" onclick="setCompanyOwnerPhone('${c.id}')">📞</button>
         <span class="v status-pill ${c.approved?'ok':'blocked'}" style="cursor:pointer;" onclick="toggleCompanyApproval('${c.id}')">${c.approved?'Aktif':'Aktive'}</span>
         <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCompany('${c.id}')">Efase</button>
       </span>
@@ -1990,6 +1993,19 @@ async function markCompanyPayout(companyId){
     await updateRow('companies', companyId, { amountPaidOutHtg: newPaid });
     c.amountPaidOutHtg = newPaid;
   }
+
+  if(c.ownerPhone){
+    const normOwner = normalizePhone(c.ownerPhone);
+    const ownerUser = allUsers.find(u => normalizePhone(u.tel) === normOwner);
+    if(ownerUser){
+      await insertRow('notifications', {
+        userId: ownerUser.id,
+        message: `💸 ${c.name}: Sarah fèk voye ${montan} ${isUsd?'USD':'G'} ban ou (peman komisyon).`,
+        isRead: false
+      });
+    }
+  }
+
   renderCompanyFinance();
   toast('Peman anrejistre — ' + montan + ' ' + (isUsd?'USD':'G'));
 }
@@ -2134,6 +2150,8 @@ async function createCompany(){
   const name = nameEl.value.trim();
   const commEl = document.getElementById('newCompanyCommission');
   const commissionRate = commEl ? Number(commEl.value) : 20;
+  const phoneEl = document.getElementById('newCompanyOwnerPhone');
+  const ownerPhone = phoneEl ? phoneEl.value.trim() : '';
   if(!name){ toast('Antre non antrepriz la'); return; }
   await insertRow('companies', {
     name,
@@ -2142,13 +2160,28 @@ async function createCompany(){
     trialDays: settings.trialDays,
     commissionRate: isNaN(commissionRate) ? 20 : commissionRate,
     amountPaidOutHtg: 0,
-    amountPaidOutUsd: 0
+    amountPaidOutUsd: 0,
+    ownerPhone: ownerPhone || null
   });
   nameEl.value = '';
   if(commEl) commEl.value = '20';
+  if(phoneEl) phoneEl.value = '';
   toast('Antrepriz kreye');
 }
 window.createCompany = createCompany;
+
+async function setCompanyOwnerPhone(companyId){
+  const c = companies.find(x=>x.id===companyId);
+  if(!c) return;
+  const entered = prompt('Nimewo telefòn pwopriyetè antrepriz la (kite vid pou retire l):', c.ownerPhone || '');
+  if(entered === null) return;
+  const ownerPhone = entered.trim();
+  await updateRow('companies', companyId, { ownerPhone: ownerPhone || null });
+  c.ownerPhone = ownerPhone || null;
+  renderAdmin();
+  toast('Nimewo antrepriz la sovgade');
+}
+window.setCompanyOwnerPhone = setCompanyOwnerPhone;
 
 async function deleteCompany(id){
   await deleteRow('companies', id);
