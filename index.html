@@ -467,55 +467,8 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Panèl Admin <span class="admin-tag">Propriyetè</span></span></div>
 
     <div class="card">
-      <div class="section-title">💳 MonCash / NatCash</div>
-
-      <div style="margin-bottom:14px;background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <b>MonCash</b>
-        <label style="margin-top:6px;">Non benefisyè</label>
-        <input id="pay_moncash_nom" placeholder="Sarah Fleuranvil">
-        <label style="margin-top:6px;">Nimewo</label>
-        <input id="pay_moncash_num" placeholder="(509) 0000-0000">
-        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('moncash')">Sovgade MonCash</button>
-      </div>
-
-      <div style="background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <b>NatCash</b>
-        <label style="margin-top:6px;">Non benefisyè</label>
-        <input id="pay_natcash_nom" placeholder="Sarah Fleuranvil">
-        <label style="margin-top:6px;">Nimewo</label>
-        <input id="pay_natcash_num" placeholder="(509) 0000-0000">
-        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('natcash')">Sovgade NatCash</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">💳 BUH / Meru</div>
-
-      <div style="margin-bottom:14px;background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <b>BUH</b>
-        <label style="margin-top:6px;">Non benefisyè</label>
-        <input id="pay_buh_nom" placeholder="Sarah Fleuranvil">
-        <label style="margin-top:6px;">Nimewo kont</label>
-        <input id="pay_buh_accountNum" placeholder="2000-0000-000">
-        <label style="margin-top:6px;">Montan referans</label>
-        <input id="pay_buh_montanRef" placeholder="20 USD">
-        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('buh')">Sovgade BUH</button>
-      </div>
-
-      <div style="background:rgba(0,0,0,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <b>Kont Meru USD</b>
-        <label style="margin-top:6px;">Non benefisyè</label>
-        <input id="pay_meru_nom" placeholder="Sarah Fleuranvil">
-        <label style="margin-top:6px;">Imèl</label>
-        <input id="pay_meru_email" placeholder="email@example.com">
-        <label style="margin-top:6px;">Tag</label>
-        <input id="pay_meru_tag" placeholder="$Samimy">
-        <label style="margin-top:6px;">Nimewo</label>
-        <input id="pay_meru_numero" placeholder="00000000">
-        <label style="margin-top:6px;">Montan referans</label>
-        <input id="pay_meru_montanRef" placeholder="20 USD">
-        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('meru')">Sovgade Meru</button>
-      </div>
+      <div class="section-title">💳 Enfo Peman</div>
+      <div id="paymentMethodsList"></div>
     </div>
 
     <div class="card">
@@ -1131,37 +1084,64 @@ function toggleAdminPinVisibility(inputId, btn){
 }
 window.toggleAdminPinVisibility = toggleAdminPinVisibility;
 
-function renderPaymentInfoForm(){
-  const f = (id)=>document.getElementById(id);
-  if(!f('pay_moncash_nom')) return;
-  f('pay_moncash_nom').value = benefInfo.moncash.nom || '';
-  f('pay_moncash_num').value = benefInfo.moncash.num || '';
-  f('pay_natcash_nom').value = benefInfo.natcash.nom || '';
-  f('pay_natcash_num').value = benefInfo.natcash.num || '';
-  f('pay_buh_nom').value = benefInfo.buh.nom || '';
-  f('pay_buh_accountNum').value = benefInfo.buh.accountNum || '';
-  f('pay_buh_montanRef').value = benefInfo.buh.montanRef || '';
-  f('pay_meru_nom').value = benefInfo.meru.nom || '';
-  f('pay_meru_email').value = benefInfo.meru.email || '';
-  f('pay_meru_tag').value = benefInfo.meru.tag || '';
-  f('pay_meru_numero').value = benefInfo.meru.numero || '';
-  f('pay_meru_montanRef').value = benefInfo.meru.montanRef || '';
-}
-window.renderPaymentInfoForm = renderPaymentInfoForm;
-
 const PAYMENT_METHOD_FIELDS = {
   moncash: ['nom','num'],
   natcash: ['nom','num'],
   buh: ['nom','accountNum','montanRef'],
   meru: ['nom','email','tag','numero','montanRef']
 };
-const PAYMENT_METHOD_LABELS = { moncash:'MonCash', natcash:'NatCash', buh:'BUH', meru:'Meru' };
+const PAYMENT_METHOD_LABELS = { moncash:'MonCash', natcash:'NatCash', buh:'BUH', meru:'Kont Meru USD' };
+const PAYMENT_METHOD_ICONS = { moncash:'💳', natcash:'💳', buh:'🏦', meru:'💵' };
+const PAYMENT_FIELD_LABELS = { nom:'Non benefisyè', num:'Nimewo', accountNum:'Nimewo kont', montanRef:'Montan referans', email:'Imèl', tag:'Tag', numero:'Nimewo' };
+
+function renderPaymentInfoForm(){
+  const box = document.getElementById('paymentMethodsList');
+  if(!box) return;
+  box.innerHTML = Object.keys(PAYMENT_METHOD_FIELDS).map(method=>{
+    const info = benefInfo[method];
+    const summary = info.num || info.accountNum || info.numero || '';
+    return `
+    <div class="course-card" style="cursor:pointer;" onclick="openPaymentMethodModal('${method}')">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${PAYMENT_METHOD_ICONS[method]}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;">${PAYMENT_METHOD_LABELS[method]}</div>
+          <div style="color:var(--tex-mou);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${summary}</div>
+        </div>
+        <div style="color:var(--tex-mou);">›</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.renderPaymentInfoForm = renderPaymentInfoForm;
+
+function openPaymentMethodModal(method){
+  const info = benefInfo[method];
+  const fields = PAYMENT_METHOD_FIELDS[method];
+  const box = document.createElement('div');
+  box.id = 'paymentModalOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:460px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:15px;">${PAYMENT_METHOD_LABELS[method]}</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('paymentModalOverlay').remove()">Fèmen</button>
+      </div>
+      ${fields.map(field=>`
+        <label style="margin-top:6px;">${PAYMENT_FIELD_LABELS[field]}</label>
+        <input id="paymodal_${field}" value="${(info[field]||'').replace(/"/g,'&quot;')}">
+      `).join('')}
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="savePaymentMethod('${method}')">Sovgade ${PAYMENT_METHOD_LABELS[method]}</button>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.openPaymentMethodModal = openPaymentMethodModal;
 
 async function savePaymentMethod(method){
-  const v = (id)=>document.getElementById(id).value.trim();
   const fields = PAYMENT_METHOD_FIELDS[method];
   const data = {};
-  for(const field of fields){ data[field] = v('pay_'+method+'_'+field); }
+  for(const field of fields){ data[field] = document.getElementById('paymodal_'+field).value.trim(); }
   if(method==='buh' || method==='meru') data.devise = 'USD';
 
   const paymentInfo = { ...(settings.paymentInfo||{}), [method]: data };
@@ -1169,6 +1149,9 @@ async function savePaymentMethod(method){
   settings.paymentInfo = paymentInfo;
   benefInfo[method] = { ...DEFAULT_BENEF_INFO[method], ...data };
   renderDepositBox();
+  renderPaymentInfoForm();
+  const overlay = document.getElementById('paymentModalOverlay');
+  if(overlay) overlay.remove();
   toast(PAYMENT_METHOD_LABELS[method] + ' sovgade ✅');
 }
 window.savePaymentMethod = savePaymentMethod;
