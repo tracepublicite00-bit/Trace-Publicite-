@@ -365,6 +365,8 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Pwofil Mwen</span></div>
     <div class="card">
       <div class="section-title">🔔 Notifikasyon</div>
+      <div class="kv"><span class="k">Estati notifikasyon</span><span class="v" id="notifStatusBadge">—</span></div>
+      <button class="btn btn-gold" style="margin-top:8px;margin-bottom:10px;" id="notifStatusBtn" onclick="checkNotifStatus()">🔔 Verifye / Aktive notifikasyon</button>
       <div id="notifList"></div>
     </div>
     <div class="card" style="text-align:center;">
@@ -827,6 +829,46 @@ async function enableNotifications(){
   else { toast('Notifikasyon pa aktive'); }
 }
 window.enableNotifications = enableNotifications;
+
+function renderNotifStatus(){
+  const badge = document.getElementById('notifStatusBadge');
+  const btn = document.getElementById('notifStatusBtn');
+  if(!badge || !btn) return;
+  if(typeof Notification === 'undefined'){
+    badge.textContent = '❌ Pa sipòte sou aparèy la';
+    badge.style.color = '#e74c3c';
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = 'block';
+  const perm = Notification.permission;
+  if(perm === 'granted'){
+    badge.textContent = '✅ Aktive';
+    badge.style.color = '#2ecc71';
+    btn.textContent = '✅ Notifikasyon aktive';
+  } else if(perm === 'denied'){
+    badge.textContent = '❌ Dezaktive';
+    badge.style.color = '#e74c3c';
+    btn.textContent = '⚠️ Kijan pou aktive l (gade nòt anba)';
+  } else {
+    badge.textContent = '⏳ Poko aktive';
+    badge.style.color = '#f7b733';
+    btn.textContent = '🔔 Aktive notifikasyon';
+  }
+}
+window.renderNotifStatus = renderNotifStatus;
+
+async function checkNotifStatus(){
+  if(typeof Notification === 'undefined'){ toast('Navigatè a pa sipòte notifikasyon sou aparèy sa a'); return; }
+  if(Notification.permission === 'denied'){
+    toast('Notifikasyon bloke: ale nan Paramèt telefòn ou → Aplikasyon (oswa Sit sa a nan navigatè a) → Notifikasyon, epi aktive l pou Trace Publicité');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  renderNotifStatus();
+  toast(perm === 'granted' ? 'Notifikasyon aktive! ✅' : 'Notifikasyon pa t aktive ❌');
+}
+window.checkNotifStatus = checkNotifStatus;
 function renderNotifications(){
   const box = document.getElementById('notifList');
   if(!box) return;
@@ -980,7 +1022,7 @@ function go(pageId){
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
   if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); }
-  if(pageId==='profil'){ renderNotifications(); renderReceipts(); }
+  if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); }
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
 }
@@ -2282,6 +2324,7 @@ window.saveAdminSettings = saveAdminSettings;
 
 document.addEventListener('DOMContentLoaded', async ()=>{
   renderDepositBox();
+  renderNotifStatus();
   try {
     await seedIfEmpty();
     await listenAll();
