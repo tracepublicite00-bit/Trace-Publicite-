@@ -467,6 +467,52 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Panèl Admin <span class="admin-tag">Propriyetè</span></span></div>
 
     <div class="card">
+      <div class="section-title">💳 Enfo Peman (MonCash / NatCash / BUH / Meru)</div>
+
+      <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
+        <b>MonCash</b>
+        <label style="margin-top:6px;">Non benefisyè</label>
+        <input id="pay_moncash_nom" placeholder="Sarah Fleuranvil">
+        <label style="margin-top:6px;">Nimewo</label>
+        <input id="pay_moncash_num" placeholder="(509) 0000-0000">
+      </div>
+
+      <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
+        <b>NatCash</b>
+        <label style="margin-top:6px;">Non benefisyè</label>
+        <input id="pay_natcash_nom" placeholder="Sarah Fleuranvil">
+        <label style="margin-top:6px;">Nimewo</label>
+        <input id="pay_natcash_num" placeholder="(509) 0000-0000">
+      </div>
+
+      <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
+        <b>BUH</b>
+        <label style="margin-top:6px;">Non benefisyè</label>
+        <input id="pay_buh_nom" placeholder="Sarah Fleuranvil">
+        <label style="margin-top:6px;">Nimewo kont</label>
+        <input id="pay_buh_accountNum" placeholder="2000-0000-000">
+        <label style="margin-top:6px;">Montan referans</label>
+        <input id="pay_buh_montanRef" placeholder="20 USD">
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <b>Kont Meru USD</b>
+        <label style="margin-top:6px;">Non benefisyè</label>
+        <input id="pay_meru_nom" placeholder="Sarah Fleuranvil">
+        <label style="margin-top:6px;">Imèl</label>
+        <input id="pay_meru_email" placeholder="email@example.com">
+        <label style="margin-top:6px;">Tag</label>
+        <input id="pay_meru_tag" placeholder="$Samimy">
+        <label style="margin-top:6px;">Nimewo</label>
+        <input id="pay_meru_numero" placeholder="00000000">
+        <label style="margin-top:6px;">Montan referans</label>
+        <input id="pay_meru_montanRef" placeholder="20 USD">
+      </div>
+
+      <button class="btn btn-primary" onclick="savePaymentInfo()">Sovgade enfo peman yo</button>
+    </div>
+
+    <div class="card">
       <div class="section-title">🔒 Sekirite</div>
       <label>Chanje modpas Admin</label>
       <div style="position:relative;">
@@ -738,12 +784,13 @@ let currentUser = JSON.parse(localStorage.getItem('tp_current_user')) || null;
 
 let state = { tip:'manyel', dev:'htg', method:'moncash', currentCompany:null, currentCourse:null };
 
-const benefInfo = {
+const DEFAULT_BENEF_INFO = {
   moncash: {label:'MonCash', num:'(509) 4878-9614', nom:'Sarah Fleuranvil'},
   natcash: {label:'NatCash', num:'(509) 4078-8131', nom:'Sarah Fleuranvil'},
   buh: {label:'BUH', nom:'Sarah Fleuranvil', accountNum:'2000-0074-455', devise:'USD', montanRef:'20 USD'},
   meru: {label:'Kont Meru USD', nom:'Sarah Fleuranvil', email:'Sarahfleuranvil00@gmail.com', tag:'$Samimy', numero:'40788131', devise:'USD', montanRef:'20 USD'}
 };
+let benefInfo = JSON.parse(JSON.stringify(DEFAULT_BENEF_INFO));
 
 async function seedIfEmpty(){
   const existing = await fetchAll('companies');
@@ -800,8 +847,13 @@ async function refreshTeachers(){
 async function refreshSettings(){
   const s = await fetchOne('settings','main');
   if(s) settings = s;
+  if(settings.paymentInfo){
+    for(const m of Object.keys(DEFAULT_BENEF_INFO)){
+      benefInfo[m] = { ...DEFAULT_BENEF_INFO[m], ...(settings.paymentInfo[m]||{}) };
+    }
+  }
   updateTeacherFeeText();
-  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+  if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderPaymentInfoForm(); }
   if(document.getElementById('depoze').classList.contains('active')) renderDepositBox();
 }
 async function refreshAccessRequests(){
@@ -1072,6 +1124,42 @@ function toggleAdminPinVisibility(inputId, btn){
   }
 }
 window.toggleAdminPinVisibility = toggleAdminPinVisibility;
+
+function renderPaymentInfoForm(){
+  const f = (id)=>document.getElementById(id);
+  if(!f('pay_moncash_nom')) return;
+  f('pay_moncash_nom').value = benefInfo.moncash.nom || '';
+  f('pay_moncash_num').value = benefInfo.moncash.num || '';
+  f('pay_natcash_nom').value = benefInfo.natcash.nom || '';
+  f('pay_natcash_num').value = benefInfo.natcash.num || '';
+  f('pay_buh_nom').value = benefInfo.buh.nom || '';
+  f('pay_buh_accountNum').value = benefInfo.buh.accountNum || '';
+  f('pay_buh_montanRef').value = benefInfo.buh.montanRef || '';
+  f('pay_meru_nom').value = benefInfo.meru.nom || '';
+  f('pay_meru_email').value = benefInfo.meru.email || '';
+  f('pay_meru_tag').value = benefInfo.meru.tag || '';
+  f('pay_meru_numero').value = benefInfo.meru.numero || '';
+  f('pay_meru_montanRef').value = benefInfo.meru.montanRef || '';
+}
+window.renderPaymentInfoForm = renderPaymentInfoForm;
+
+async function savePaymentInfo(){
+  const v = (id)=>document.getElementById(id).value.trim();
+  const paymentInfo = {
+    moncash: { nom: v('pay_moncash_nom'), num: v('pay_moncash_num') },
+    natcash: { nom: v('pay_natcash_nom'), num: v('pay_natcash_num') },
+    buh: { nom: v('pay_buh_nom'), accountNum: v('pay_buh_accountNum'), montanRef: v('pay_buh_montanRef'), devise: 'USD' },
+    meru: { nom: v('pay_meru_nom'), email: v('pay_meru_email'), tag: v('pay_meru_tag'), numero: v('pay_meru_numero'), montanRef: v('pay_meru_montanRef'), devise: 'USD' }
+  };
+  await updateRow('settings', 'main', { paymentInfo });
+  settings.paymentInfo = paymentInfo;
+  for(const m of Object.keys(DEFAULT_BENEF_INFO)){
+    benefInfo[m] = { ...DEFAULT_BENEF_INFO[m], ...(paymentInfo[m]||{}) };
+  }
+  renderDepositBox();
+  toast('Enfo peman yo sovgade ✅');
+}
+window.savePaymentInfo = savePaymentInfo;
 function go(pageId){
   if(pageId==='admin'){
     if(!checkAdminAccess()){ return; }
@@ -1089,7 +1177,7 @@ function go(pageId){
   if(pageId==='klasman') renderRanking();
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
-  if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); renderNotifStatus(); }
+  if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); renderNotifStatus(); renderPaymentInfoForm(); }
   if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); }
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
