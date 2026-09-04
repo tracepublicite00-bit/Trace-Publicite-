@@ -501,10 +501,17 @@ window.addEventListener('unhandledrejection', function(e) {
         <label>Non antrepriz la</label>
         <input id="newCompanyName" placeholder="Ex: Antrepriz XYZ">
         <label>Pousantaj komisyon platfòm (%)</label>
-        <input id="newCompanyCommission" type="number" value="20" min="0" max="100">
+        <input id="newCompanyCommission" type="number" value="20" min="0" max="100" oninput="updateCompanyCondText()">
         <label>Nimewo telefòn pwopriyetè (opsyonèl)</label>
         <input id="newCompanyOwnerPhone" placeholder="Ex: 38112233">
-        <p class="hint">Sa se pousantaj OU kenbe sou chak vant kou antrepriz sa a fè. Rès la se sa antrepriz la dwe resevwa. Si pwopriyetè a gen yon kont sou app la ak nimewo telefòn sa a, l ap resevwa notifikasyon nan pwofil li lè w make yon peman fèt.</p>
+        <div class="benef-box">
+          <b>Kondisyon Antrepriz:</b>
+          <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
+            <li>Antrepriz la peye platfòm nan <span id="companyFeeText">3000</span> G pa mwa (<span id="companyTrialText">20</span> jou esè gratis)</li>
+            <li>Platfòm nan kenbe <span id="companyCommText">20</span>% sou chak vant kou antrepriz la fè — rès la se sa antrepriz la dwe resevwa</li>
+            <li>Si pwopriyetè a gen yon kont sou app la ak nimewo telefòn ki lye, l ap resevwa notifikasyon nan pwofil li lè peman komisyon make fèt</li>
+          </ul>
+        </div>
         <button class="btn btn-primary" style="margin-top:10px;" onclick="createCompany()">Kreye antrepriz</button>
       </div>
     </div>
@@ -814,6 +821,7 @@ async function refreshSettings(){
     }
   }
   updateTeacherFeeText();
+  updateCompanyCondText();
   if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderPaymentInfoForm(); }
   if(document.getElementById('depoze').classList.contains('active')) renderDepositBox();
 }
@@ -1851,6 +1859,7 @@ function renderAdmin(){
   document.getElementById('admin_trial').value = settings.trialDays;
   document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
   updateTeacherFeeText();
+  updateCompanyCondText();
 
   const sel = document.getElementById('newCourseCompany');
   if(sel) sel.innerHTML = `<option value="">— San antrepriz (fòmatè endepandan) —</option>` + companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -2263,6 +2272,7 @@ async function saveAdminSettings(){
   await updateRow('settings', 'main', { price, trialDays, teacherFee });
   settings.price = price; settings.trialDays = trialDays; settings.teacherFee = teacherFee;
   updateTeacherFeeText();
+  updateCompanyCondText();
   toast('Chanjman anrejistre');
 }
 
@@ -2273,6 +2283,17 @@ function updateTeacherFeeText(){
   if(trialEl) trialEl.textContent = settings.trialDays ?? 20;
 }
 window.updateTeacherFeeText = updateTeacherFeeText;
+
+function updateCompanyCondText(){
+  const feeEl = document.getElementById('companyFeeText');
+  const trialEl = document.getElementById('companyTrialText');
+  const commEl = document.getElementById('companyCommText');
+  const commInput = document.getElementById('newCompanyCommission');
+  if(feeEl) feeEl.textContent = settings.teacherFee ?? 3000;
+  if(trialEl) trialEl.textContent = settings.trialDays ?? 20;
+  if(commEl) commEl.textContent = commInput ? (commInput.value || 20) : 20;
+}
+window.updateCompanyCondText = updateCompanyCondText;
 
 function renderStepList(){
   const stepSel = document.getElementById('stepCourseSelect');
