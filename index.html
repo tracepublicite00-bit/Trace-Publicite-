@@ -475,6 +475,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <input id="pay_moncash_nom" placeholder="Sarah Fleuranvil">
         <label style="margin-top:6px;">Nimewo</label>
         <input id="pay_moncash_num" placeholder="(509) 0000-0000">
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('moncash')">Sovgade MonCash</button>
       </div>
 
       <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
@@ -483,6 +484,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <input id="pay_natcash_nom" placeholder="Sarah Fleuranvil">
         <label style="margin-top:6px;">Nimewo</label>
         <input id="pay_natcash_num" placeholder="(509) 0000-0000">
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('natcash')">Sovgade NatCash</button>
       </div>
 
       <div style="margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:14px;">
@@ -493,9 +495,10 @@ window.addEventListener('unhandledrejection', function(e) {
         <input id="pay_buh_accountNum" placeholder="2000-0000-000">
         <label style="margin-top:6px;">Montan referans</label>
         <input id="pay_buh_montanRef" placeholder="20 USD">
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('buh')">Sovgade BUH</button>
       </div>
 
-      <div style="margin-bottom:10px;">
+      <div>
         <b>Kont Meru USD</b>
         <label style="margin-top:6px;">Non benefisyè</label>
         <input id="pay_meru_nom" placeholder="Sarah Fleuranvil">
@@ -507,9 +510,8 @@ window.addEventListener('unhandledrejection', function(e) {
         <input id="pay_meru_numero" placeholder="00000000">
         <label style="margin-top:6px;">Montan referans</label>
         <input id="pay_meru_montanRef" placeholder="20 USD">
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="savePaymentMethod('meru')">Sovgade Meru</button>
       </div>
-
-      <button class="btn btn-primary" onclick="savePaymentInfo()">Sovgade enfo peman yo</button>
     </div>
 
     <div class="card">
@@ -1143,23 +1145,29 @@ function renderPaymentInfoForm(){
 }
 window.renderPaymentInfoForm = renderPaymentInfoForm;
 
-async function savePaymentInfo(){
+const PAYMENT_METHOD_FIELDS = {
+  moncash: ['nom','num'],
+  natcash: ['nom','num'],
+  buh: ['nom','accountNum','montanRef'],
+  meru: ['nom','email','tag','numero','montanRef']
+};
+const PAYMENT_METHOD_LABELS = { moncash:'MonCash', natcash:'NatCash', buh:'BUH', meru:'Meru' };
+
+async function savePaymentMethod(method){
   const v = (id)=>document.getElementById(id).value.trim();
-  const paymentInfo = {
-    moncash: { nom: v('pay_moncash_nom'), num: v('pay_moncash_num') },
-    natcash: { nom: v('pay_natcash_nom'), num: v('pay_natcash_num') },
-    buh: { nom: v('pay_buh_nom'), accountNum: v('pay_buh_accountNum'), montanRef: v('pay_buh_montanRef'), devise: 'USD' },
-    meru: { nom: v('pay_meru_nom'), email: v('pay_meru_email'), tag: v('pay_meru_tag'), numero: v('pay_meru_numero'), montanRef: v('pay_meru_montanRef'), devise: 'USD' }
-  };
+  const fields = PAYMENT_METHOD_FIELDS[method];
+  const data = {};
+  for(const field of fields){ data[field] = v('pay_'+method+'_'+field); }
+  if(method==='buh' || method==='meru') data.devise = 'USD';
+
+  const paymentInfo = { ...(settings.paymentInfo||{}), [method]: data };
   await updateRow('settings', 'main', { paymentInfo });
   settings.paymentInfo = paymentInfo;
-  for(const m of Object.keys(DEFAULT_BENEF_INFO)){
-    benefInfo[m] = { ...DEFAULT_BENEF_INFO[m], ...(paymentInfo[m]||{}) };
-  }
+  benefInfo[method] = { ...DEFAULT_BENEF_INFO[method], ...data };
   renderDepositBox();
-  toast('Enfo peman yo sovgade ✅');
+  toast(PAYMENT_METHOD_LABELS[method] + ' sovgade ✅');
 }
-window.savePaymentInfo = savePaymentInfo;
+window.savePaymentMethod = savePaymentMethod;
 function go(pageId){
   if(pageId==='admin'){
     if(!checkAdminAccess()){ return; }
