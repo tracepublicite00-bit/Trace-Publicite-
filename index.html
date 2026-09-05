@@ -1945,10 +1945,13 @@ function renderAdmin(){
       ? confirmed.map(d=>{
           const k = d.courseId ? courses.find(c=>c.id===d.courseId) : null;
           return `
-      <div style="background:rgba(46,204,113,0.08);border-left:4px solid var(--vet);border-radius:10px;padding:12px 14px;margin-bottom:10px;cursor:pointer;" onclick="viewDepositProof('${d.id}')">
-        <div style="font-weight:700;font-size:14px;">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.method})</div>
-        <div class="hint" style="margin-top:2px;">${formatDateTime(d.createdAt)}${k?' · '+k.title:''}${!d.courseId?' · <span style="color:var(--wouj)">San kou</span>':''}</div>
-        <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;margin-top:8px;" onclick="event.stopPropagation(); deleteConfirmedDeposit('${d.id}')">Efase (doublon/erè)</button>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="viewDepositProof('${d.id}')">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(46,204,113,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">✅</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'}</div>
+          <div class="hint" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${formatDateTime(d.createdAt)}${k?' · '+k.title:''}${!d.courseId?' · <span style="color:var(--wouj)">San kou</span>':''}</div>
+        </div>
+        <div style="color:var(--tex-mou);flex-shrink:0;">›</div>
       </div>`;
         }).join('')
       : `<div class="empty">Pa gen depo konfime pou kounye a.</div>`;
@@ -2354,14 +2357,18 @@ window.viewUserDetails = viewUserDetails;
 function viewDepositProof(id){
   const dep = deposits.find(d=>d.id===id);
   if(!dep){ toast('Depo pa jwenn'); return; }
+  const k = dep.courseId ? courses.find(c=>c.id===dep.courseId) : null;
   const box = document.createElement('div');
   box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
   box.innerHTML = `
     <div style="background:#fff;border-radius:14px;padding:16px;max-width:420px;width:100%;max-height:90vh;overflow:auto;">
       <div style="font-weight:700;margin-bottom:8px;">${dep.prenon} ${dep.siyati} — ${dep.montan} ${dep.devise==='usd'?'USD':'G'}</div>
-      <div style="font-size:12.5px;color:var(--tex-mou);margin-bottom:10px;">Telefòn: ${dep.tel||'—'} · Metòd: ${dep.method}</div>
+      <div style="font-size:12.5px;color:var(--tex-mou);margin-bottom:10px;">Telefòn: ${dep.tel||'—'} · Metòd: ${dep.method}<br>${formatDateTime(dep.createdAt)}${k?' · '+k.title:(dep.status==='konfime'?' · <span style="color:var(--wouj)">San kou</span>':'')}</div>
       ${dep.fotoUrl ? `<img src="${dep.fotoUrl}" style="width:100%;border-radius:10px;">` : `<div class="empty">Pa gen foto prèv anrejistre pou depo sa a (li te fèt anvan chanjman sa a).</div>`}
-      <button class="btn btn-outline" style="margin-top:14px;" onclick="this.closest('div[style*=fixed]').remove()">Fèmen</button>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="this.closest('div[style*=fixed]').remove()">Fèmen</button>
+        ${dep.status==='konfime' ? `<button class="btn btn-danger" onclick="this.closest('div[style*=fixed]').remove(); deleteConfirmedDeposit('${dep.id}')">Efase (doublon/erè)</button>` : ''}
+      </div>
     </div>`;
   box.onclick = (e)=>{ if(e.target===box) box.remove(); };
   document.body.appendChild(box);
