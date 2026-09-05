@@ -1896,10 +1896,10 @@ function renderAdmin(){
 
   document.getElementById('adminUsers').innerHTML = allUsers.map(u=>`
     <div class="kv" style="align-items:flex-start;">
-      <span class="k" style="cursor:pointer;" onclick="viewUserDetails('${u.id}')">${u.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(u.createdAt)}</small></span>
-      <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
-        <button class="btn btn-danger" style="width:auto;padding:6px 10px;font-size:12px;" onclick="deleteUser('${u.id}')">Efase</button>
+      <span class="k" style="cursor:pointer;flex:1;min-width:0;padding-right:8px;" onclick="viewUserDetails('${u.id}')">${u.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(u.createdAt)}</small></span>
+      <span style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;flex-shrink:0;">
+        <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 10px;font-size:12px;white-space:nowrap;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
+        <button class="btn btn-danger" style="width:auto;padding:6px 10px;font-size:12px;white-space:nowrap;" onclick="deleteUser('${u.id}')">Efase</button>
       </span>
     </div>`).join('');
 
