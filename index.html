@@ -563,6 +563,16 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
 
     <div class="card">
+      <div class="section-title">🔓 Bay Aksè Kou Manyèlman</div>
+      <p class="hint">Sèvi ak sa a si yon elèv deja peye (depo konfime) men li pa gen aksè a yon kou espesifik.</p>
+      <label>Itilizatè</label>
+      <select id="grantAccessUser"></select>
+      <label>Kou</label>
+      <select id="grantAccessCourse"></select>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="grantCourseAccess()">Bay Aksè</button>
+    </div>
+
+    <div class="card">
       <div class="section-title">Antrepriz yo</div>
       <div id="adminCompanies"></div>
       <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
@@ -1984,6 +1994,22 @@ function renderAdmin(){
   const sel = document.getElementById('newCourseCompany');
   if(sel) sel.innerHTML = `<option value="">— San antrepriz (fòmatè endepandan) —</option>` + companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 
+  const grantUserSel = document.getElementById('grantAccessUser');
+  if(grantUserSel){
+    const prevVal = grantUserSel.value;
+    grantUserSel.innerHTML = dedupeByPhone(allUsers).map(u=>`<option value="${u.id}">${u.non} (${u.tel})</option>`).join('');
+    if(prevVal) grantUserSel.value = prevVal;
+  }
+  const grantCourseSel = document.getElementById('grantAccessCourse');
+  if(grantCourseSel){
+    const prevVal = grantCourseSel.value;
+    grantCourseSel.innerHTML = courses.map(k=>{
+      const comp = companies.find(c=>c.id===k.companyId);
+      return `<option value="${k.id}">${k.title}${comp?' ('+comp.name+')':''}</option>`;
+    }).join('');
+    if(prevVal) grantCourseSel.value = prevVal;
+  }
+
   const stepSel = document.getElementById('stepCourseSelect');
   if(stepSel){
     const prevVal = stepSel.value;
@@ -2203,6 +2229,25 @@ window.approveTeacher = approveTeacher;
 window.createCourse = createCourse;
 window.submitTeacherKyc = submitTeacherKyc;
 window.uploadProfilePhoto = uploadProfilePhoto;
+
+async function grantCourseAccess(){
+  const userId = document.getElementById('grantAccessUser').value;
+  const courseId = document.getElementById('grantAccessCourse').value;
+  if(!userId || !courseId){ toast('Chwazi yon itilizatè ak yon kou'); return; }
+  const already = purchases.some(p=>p.userId===userId && p.courseId===courseId);
+  if(already){ toast('Itilizatè sa a gen aksè a kou sa a deja'); return; }
+  await insertRow('purchases', { userId, courseId });
+  await incrementField('users', userId, 'achte', 1);
+  await insertRow('notifications', {
+    userId,
+    message: `✅ Ou resevwa aksè a yon nouvo kou! Al gade l nan seksyon Kou.`,
+    isRead: false
+  });
+  await refreshPurchases();
+  await refreshUsers();
+  toast('Aksè bay avèk siksè ✅');
+}
+window.grantCourseAccess = grantCourseAccess;
 
 async function confirmDeposit(id){
   const btn = document.getElementById('confBtn_'+id);
