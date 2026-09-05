@@ -473,6 +473,7 @@ window.addEventListener('unhandledrejection', function(e) {
           <li>Nimewo telefòn kont ou a ap sèvi pou voye w notifikasyon lè yon peman komisyon fèt</li>
           <li>Ou dwe respekte règleman ak estanda platfòm nan</li>
         </ul>
+        <div id="entDepositNumsBox" style="margin-top:10px;"></div>
       </div>
       <button class="btn btn-primary" style="margin-top:16px;" onclick="submitCompanyRequest()">Voye Demand Antrepriz</button>
     </div>
@@ -535,6 +536,7 @@ window.addEventListener('unhandledrejection', function(e) {
             <li>Platfòm nan kenbe <span id="companyCommText">20</span>% sou chak vant kou antrepriz la fè — rès la se sa antrepriz la dwe resevwa</li>
             <li>Si pwopriyetè a gen yon kont sou app la ak nimewo telefòn ki lye, l ap resevwa notifikasyon nan pwofil li lè peman komisyon make fèt</li>
           </ul>
+          <div id="companyDepositNumsBox" style="margin-top:10px;"></div>
         </div>
         <button class="btn btn-primary" style="margin-top:10px;" onclick="createCompany()">Kreye antrepriz</button>
       </div>
@@ -777,8 +779,8 @@ let currentUser = JSON.parse(localStorage.getItem('tp_current_user')) || null;
 let state = { tip:'manyel', dev:'htg', method:'moncash', currentCompany:null, currentCourse:null };
 
 const DEFAULT_BENEF_INFO = {
-  moncash: {label:'MonCash', num:'(509) 4878-9614', nom:'Sarah Fleuranvil'},
-  natcash: {label:'NatCash', num:'(509) 4078-8131', nom:'Sarah Fleuranvil'},
+  moncash: {label:'MonCash', num:'(509) 4878-9614', nom:'Sarah Fleuranvil', companyNum:''},
+  natcash: {label:'NatCash', num:'(509) 4078-8131', nom:'Sarah Fleuranvil', companyNum:''},
   buh: {label:'BUH', nom:'Sarah Fleuranvil', accountNum:'2000-0074-455', devise:'USD', montanRef:'20 USD'},
   meru: {label:'Kont Meru USD', nom:'Sarah Fleuranvil', email:'Sarahfleuranvil00@gmail.com', tag:'$Samimy', numero:'40788131', devise:'USD', montanRef:'20 USD'}
 };
@@ -1119,14 +1121,14 @@ function toggleAdminPinVisibility(inputId, btn){
 window.toggleAdminPinVisibility = toggleAdminPinVisibility;
 
 const PAYMENT_METHOD_FIELDS = {
-  moncash: ['nom','num'],
-  natcash: ['nom','num'],
+  moncash: ['nom','num','companyNum'],
+  natcash: ['nom','num','companyNum'],
   buh: ['nom','accountNum','montanRef'],
   meru: ['nom','email','tag','numero','montanRef']
 };
 const PAYMENT_METHOD_LABELS = { moncash:'MonCash', natcash:'NatCash', buh:'BUH', meru:'Kont Meru USD' };
 const PAYMENT_METHOD_ICONS = { moncash:'💳', natcash:'💳', buh:'🏦', meru:'💵' };
-const PAYMENT_FIELD_LABELS = { nom:'Non benefisyè', num:'Nimewo', accountNum:'Nimewo kont', montanRef:'Montan referans', email:'Imèl', tag:'Tag', numero:'Nimewo' };
+const PAYMENT_FIELD_LABELS = { nom:'Non benefisyè', num:'Nimewo', accountNum:'Nimewo kont', montanRef:'Montan referans', email:'Imèl', tag:'Tag', numero:'Nimewo', companyNum:'Nimewo pou Antrepriz yo (opsyonèl)' };
 
 function renderPaymentInfoForm(){
   const box = document.getElementById('paymentMethodsList');
@@ -1164,6 +1166,7 @@ function openPaymentMethodModal(method){
       ${fields.map(field=>`
         <label style="margin-top:6px;">${PAYMENT_FIELD_LABELS[field]}</label>
         <input id="paymodal_${field}" value="${(info[field]||'').replace(/"/g,'&quot;')}">
+        ${field==='companyNum' ? `<p class="hint">Sa se yon dezyèm nimewo ${PAYMENT_METHOD_LABELS[method]} — sèvi l sèlman lè w bay antrepriz yo nimewo pou fè depo, pou l rete diferan de nimewo elèv yo itilize.</p>` : ''}
       `).join('')}
       <button class="btn btn-primary" style="margin-top:14px;" onclick="savePaymentMethod('${method}')">Sovgade ${PAYMENT_METHOD_LABELS[method]}</button>
     </div>`;
@@ -2400,6 +2403,17 @@ function updateCompanyCondText(){
   const entTrialEl = document.getElementById('entTrialText');
   if(entFeeEl) entFeeEl.textContent = settings.teacherFee ?? 3000;
   if(entTrialEl) entTrialEl.textContent = settings.trialDays ?? 20;
+
+  const depositNumsHtml = (()=>{
+    const rows = [];
+    if(benefInfo.moncash?.companyNum) rows.push(`<div class="kv"><span class="k">MonCash (Antrepriz)</span><span class="v">${benefInfo.moncash.companyNum}</span></div>`);
+    if(benefInfo.natcash?.companyNum) rows.push(`<div class="kv"><span class="k">NatCash (Antrepriz)</span><span class="v">${benefInfo.natcash.companyNum}</span></div>`);
+    return rows.join('');
+  })();
+  const companyBox = document.getElementById('companyDepositNumsBox');
+  if(companyBox) companyBox.innerHTML = depositNumsHtml;
+  const entBox = document.getElementById('entDepositNumsBox');
+  if(entBox) entBox.innerHTML = depositNumsHtml;
 }
 window.updateCompanyCondText = updateCompanyCondText;
 
