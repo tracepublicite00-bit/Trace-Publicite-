@@ -465,10 +465,52 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Non antrepriz la *</label><input id="ent_non" placeholder="Ex: Antrepriz XYZ">
       <label>Domèn / Kalite sèvis *</label><input id="ent_domenn" placeholder="Ex: Kosmetik, Elektwonik, Konsèy...">
       <label>Kòman ou vle prezante biznis ou *</label><textarea id="ent_deskripsyon" placeholder="Ekri yon ti deskripsyon..."></textarea>
-      <div class="benef-box">
+
+      <label>Tip Pyès *</label>
+      <select id="ent_piece"><option>CIN (Kat Idantite Nasyonal)</option><option>Paspò</option><option>Pèmi Kondwi</option></select>
+      <label>Foto Pyès Idantite (Avan) *</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('ent_front_cam').click()">📷 Kamera</button>
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('ent_front_gal').click()">🖼️ Galeri</button>
+      </div>
+      <input id="ent_front_cam" type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleEntFile('front', this)">
+      <input id="ent_front_gal" type="file" accept="image/*" style="display:none;" onchange="handleEntFile('front', this)">
+      <div id="entFrontPreview"></div>
+      <p class="hint">Kenbe pyès la byen vizib lè w pran foto a.</p>
+
+      <label>Foto Pyès Idantite (Vèso)</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('ent_back_cam').click()">📷 Kamera</button>
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('ent_back_gal').click()">🖼️ Galeri</button>
+      </div>
+      <input id="ent_back_cam" type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleEntFile('back', this)">
+      <input id="ent_back_gal" type="file" accept="image/*" style="display:none;" onchange="handleEntFile('back', this)">
+      <div id="entBackPreview"></div>
+      <p class="hint">Opsyonèl — kite vid si pyès ou a pa gen vèso (pa egzanp Paspò).</p>
+
+      <label>Foto Figi Ou (Selfi) *</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('ent_selfie_cam').click()">📷 Kamera</button>
+        <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:13px;" onclick="document.getElementById('ent_selfie_gal').click()">🖼️ Galeri</button>
+      </div>
+      <input id="ent_selfie_cam" type="file" accept="image/*" capture="user" style="display:none;" onchange="handleEntFile('selfie', this)">
+      <input id="ent_selfie_gal" type="file" accept="image/*" style="display:none;" onchange="handleEntFile('selfie', this)">
+      <div id="entSelfiePreview"></div>
+      <p class="hint">Sa pèmèt nou verifye idantite ou koresponn ak pyès ou voye a.</p>
+
+      <label>Frè Enskripsyon Antrepriz (1000 G) — Prèv Peman (foto) *</label>
+      <input id="ent_depositProof" type="file" accept="image/png,image/jpeg" onchange="previewEntDepositFoto(event)">
+      <p class="hint">Fè depo 1000 G la sou MonCash/NatCash anvan, epi mete foto prèv peman an isit la.</p>
+      <div id="entDepositFotoPreviewBox" style="display:none;margin-top:10px;">
+        <img id="entDepositFotoPreviewImg" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:#000;">
+        <button type="button" class="btn btn-outline" style="margin-top:8px;" onclick="clearEntDepositFoto()">🔄 Chanje foto a</button>
+      </div>
+
+      <div class="benef-box" style="margin-top:16px;">
         <b>Kondisyon Antrepriz:</b>
         <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
-          <li>Ou peye platfòm nan <span id="entFeeText">3000</span> G pa mwa (<span id="entTrialText">20</span> jou esè gratis)</li>
+          <li>Yon frè enskripsyon <b>1000 G</b> (yon sèl fwa) obligatwa pou soumèt demand ou</li>
+          <li><span id="entTrialText">20</span> jou esè gratis, epi apre sa antrepriz la aktif san frè mansyèl</li>
           <li>Platfòm nan kenbe yon pousantaj (detèmine pa Admin selon antrepriz la, anviwon 20%) sou chak vant kou ou fè — rès la se pa ou</li>
           <li>Nimewo telefòn kont ou a ap sèvi pou voye w notifikasyon lè yon peman komisyon fèt</li>
           <li>Ou dwe respekte règleman ak estanda platfòm nan</li>
@@ -478,6 +520,7 @@ window.addEventListener('unhandledrejection', function(e) {
       <button class="btn btn-primary" style="margin-top:16px;" onclick="submitCompanyRequest()">Voye Demand Antrepriz</button>
     </div>
   </section>
+
 
   <section id="galeriInfo" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('profil')">←</button><span class="page-title">Foto Pwofil</span></div>
@@ -532,7 +575,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <div class="benef-box">
           <b>Kondisyon Antrepriz:</b>
           <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
-            <li>Antrepriz la peye platfòm nan <span id="companyFeeText">3000</span> G pa mwa (<span id="companyTrialText">20</span> jou esè gratis)</li>
+            <li><span id="companyTrialText">20</span> jou esè gratis, epi apre sa antrepriz la aktif san frè mansyèl</li>
             <li>Platfòm nan kenbe <span id="companyCommText">20</span>% sou chak vant kou antrepriz la fè — rès la se sa antrepriz la dwe resevwa</li>
             <li>Si pwopriyetè a gen yon kont sou app la ak nimewo telefòn ki lye, l ap resevwa notifikasyon nan pwofil li lè peman komisyon make fèt</li>
           </ul>
@@ -1886,10 +1929,17 @@ function renderAdmin(){
       const daysLeft = (c.trialDays||settings.trialDays) - daysPassed;
       trialInfo = daysLeft > 0 ? `<span class="hint">${daysLeft}j esè rete</span>` : `<span class="hint" style="color:var(--wouj)">Esè fini</span>`;
     }
-    const details = [c.domain, c.ownerPhone?`📞 ${c.ownerPhone}`:null].filter(Boolean).join(' · ');
+    const details = [c.domain, c.ownerPhone?`📞 ${c.ownerPhone}`:null, c.piece||null].filter(Boolean).join(' · ');
+    const kycPhotos = (c.pieceFrontUrl || c.selfieUrl || c.depositProofUrl) ? `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">
+        ${c.pieceFrontUrl ? `<img src="${c.pieceFrontUrl}" style="width:80px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="viewKycPhoto('${c.pieceFrontUrl}')">` : ''}
+        ${c.pieceBackUrl ? `<img src="${c.pieceBackUrl}" style="width:80px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="viewKycPhoto('${c.pieceBackUrl}')">` : ''}
+        ${c.selfieUrl ? `<img src="${c.selfieUrl}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;cursor:pointer;" onclick="viewKycPhoto('${c.selfieUrl}')">` : ''}
+        ${c.depositProofUrl ? `<img src="${c.depositProofUrl}" style="width:80px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid var(--or);" onclick="viewKycPhoto('${c.depositProofUrl}')">` : ''}
+      </div>` : '';
     return `
     <div class="kv" style="align-items:flex-start;">
-      <span class="k">${c.name} ${trialInfo}${details?`<br><small style="color:var(--tex-mou);">${details}</small>`:''}${c.description?`<br><small style="color:var(--tex-mou);">${c.description}</small>`:''}</span>
+      <span class="k">${c.name} ${trialInfo}${details?`<br><small style="color:var(--tex-mou);">${details}</small>`:''}${c.description?`<br><small style="color:var(--tex-mou);">${c.description}</small>`:''}${kycPhotos}</span>
       <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:11px;" onclick="setCompanyOwnerPhone('${c.id}')">📞</button>
         <span class="v status-pill ${c.approved?'ok':'blocked'}" style="cursor:pointer;" onclick="toggleCompanyApproval('${c.id}')">${c.approved?'Aktif':'Apwouve'}</span>
@@ -2393,16 +2443,12 @@ function updateTeacherFeeText(){
 window.updateTeacherFeeText = updateTeacherFeeText;
 
 function updateCompanyCondText(){
-  const feeEl = document.getElementById('companyFeeText');
   const trialEl = document.getElementById('companyTrialText');
   const commEl = document.getElementById('companyCommText');
   const commInput = document.getElementById('newCompanyCommission');
-  if(feeEl) feeEl.textContent = settings.teacherFee ?? 3000;
   if(trialEl) trialEl.textContent = settings.trialDays ?? 20;
   if(commEl) commEl.textContent = commInput ? (commInput.value || 20) : 20;
-  const entFeeEl = document.getElementById('entFeeText');
   const entTrialEl = document.getElementById('entTrialText');
-  if(entFeeEl) entFeeEl.textContent = settings.teacherFee ?? 3000;
   if(entTrialEl) entTrialEl.textContent = settings.trialDays ?? 20;
 
   const depositNumsHtml = (()=>{
@@ -2425,12 +2471,66 @@ function updateCompanyCondText(){
 }
 window.updateCompanyCondText = updateCompanyCondText;
 
+let entFiles = { front:null, back:null, selfie:null };
+let entDepositProofFile = null;
+
+function handleEntFile(key, inputEl){
+  const file = inputEl.files[0];
+  if(!file) return;
+  entFiles[key] = file;
+  const previewId = key==='front'?'entFrontPreview':key==='back'?'entBackPreview':'entSelfiePreview';
+  const url = URL.createObjectURL(file);
+  document.getElementById(previewId).innerHTML = `<div style="position:relative;display:inline-block;margin-top:8px;">
+    <img src="${url}" style="width:100px;height:100px;border-radius:10px;object-fit:cover;display:block;">
+    <button type="button" class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;margin-top:6px;" onclick="clearEntFile('${key}')">🗑️ Efase</button>
+  </div>`;
+}
+window.handleEntFile = handleEntFile;
+
+function clearEntFile(key){
+  entFiles[key] = null;
+  const previewId = key==='front'?'entFrontPreview':key==='back'?'entBackPreview':'entSelfiePreview';
+  document.getElementById(previewId).innerHTML = '';
+  const camInput = document.getElementById('ent_'+key+'_cam');
+  const galInput = document.getElementById('ent_'+key+'_gal');
+  if(camInput) camInput.value = '';
+  if(galInput) galInput.value = '';
+}
+window.clearEntFile = clearEntFile;
+
+function previewEntDepositFoto(event){
+  const file = event.target.files[0];
+  entDepositProofFile = file || null;
+  const box = document.getElementById('entDepositFotoPreviewBox');
+  const img = document.getElementById('entDepositFotoPreviewImg');
+  if(!file){ box.style.display = 'none'; return; }
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    img.src = e.target.result;
+    box.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+window.previewEntDepositFoto = previewEntDepositFoto;
+
+function clearEntDepositFoto(){
+  entDepositProofFile = null;
+  document.getElementById('ent_depositProof').value = '';
+  document.getElementById('entDepositFotoPreviewBox').style.display = 'none';
+  document.getElementById('ent_depositProof').click();
+}
+window.clearEntDepositFoto = clearEntDepositFoto;
+
 async function submitCompanyRequest(){
   if(!currentUser){ toast('Ou dwe konekte anvan'); go('enskripsyon'); return; }
   const name = document.getElementById('ent_non').value.trim();
   const domenn = document.getElementById('ent_domenn').value.trim();
   const deskripsyon = document.getElementById('ent_deskripsyon').value.trim();
+  const piece = document.getElementById('ent_piece').value;
   if(!name || !domenn || !deskripsyon){ toast('Tanpri ranpli tout chan yo'); return; }
+  if(!entFiles.front){ toast('Mete yon foto pyès idantite (avan)'); return; }
+  if(!entFiles.selfie){ toast('Mete yon foto figi ou (selfi)'); return; }
+  if(!entDepositProofFile){ toast('Mete foto prèv peman 1000 G la'); return; }
 
   const existingCompanies = await fetchAll('companies');
   const normTel = normalizePhone(currentUser.tel);
@@ -2441,8 +2541,17 @@ async function submitCompanyRequest(){
     return;
   }
 
+  toast('Ap voye demand la...');
+  const frontRes = await uploadFileWithProgress(entFiles.front, 'kyc', ()=>{});
+  const backRes = entFiles.back ? await uploadFileWithProgress(entFiles.back, 'kyc', ()=>{}) : { url:null };
+  const selfieRes = await uploadFileWithProgress(entFiles.selfie, 'kyc', ()=>{});
+  const depositRes = await uploadFileWithProgress(entDepositProofFile, 'deposits', ()=>{});
+  if(!frontRes.url || !selfieRes.url || !depositRes.url){ toast('Erè telechajman foto — reyeseye'); return; }
+
   await insertRow('companies', {
     name, domain: domenn, description: deskripsyon,
+    piece, pieceFrontUrl: frontRes.url, pieceBackUrl: backRes.url, selfieUrl: selfieRes.url,
+    depositProofUrl: depositRes.url,
     approved: false,
     trialStart: new Date().toISOString(),
     trialDays: settings.trialDays,
@@ -2454,6 +2563,8 @@ async function submitCompanyRequest(){
   document.getElementById('ent_non').value = '';
   document.getElementById('ent_domenn').value = '';
   document.getElementById('ent_deskripsyon').value = '';
+  entFiles = { front:null, back:null, selfie:null };
+  entDepositProofFile = null;
   toast('Demand antrepriz voye — n ap tann apwobasyon');
   go('profil');
 }
