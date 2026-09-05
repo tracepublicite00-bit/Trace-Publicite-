@@ -307,8 +307,12 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Telefòn * <span class="hint">(nimewo Moncash/Natcash ou pou verifikasyon)</span></label>
       <input id="dep_tel" placeholder="(509) 3xxx xxxx">
       <label>Prèv Pèman (foto) *</label>
-      <input id="dep_foto" type="file" accept="image/png,image/jpeg">
+      <input id="dep_foto" type="file" accept="image/png,image/jpeg" onchange="previewDepositFoto(event)">
       <p class="hint">Klike pou chwazi yon foto JPG oswa PNG — Maks 5 MB</p>
+      <div id="depFotoPreviewBox" style="display:none;margin-top:10px;">
+        <img id="depFotoPreviewImg" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:#000;">
+        <button type="button" class="btn btn-outline" style="margin-top:8px;" onclick="clearDepositFoto()">🔄 Chanje foto a</button>
+      </div>
       <button class="btn btn-gold" style="margin-top:16px;" onclick="submitDeposit()">Konfime Depo</button>
       <input type="hidden" id="depForCourse" value="">
       <p class="hint" style="margin-top:10px;">ℹ️ Depo a ka pran kèk minit oswa 1 nèd tan avan li verifye.</p>
@@ -400,6 +404,7 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="card">
       <a class="btn btn-outline" style="text-decoration:none;display:block;" href="guide.pdf" target="_blank">📘 Gid Itilizatè</a>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="go('enskripsyonFormatè')">🎓 Vin Fòmatè (KYC)</button>
+      <button class="btn btn-outline" style="margin-top:10px;" onclick="go('enskripsyonAntrepriz')">🏢 Enskri kòm Antrepriz</button>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="logoutUser()">🚪 Dekonèkte</button>
       <button class="btn btn-danger" style="margin-top:10px;" onclick="deleteAccount()">🗑️ Efase kont</button>
     </div>
@@ -451,6 +456,25 @@ window.addEventListener('unhandledrejection', function(e) {
         </ul>
       </div>
       <button class="btn btn-primary" style="margin-top:16px;" onclick="submitTeacherKyc()">Voye Demand KYC</button>
+    </div>
+  </section>
+
+  <section id="enskripsyonAntrepriz" class="page">
+    <div class="back-row"><button class="back-btn" onclick="go('profil')">←</button><span class="page-title">Enskri kòm Antrepriz</span></div>
+    <div class="card">
+      <label>Non antrepriz la *</label><input id="ent_non" placeholder="Ex: Antrepriz XYZ">
+      <label>Domèn / Kalite sèvis *</label><input id="ent_domenn" placeholder="Ex: Kosmetik, Elektwonik, Konsèy...">
+      <label>Kòman ou vle prezante biznis ou *</label><textarea id="ent_deskripsyon" placeholder="Ekri yon ti deskripsyon..."></textarea>
+      <div class="benef-box">
+        <b>Kondisyon Antrepriz:</b>
+        <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
+          <li>Ou peye platfòm nan <span id="entFeeText">3000</span> G pa mwa (<span id="entTrialText">20</span> jou esè gratis)</li>
+          <li>Platfòm nan kenbe yon pousantaj (detèmine pa Admin selon antrepriz la, anviwon 20%) sou chak vant kou ou fè — rès la se pa ou</li>
+          <li>Nimewo telefòn kont ou a ap sèvi pou voye w notifikasyon lè yon peman komisyon fèt</li>
+          <li>Ou dwe respekte règleman ak estanda platfòm nan</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="submitCompanyRequest()">Voye Demand Antrepriz</button>
     </div>
   </section>
 
@@ -1546,6 +1570,27 @@ function renderDepositBox(){
     if(circ && icon){ circ.innerHTML = `<img src="${icon}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; circ.style.background='transparent'; }
   });
 }
+function previewDepositFoto(event){
+  const file = event.target.files[0];
+  const box = document.getElementById('depFotoPreviewBox');
+  const img = document.getElementById('depFotoPreviewImg');
+  if(!file){ box.style.display = 'none'; return; }
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    img.src = e.target.result;
+    box.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+window.previewDepositFoto = previewDepositFoto;
+
+function clearDepositFoto(){
+  document.getElementById('dep_foto').value = '';
+  document.getElementById('depFotoPreviewBox').style.display = 'none';
+  document.getElementById('dep_foto').click();
+}
+window.clearDepositFoto = clearDepositFoto;
+
 async function submitDeposit(){
   const btn = document.querySelector('#depoze .btn-gold');
   if(btn && btn.disabled) return;
@@ -1578,6 +1623,7 @@ async function submitDeposit(){
   document.getElementById('dep_siyati').value='';
   document.getElementById('dep_tel').value='';
   document.getElementById('dep_foto').value='';
+  document.getElementById('depFotoPreviewBox').style.display = 'none';
   if(btn){ btn.disabled = false; btn.textContent = 'Konfime Depo'; }
 }
 
@@ -1820,12 +1866,13 @@ function renderAdmin(){
       const daysLeft = (c.trialDays||settings.trialDays) - daysPassed;
       trialInfo = daysLeft > 0 ? `<span class="hint">${daysLeft}j esè rete</span>` : `<span class="hint" style="color:var(--wouj)">Esè fini</span>`;
     }
+    const details = [c.domain, c.ownerPhone?`📞 ${c.ownerPhone}`:null].filter(Boolean).join(' · ');
     return `
-    <div class="kv">
-      <span class="k">${c.name} ${trialInfo}${c.ownerPhone?`<br><small style="color:var(--tex-mou);">📞 ${c.ownerPhone}</small>`:''}</span>
+    <div class="kv" style="align-items:flex-start;">
+      <span class="k">${c.name} ${trialInfo}${details?`<br><small style="color:var(--tex-mou);">${details}</small>`:''}${c.description?`<br><small style="color:var(--tex-mou);">${c.description}</small>`:''}</span>
       <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:11px;" onclick="setCompanyOwnerPhone('${c.id}')">📞</button>
-        <span class="v status-pill ${c.approved?'ok':'blocked'}" style="cursor:pointer;" onclick="toggleCompanyApproval('${c.id}')">${c.approved?'Aktif':'Aktive'}</span>
+        <span class="v status-pill ${c.approved?'ok':'blocked'}" style="cursor:pointer;" onclick="toggleCompanyApproval('${c.id}')">${c.approved?'Aktif':'Apwouve'}</span>
         <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCompany('${c.id}')">Efase</button>
       </span>
     </div>`;
@@ -2292,8 +2339,46 @@ function updateCompanyCondText(){
   if(feeEl) feeEl.textContent = settings.teacherFee ?? 3000;
   if(trialEl) trialEl.textContent = settings.trialDays ?? 20;
   if(commEl) commEl.textContent = commInput ? (commInput.value || 20) : 20;
+  const entFeeEl = document.getElementById('entFeeText');
+  const entTrialEl = document.getElementById('entTrialText');
+  if(entFeeEl) entFeeEl.textContent = settings.teacherFee ?? 3000;
+  if(entTrialEl) entTrialEl.textContent = settings.trialDays ?? 20;
 }
 window.updateCompanyCondText = updateCompanyCondText;
+
+async function submitCompanyRequest(){
+  if(!currentUser){ toast('Ou dwe konekte anvan'); go('enskripsyon'); return; }
+  const name = document.getElementById('ent_non').value.trim();
+  const domenn = document.getElementById('ent_domenn').value.trim();
+  const deskripsyon = document.getElementById('ent_deskripsyon').value.trim();
+  if(!name || !domenn || !deskripsyon){ toast('Tanpri ranpli tout chan yo'); return; }
+
+  const existingCompanies = await fetchAll('companies');
+  const normTel = normalizePhone(currentUser.tel);
+  const match = normTel ? existingCompanies.find(c => normalizePhone(c.ownerPhone) === normTel) : null;
+  if(match){
+    toast('Ou gen deja yon antrepriz oswa yon demand ak kont sa a');
+    go('profil');
+    return;
+  }
+
+  await insertRow('companies', {
+    name, domain: domenn, description: deskripsyon,
+    approved: false,
+    trialStart: new Date().toISOString(),
+    trialDays: settings.trialDays,
+    commissionRate: 20,
+    amountPaidOutHtg: 0,
+    amountPaidOutUsd: 0,
+    ownerPhone: currentUser.tel
+  });
+  document.getElementById('ent_non').value = '';
+  document.getElementById('ent_domenn').value = '';
+  document.getElementById('ent_deskripsyon').value = '';
+  toast('Demand antrepriz voye — n ap tann apwobasyon');
+  go('profil');
+}
+window.submitCompanyRequest = submitCompanyRequest;
 
 function renderStepList(){
   const stepSel = document.getElementById('stepCourseSelect');
