@@ -563,6 +563,12 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
 
     <div class="card">
+      <div class="section-title">✅ Depo Konfime</div>
+      <p class="hint">Sa a montre TOUT depo ki konfime — sèvi ak li pou wè si gen doublon (menm moun ki soumèt 2 fwa) oswa depo tès pou efase.</p>
+      <div id="adminConfirmedDeposits"></div>
+    </div>
+
+    <div class="card">
       <div class="section-title">🔓 Bay Aksè Kou Manyèlman</div>
       <p class="hint">Sèvi ak sa a si yon elèv deja peye (depo konfime) men li pa gen aksè a yon kou espesifik.</p>
       <label>Itilizatè</label>
@@ -1931,6 +1937,22 @@ function renderAdmin(){
       </div>`).join('')
     : `<div class="empty">Pa gen depo an atant.</div>`;
 
+  const confirmed = deposits.filter(d=>d.status==='konfime')
+    .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  const confirmedBox = document.getElementById('adminConfirmedDeposits');
+  if(confirmedBox){
+    confirmedBox.innerHTML = confirmed.length
+      ? confirmed.map(d=>{
+          const k = d.courseId ? courses.find(c=>c.id===d.courseId) : null;
+          return `
+      <div class="kv" style="flex-direction:column;align-items:stretch;gap:6px;">
+        <span class="k" style="cursor:pointer;text-decoration:underline;" onclick="viewDepositProof('${d.id}')">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.method})<br><small style="color:var(--tex-mou);">${formatDateTime(d.createdAt)}${k?' · '+k.title:''}${!d.courseId?' · <span style="color:var(--wouj)">San kou</span>':''}</small></span>
+        <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;" onclick="deleteConfirmedDeposit('${d.id}')">Efase (doublon/erè)</button>
+      </div>`;
+        }).join('')
+      : `<div class="empty">Pa gen depo konfime pou kounye a.</div>`;
+  }
+
   document.getElementById('adminCompanies').innerHTML = companies.map(c=>{
     let trialInfo = '';
     if(c.trialStart){
@@ -2279,6 +2301,26 @@ async function rejectDeposit(id){
   toast('Depo efase');
 }
 window.rejectDeposit = rejectDeposit;
+
+async function deleteConfirmedDeposit(id){
+  const dep = deposits.find(d=>d.id===id);
+  if(!dep) return;
+  const sur = confirm(`Efase depo konfime "${dep.prenon} ${dep.siyati} — ${dep.montan} ${dep.devise==='usd'?'USD':'G'}" a nèt? Sa ap retire l nan konte "Vant" ak "Fòmasyon achte", epi retire aksè a kou a si li te gen youn. Aksyon sa a pa ka anile.`);
+  if(!sur) return;
+  await deleteRow('deposits', id);
+  if(dep.userId){
+    await incrementField('users', dep.userId, 'achte', -1);
+    if(dep.courseId){
+      const p = purchases.find(x=>x.userId===dep.userId && x.courseId===dep.courseId);
+      if(p) await deleteRow('purchases', p.id);
+    }
+  }
+  await refreshDeposits();
+  await refreshUsers();
+  await refreshPurchases();
+  toast('Depo efase — konte yo ajiste');
+}
+window.deleteConfirmedDeposit = deleteConfirmedDeposit;
 
 function viewUserDetails(userId){
   const u = allUsers.find(x=>x.id===userId);
