@@ -1945,9 +1945,10 @@ function renderAdmin(){
       ? confirmed.map(d=>{
           const k = d.courseId ? courses.find(c=>c.id===d.courseId) : null;
           return `
-      <div class="kv" style="flex-direction:column;align-items:stretch;gap:6px;">
-        <span class="k" style="cursor:pointer;text-decoration:underline;" onclick="viewDepositProof('${d.id}')">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.method})<br><small style="color:var(--tex-mou);">${formatDateTime(d.createdAt)}${k?' · '+k.title:''}${!d.courseId?' · <span style="color:var(--wouj)">San kou</span>':''}</small></span>
-        <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;" onclick="deleteConfirmedDeposit('${d.id}')">Efase (doublon/erè)</button>
+      <div style="background:rgba(46,204,113,0.08);border-left:4px solid var(--vet);border-radius:10px;padding:12px 14px;margin-bottom:10px;cursor:pointer;" onclick="viewDepositProof('${d.id}')">
+        <div style="font-weight:700;font-size:14px;">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.method})</div>
+        <div class="hint" style="margin-top:2px;">${formatDateTime(d.createdAt)}${k?' · '+k.title:''}${!d.courseId?' · <span style="color:var(--wouj)">San kou</span>':''}</div>
+        <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;margin-top:8px;" onclick="event.stopPropagation(); deleteConfirmedDeposit('${d.id}')">Efase (doublon/erè)</button>
       </div>`;
         }).join('')
       : `<div class="empty">Pa gen depo konfime pou kounye a.</div>`;
