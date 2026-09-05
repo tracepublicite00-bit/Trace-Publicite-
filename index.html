@@ -1201,7 +1201,7 @@ function go(pageId){
   if(pageId==='akey') renderAkey();
   if(pageId==='achat') renderCompanyListFull();
   if(pageId==='touFormasyon') renderCourseListFull();
-  if(pageId==='depoze') renderDepositBox();
+  if(pageId==='depoze'){ renderDepositBox(); prefillDepositUserInfo(); }
   if(pageId==='support') renderSupportAvatar();
   if(pageId==='klasman') renderRanking();
   if(pageId==='weTout') renderAllUsers();
@@ -1368,6 +1368,22 @@ function courseCardHtml(k){
 function renderCourseListFull(){
   document.getElementById('courseListFull').innerHTML = courses.map(k=>courseCardHtml(k)).join('');
 }
+
+function prefillDepositUserInfo(){
+  if(!currentUser) return;
+  const prenonEl = document.getElementById('dep_prenon');
+  const siyatiEl = document.getElementById('dep_siyati');
+  const telEl = document.getElementById('dep_tel');
+  if(prenonEl && !prenonEl.value && siyatiEl && !siyatiEl.value){
+    const parts = (currentUser.non || '').trim().split(' ');
+    prenonEl.value = parts[0] || '';
+    siyatiEl.value = parts.slice(1).join(' ') || '';
+  }
+  if(telEl && !telEl.value){
+    telEl.value = currentUser.tel || '';
+  }
+}
+window.prefillDepositUserInfo = prefillDepositUserInfo;
 
 function checkAccessCode(courseId){
   const entered = document.getElementById('courseAccessCode').value;
