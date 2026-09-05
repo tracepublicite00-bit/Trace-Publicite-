@@ -1896,7 +1896,7 @@ function renderAdmin(){
 
   document.getElementById('adminUsers').innerHTML = allUsers.map(u=>`
     <div class="kv" style="align-items:flex-start;">
-      <span class="k">${u.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(u.createdAt)}</small></span>
+      <span class="k" style="cursor:pointer;" onclick="viewUserDetails('${u.id}')">${u.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(u.createdAt)}</small></span>
       <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
     </div>`).join('');
 
@@ -2177,6 +2177,34 @@ async function rejectDeposit(id){
   toast('Depo efase');
 }
 window.rejectDeposit = rejectDeposit;
+
+function viewUserDetails(userId){
+  const u = allUsers.find(x=>x.id===userId);
+  if(!u){ toast('Itilizatè pa jwenn'); return; }
+  const box = document.createElement('div');
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:460px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:15px;">${u.non || '—'}</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="this.closest('div[style*=fixed]').remove()">Fèmen</button>
+      </div>
+      <div class="kv"><span class="k">Imèl</span><span class="v">${u.email || '—'}</span></div>
+      <div class="kv"><span class="k">Telefòn</span><span class="v">${u.tel || '—'}</span></div>
+      <div class="kv"><span class="k">Peyi</span><span class="v">${u.peyi || '—'}</span></div>
+      <div class="kv"><span class="k">Vil</span><span class="v">${u.vil || '—'}</span></div>
+      <div class="kv"><span class="k">Kòd aksè</span><span class="v">${u.accessCode || '—'}</span></div>
+      <div class="kv"><span class="k">Fòmasyon achte</span><span class="v">${u.achte || 0}</span></div>
+      <div class="kv"><span class="k">Fòmasyon fini</span><span class="v">${u.fini || 0}</span></div>
+      <div class="kv"><span class="k">Mwa aktif</span><span class="v">${u.mwaAktif || 0}</span></div>
+      <div class="kv"><span class="k">Pwofil</span><span class="v">${u.piblik ? 'Piblik' : 'Prive'}</span></div>
+      <div class="kv"><span class="k">Estati</span><span class="v">${u.blocked ? 'Bloke' : 'Aktif'}</span></div>
+      <div class="kv"><span class="k">Enskri</span><span class="v">${formatDateTime(u.createdAt)}</span></div>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.viewUserDetails = viewUserDetails;
 
 function viewDepositProof(id){
   const dep = deposits.find(d=>d.id===id);
