@@ -1897,7 +1897,10 @@ function renderAdmin(){
   document.getElementById('adminUsers').innerHTML = allUsers.map(u=>`
     <div class="kv" style="align-items:flex-start;">
       <span class="k" style="cursor:pointer;" onclick="viewUserDetails('${u.id}')">${u.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(u.createdAt)}</small></span>
-      <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
+      <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
+        <button class="btn btn-danger" style="width:auto;padding:6px 10px;font-size:12px;" onclick="deleteUser('${u.id}')">Efase</button>
+      </span>
     </div>`).join('');
 
   document.getElementById('admin_price').value = settings.price;
@@ -2301,6 +2304,16 @@ async function toggleUserBlock(id, currentlyBlocked){
   await updateRow('users', id, { blocked: !currentlyBlocked });
   await refreshUsers();
 }
+
+async function deleteUser(id){
+  const u = allUsers.find(x=>x.id===id);
+  const sur = confirm(`Efase kont "${u?.non||''}" nèt? Aksyon sa a pa ka anile.`);
+  if(!sur) return;
+  await deleteRow('users', id);
+  await refreshUsers();
+  toast('Kont efase');
+}
+window.deleteUser = deleteUser;
 
 async function uploadPaymentIcon(method, inputEl){
   const file = inputEl.files[0];
