@@ -197,6 +197,11 @@ window.addEventListener('unhandledrejection', function(e) {
       <div id="companyList"></div>
     </div>
 
+    <div class="card" id="recommendedFlyersCard" style="display:none;">
+      <div class="section-title">🌟 Fòmasyon Rekòmande</div>
+      <div id="recommendedFlyers" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;"></div>
+    </div>
+
     <div class="card">
       <div class="section-title">Fòmasyon yo <a onclick="go('touFormasyon')">Wè tout ➜</a></div>
       <div id="courseListPreview"></div>
@@ -622,6 +627,19 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
 
     <div class="card">
+      <div class="section-title">🌟 Fòmasyon Rekòmande (Flyè Akèy)</div>
+      <p class="hint">Ajoute foto oswa videyo pwomosyonèl (pou kou oswa antrepriz) ki ap parèt nan yon seksyon espesyal sou Akèy la, san yo pa touche okenn kou ki egziste deja.</p>
+      <label>Tit (opsyonèl)</label>
+      <input id="promoPostTitle" placeholder="Ex: Nouvo kou Marketing disponib!">
+      <label>Ki kou li mennen ale (opsyonèl)</label>
+      <select id="promoPostCourse"><option value="">— San kou espesifik (jis imaj/videyo) —</option></select>
+      <label>Foto oswa Videyo *</label>
+      <input id="promoPostFile" type="file" accept="image/*,video/*">
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="submitPromoPost()">Ajoute Flyè</button>
+      <div id="adminPromoPosts" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
       <div class="section-title">Kreye yon nouvo kou</div>
       <label>Antrepriz (opsyonèl)</label>
       <select id="newCourseCompany"><option value="">— San antrepriz (fòmatè endepandan) —</option></select>
@@ -833,6 +851,7 @@ function dedupeByPhone(list){
 }
 
 let companies = [];
+let promoPosts = [];
 let courses = [];
 let allUsers = [];
 let teachers = [];
@@ -877,6 +896,12 @@ async function refreshCompanies(){
   companies = await fetchAll('companies');
   if(document.getElementById('akey').classList.contains('active')) renderAkey();
   if(document.getElementById('achat').classList.contains('active')) renderCompanyListFull();
+  if(document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
+async function refreshPromoPosts(){
+  promoPosts = await fetchAll('promo_posts');
+  promoPosts.sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  if(document.getElementById('akey').classList.contains('active')) renderAkey();
   if(document.getElementById('admin').classList.contains('active')) renderAdmin();
 }
 async function refreshCourses(){
@@ -1125,6 +1150,7 @@ function uploadFileWithProgress(file, folder, onProgress){
 function listenAll(){
   const tables = [
     ['companies', refreshCompanies],
+    ['promo_posts', refreshPromoPosts],
     ['courses', refreshCourses],
     ['users', refreshUsers],
     ['deposits', refreshDeposits],
@@ -1393,6 +1419,41 @@ function renderAkey(){
 
   const cPreview = document.getElementById('courseListPreview');
   cPreview.innerHTML = courses.slice(0,2).map(k=>courseCardHtml(k)).join('');
+
+  const flyerCard = document.getElementById('recommendedFlyersCard');
+  const flyerBox = document.getElementById('recommendedFlyers');
+  if(flyerCard && flyerBox){
+    if(promoPosts.length){
+      flyerCard.style.display = 'block';
+      flyerBox.innerHTML = promoPosts.map(p=>{
+        const k = p.courseId ? courses.find(c=>c.id===p.courseId) : null;
+        const media = p.mediaType==='video'
+          ? `<video src="${p.mediaUrl}" ${k?'':'controls'} style="width:240px;height:150px;object-fit:cover;border-radius:12px;background:#000;"></video>`
+          : `<img src="${p.mediaUrl}" style="width:240px;height:150px;object-fit:cover;border-radius:12px;">`;
+        if(k){
+          return `
+          <div style="flex:0 0 auto;width:240px;cursor:pointer;" onclick="openCourse('${k.id}')">
+            <div style="position:relative;">${media}<div class="lock-tag">🔒 Peye avan</div></div>
+            <div style="font-weight:700;font-size:13.5px;margin-top:6px;line-height:1.3;">${p.title || k.title}</div>
+            <div class="price">${k.price} Goud</div>
+            <div class="icon-row">
+              <span onclick="event.stopPropagation(); react('${k.id}','likes')">👍 ${k.likes||0}</span>
+              <span onclick="event.stopPropagation(); openComments('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">💬 ${courseComments.filter(c=>c.courseId===k.id).length}</span>
+              <span>👁️ ${k.views||0}</span>
+              <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗 ${k.shares||0} Pataje</span>
+            </div>
+          </div>`;
+        }
+        return `
+        <div style="flex:0 0 auto;width:240px;">
+          ${media}
+          ${p.title?`<div style="font-weight:700;font-size:13.5px;margin-top:6px;line-height:1.3;">${p.title}</div>`:''}
+        </div>`;
+      }).join('');
+    } else {
+      flyerCard.style.display = 'none';
+    }
+  }
 
   const grid = document.getElementById('userGrid');
   grid.innerHTML = countedUsers.slice(0,6).map(u=>`
@@ -2077,6 +2138,13 @@ function renderAdmin(){
   const sel = document.getElementById('newCourseCompany');
   if(sel) sel.innerHTML = `<option value="">— San antrepriz (fòmatè endepandan) —</option>` + companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 
+  const promoCourseSel = document.getElementById('promoPostCourse');
+  if(promoCourseSel){
+    const prevVal = promoCourseSel.value;
+    promoCourseSel.innerHTML = `<option value="">— San kou espesifik (jis imaj/videyo) —</option>` + courses.map(k=>`<option value="${k.id}">${k.title}</option>`).join('');
+    if(prevVal) promoCourseSel.value = prevVal;
+  }
+
   const grantUserSel = document.getElementById('grantAccessUser');
   if(grantUserSel){
     const prevVal = grantUserSel.value;
@@ -2099,6 +2167,22 @@ function renderAdmin(){
     stepSel.innerHTML = courses.map(k=>`<option value="${k.id}">${k.title}</option>`).join('');
     if(prevVal) stepSel.value = prevVal;
     renderStepList();
+  }
+
+  const promoBox = document.getElementById('adminPromoPosts');
+  if(promoBox){
+    promoBox.innerHTML = promoPosts.length
+      ? promoPosts.map(p=>`
+        <div class="kv" style="align-items:center;">
+          <span class="k" style="display:flex;align-items:center;gap:8px;">
+            ${p.mediaType==='video'
+              ? `<span style="width:44px;height:34px;border-radius:6px;background:#000;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🎬</span>`
+              : `<img src="${p.mediaUrl}" style="width:44px;height:34px;object-fit:cover;border-radius:6px;flex-shrink:0;">`}
+            <span>${p.title || '(San tit)'}</span>
+          </span>
+          <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deletePromoPost('${p.id}')">Efase</button>
+        </div>`).join('')
+      : `<div class="empty">Pa gen flyè ajoute pou kounye a.</div>`;
   }
 
   const coursesBox = document.getElementById('adminCourses');
@@ -2635,6 +2719,34 @@ async function deleteCourse(id){
   toast('Kou efase');
 }
 window.deleteCourse = deleteCourse;
+
+async function submitPromoPost(){
+  const title = document.getElementById('promoPostTitle').value.trim();
+  const courseId = document.getElementById('promoPostCourse').value;
+  const fileInput = document.getElementById('promoPostFile');
+  const file = fileInput.files[0];
+  if(!file){ toast('Chwazi yon foto oswa videyo'); return; }
+  toast('Ap telechaje...');
+  const res = await uploadFileWithProgress(file, 'course-media', ()=>{});
+  if(!res.url){ toast('Erè telechajman — reyeseye'); return; }
+  const mediaType = file.type.startsWith('video') ? 'video' : 'image';
+  await insertRow('promo_posts', { title: title || null, mediaUrl: res.url, mediaType, courseId: courseId || null });
+  document.getElementById('promoPostTitle').value = '';
+  document.getElementById('promoPostCourse').value = '';
+  fileInput.value = '';
+  await refreshPromoPosts();
+  toast('Flyè ajoute ✅');
+}
+window.submitPromoPost = submitPromoPost;
+
+async function deletePromoPost(id){
+  const sur = confirm('Efase flyè sa a?');
+  if(!sur) return;
+  await deleteRow('promo_posts', id);
+  await refreshPromoPosts();
+  toast('Flyè efase');
+}
+window.deletePromoPost = deletePromoPost;
 
 async function toggleUserBlock(id, currentlyBlocked){
   await updateRow('users', id, { blocked: !currentlyBlocked });
