@@ -393,8 +393,8 @@ window.addEventListener('unhandledrejection', function(e) {
         <div class="toggle" id="toggleCode" onclick="toggleHideCode()"><div class="dot"></div></div>
       </div>
       <div class="kv">
-        <span class="k">Pwofil piblik</span>
-        <div class="toggle on" id="togglePublic" onclick="togglePublicProfile()"><div class="dot"></div></div>
+        <span class="k">Pwofil prive</span>
+        <div class="toggle" id="togglePublic" onclick="togglePublicProfile()"><div class="dot"></div></div>
       </div>
     </div>
     <div class="card">
@@ -1270,7 +1270,7 @@ function go(pageId){
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
   if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); renderNotifStatus(); renderPaymentInfoForm(); }
-  if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); restoreHideCodeState(); }
+  if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); restoreHideCodeState(); restorePublicProfileState(); }
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
 }
@@ -1311,13 +1311,23 @@ window.restoreHideCodeState = restoreHideCodeState;
 async function togglePublicProfile(){
   const el = document.getElementById('togglePublic');
   el.classList.toggle('on');
-  const piblik = el.classList.contains('on');
+  const prive = el.classList.contains('on');
+  const piblik = !prive;
   if(currentUser){
+    currentUser.piblik = piblik;
     await updateRow('users', currentUser.id, { piblik });
     toast(piblik ? 'Pwofil ou piblik kounye a' : 'Pwofil ou prive kounye a');
   }
 }
 window.togglePublicProfile = togglePublicProfile;
+
+function restorePublicProfileState(){
+  const el = document.getElementById('togglePublic');
+  if(!el || !currentUser) return;
+  const prive = currentUser.piblik === false;
+  el.classList.toggle('on', prive);
+}
+window.restorePublicProfileState = restorePublicProfileState;
 
 function logoutUser(){
   localStorage.removeItem('tp_current_user');
