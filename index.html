@@ -2319,6 +2319,8 @@ async function deleteConfirmedDeposit(id){
   await refreshDeposits();
   await refreshUsers();
   await refreshPurchases();
+  const listOverlay = document.getElementById('confirmedDepositsListOverlay');
+  if(listOverlay){ listOverlay.remove(); openConfirmedDepositsList(); }
   toast('Depo efase — konte yo ajiste');
 }
 window.deleteConfirmedDeposit = deleteConfirmedDeposit;
