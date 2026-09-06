@@ -1941,13 +1941,14 @@ function renderAdmin(){
     .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
   const confirmedBox = document.getElementById('adminConfirmedDeposits');
   if(confirmedBox){
+    const dupCount = findDuplicateDepositIds(confirmed).size;
     confirmedBox.innerHTML = confirmed.length
       ? `
       <div class="course-card" style="cursor:pointer;" onclick="openConfirmedDepositsList()">
         <div class="course-thumb" style="height:60px;background:linear-gradient(135deg,#2ecc71,#1e8449);font-size:22px;">✅</div>
         <div class="course-body">
           <div class="title">Depo Konfime</div>
-          <div class="hint" style="margin-top:2px;">${confirmed.length} depo konfime — peze pou wè lis la</div>
+          <div class="hint" style="margin-top:2px;">${confirmed.length} depo konfime — peze pou wè lis la${dupCount ? ` · <span style="color:var(--wouj);font-weight:700;">⚠️ ${dupCount} posib doublon</span>` : ''}</div>
         </div>
       </div>`
       : `<div class="empty">Pa gen depo konfime pou kounye a.</div>`;
@@ -2350,19 +2351,43 @@ function viewUserDetails(userId){
 }
 window.viewUserDetails = viewUserDetails;
 
+function findDuplicateDepositIds(list){
+  const groups = {};
+  for(const d of list){
+    const key = (d.prenon||'').trim().toLowerCase() + '|' + (d.siyati||'').trim().toLowerCase() + '|' + d.montan + '|' + d.devise;
+    (groups[key] = groups[key] || []).push(d);
+  }
+  const dupIds = new Set();
+  for(const key in groups){
+    const arr = groups[key].slice().sort((a,b)=> new Date(a.createdAt||0) - new Date(b.createdAt||0));
+    for(let i=1;i<arr.length;i++){
+      const gapMin = (new Date(arr[i].createdAt||0) - new Date(arr[i-1].createdAt||0)) / 60000;
+      if(gapMin <= 60){
+        const earlier = arr[i-1], later = arr[i];
+        if(!later.courseId && earlier.courseId) dupIds.add(later.id);
+        else if(later.courseId && !earlier.courseId) dupIds.add(earlier.id);
+        else dupIds.add(later.id);
+      }
+    }
+  }
+  return dupIds;
+}
+
 function openConfirmedDepositsList(){
   const confirmed = deposits.filter(d=>d.status==='konfime')
     .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  const dupIds = findDuplicateDepositIds(confirmed);
   const box = document.createElement('div');
   box.id = 'confirmedDepositsListOverlay';
   box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
   const rows = confirmed.map(d=>{
     const k = d.courseId ? courses.find(c=>c.id===d.courseId) : null;
+    const isDup = dupIds.has(d.id);
     return `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="viewDepositProof('${d.id}')">
-        <div style="width:32px;height:32px;border-radius:9px;background:rgba(46,204,113,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">✅</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;${isDup?'background:rgba(231,76,60,0.07);':''}" onclick="viewDepositProof('${d.id}')">
+        <div style="width:32px;height:32px;border-radius:9px;background:${isDup?'rgba(231,76,60,0.15)':'rgba(46,204,113,0.15)'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">${isDup?'⚠️':'✅'}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13px;">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'}</div>
+          <div style="font-weight:700;font-size:13px;">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'}${isDup?' <span style="color:var(--wouj);font-weight:700;">· Posib Doublon</span>':''}</div>
           <div class="hint" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${formatDateTime(d.createdAt)}${k?' · '+k.title:''}${!d.courseId?' · <span style="color:var(--wouj)">San kou</span>':''}</div>
         </div>
         <div style="color:var(--tex-mou);flex-shrink:0;">›</div>
@@ -2374,6 +2399,7 @@ function openConfirmedDepositsList(){
         <div style="font-weight:700;font-size:15px;">✅ Depo Konfime (${confirmed.length})</div>
         <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('confirmedDepositsListOverlay').remove()">Fèmen</button>
       </div>
+      ${dupIds.size ? `<div class="hint" style="color:var(--wouj);margin-bottom:8px;">⚠️ ${dupIds.size} posib doublon detekte — verifye anvan w efase.</div>` : ''}
       ${rows || `<div class="empty">Pa gen depo konfime pou kounye a.</div>`}
     </div>`;
   box.onclick = (e)=>{ if(e.target===box) box.remove(); };
