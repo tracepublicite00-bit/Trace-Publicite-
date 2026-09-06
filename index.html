@@ -2001,14 +2001,16 @@ function renderAdmin(){
     </div>`;
   }).join('');
 
-  document.getElementById('adminUsers').innerHTML = allUsers.map(u=>`
-    <div class="kv" style="align-items:flex-start;">
-      <span class="k" style="cursor:pointer;flex:1;min-width:0;padding-right:8px;" onclick="viewUserDetails('${u.id}')">${u.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(u.createdAt)}</small></span>
-      <span style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;flex-shrink:0;">
-        <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 10px;font-size:12px;white-space:nowrap;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
-        <button class="btn btn-danger" style="width:auto;padding:6px 10px;font-size:12px;white-space:nowrap;" onclick="deleteUser('${u.id}')">Efase</button>
-      </span>
-    </div>`).join('');
+  document.getElementById('adminUsers').innerHTML = allUsers.length
+    ? `
+      <div class="course-card" style="cursor:pointer;" onclick="openUsersList()">
+        <div class="course-thumb" style="height:60px;background:linear-gradient(135deg,#f8a5c2,#e5698d);font-size:22px;">👥</div>
+        <div class="course-body">
+          <div class="title">Itilizatè yo</div>
+          <div class="hint" style="margin-top:2px;">${allUsers.length} itilizatè — peze pou wè lis la</div>
+        </div>
+      </div>`
+    : `<div class="empty">Pa gen itilizatè anrejistre.</div>`;
 
   document.getElementById('admin_price').value = settings.price;
   if(settings.paymentIcons?.moncash){
@@ -2243,6 +2245,35 @@ function renderAccessAndVisits(){
       : `<div class="empty">Pa gen vizit anrejistre.</div>`;
   }
 }
+
+function openUsersList(){
+  const box = document.createElement('div');
+  box.id = 'usersListOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  const rows = allUsers.map(u=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;border-radius:9px;background:rgba(233,105,141,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;cursor:pointer;" onclick="viewUserDetails('${u.id}')">👤</div>
+        <div style="flex:1;min-width:0;cursor:pointer;" onclick="viewUserDetails('${u.id}')">
+          <div style="font-weight:700;font-size:13px;">${u.non}</div>
+          <div class="hint">Enskri: ${formatDateTime(u.createdAt)}</div>
+        </div>
+        <span style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">
+          <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:5px 9px;font-size:11px;white-space:nowrap;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
+          <button class="btn btn-danger" style="width:auto;padding:5px 9px;font-size:11px;white-space:nowrap;" onclick="deleteUser('${u.id}')">Efase</button>
+        </span>
+      </div>`).join('');
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:460px;width:100%;max-height:90vh;overflow:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:15px;">👥 Itilizatè yo (${allUsers.length})</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('usersListOverlay').remove()">Fèmen</button>
+      </div>
+      ${rows || `<div class="empty">Pa gen itilizatè anrejistre.</div>`}
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.openUsersList = openUsersList;
 
 function openVisitsList(){
   const box = document.createElement('div');
@@ -2569,6 +2600,8 @@ window.deleteCourse = deleteCourse;
 async function toggleUserBlock(id, currentlyBlocked){
   await updateRow('users', id, { blocked: !currentlyBlocked });
   await refreshUsers();
+  const listOverlay = document.getElementById('usersListOverlay');
+  if(listOverlay){ listOverlay.remove(); openUsersList(); }
 }
 
 async function deleteUser(id){
@@ -2577,6 +2610,8 @@ async function deleteUser(id){
   if(!sur) return;
   await deleteRow('users', id);
   await refreshUsers();
+  const listOverlay = document.getElementById('usersListOverlay');
+  if(listOverlay){ listOverlay.remove(); openUsersList(); }
   toast('Kont efase');
 }
 window.deleteUser = deleteUser;
