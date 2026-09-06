@@ -724,27 +724,13 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
 
     <div class="card">
-      <div class="section-title">Icon Metòd Peman</div>
-      <label>Icon MonCash (chwazi nan galri ou)</label>
-      <input id="iconMoncashFile" type="file" accept="image/*" onchange="uploadPaymentIcon('moncash', this)">
-      <div id="iconMoncashPreview" style="margin-top:8px;"></div>
-      <label>Icon NatCash (chwazi nan galri ou)</label>
-      <input id="iconNatcashFile" type="file" accept="image/*" onchange="uploadPaymentIcon('natcash', this)">
-      <div id="iconNatcashPreview" style="margin-top:8px;"></div>
-      <label>Icon BUH (chwazi nan galri ou)</label>
-      <input id="iconBuhFile" type="file" accept="image/*" onchange="uploadPaymentIcon('buh', this)">
-      <div id="iconBuhPreview" style="margin-top:8px;"></div>
-      <label>Icon Kont Meru USD (chwazi nan galri ou)</label>
-      <input id="iconMeruFile" type="file" accept="image/*" onchange="uploadPaymentIcon('meru', this)">
-      <div id="iconMeruPreview" style="margin-top:8px;"></div>
-      <label>Avatar Sèvis Kliyan (chwazi nan galri ou)</label>
-      <input id="iconSupportFile" type="file" accept="image/*" onchange="uploadPaymentIcon('support', this)">
-      <div id="iconSupportPreview" style="margin-top:8px;"></div>
-      <label>Ajiste pozisyon figi a nan avatar la</label>
-      <input id="supportPosSlider" type="range" min="0" max="100" value="50" oninput="adjustSupportPosition(this.value)">
-      <p class="hint">Deplase kizòt la si figi a koupe — anwo/anba</p>
-      <button type="button" class="btn btn-primary" style="margin-top:10px;" onclick="saveSupportPosition()">💾 Sovgade pozisyon</button>
-      <p id="iconUploadStatus" class="hint" style="margin-top:6px;"></p>
+      <div class="course-card" style="cursor:pointer;" onclick="openIconSettingsModal()">
+        <div class="course-thumb" style="height:60px;background:linear-gradient(135deg,#f7b733,#c98a10);font-size:22px;">💳</div>
+        <div class="course-body">
+          <div class="title">Icon Metòd Peman</div>
+          <div class="hint" style="margin-top:2px;">MonCash, NatCash, BUH, Meru, Sèvis Kliyan — peze pou modifye</div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -2115,26 +2101,69 @@ function renderAdmin(){
       </div>`
     : `<div class="empty">Pa gen itilizatè anrejistre.</div>`;
 
-  document.getElementById('admin_price').value = settings.price;
-  if(settings.paymentIcons?.moncash){
-    document.getElementById('iconMoncashPreview').innerHTML = `<img src="${settings.paymentIcons.moncash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+function populateIconPreviews(){
+  const moncashPrev = document.getElementById('iconMoncashPreview');
+  if(moncashPrev && settings.paymentIcons?.moncash){
+    moncashPrev.innerHTML = `<img src="${settings.paymentIcons.moncash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
   }
-  if(settings.paymentIcons?.natcash){
-    document.getElementById('iconNatcashPreview').innerHTML = `<img src="${settings.paymentIcons.natcash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  const natcashPrev = document.getElementById('iconNatcashPreview');
+  if(natcashPrev && settings.paymentIcons?.natcash){
+    natcashPrev.innerHTML = `<img src="${settings.paymentIcons.natcash}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
   }
-  if(settings.paymentIcons?.buh){
-    document.getElementById('iconBuhPreview').innerHTML = `<img src="${settings.paymentIcons.buh}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  const buhPrev = document.getElementById('iconBuhPreview');
+  if(buhPrev && settings.paymentIcons?.buh){
+    buhPrev.innerHTML = `<img src="${settings.paymentIcons.buh}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
   }
-  if(settings.paymentIcons?.meru){
-    document.getElementById('iconMeruPreview').innerHTML = `<img src="${settings.paymentIcons.meru}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
+  const meruPrev = document.getElementById('iconMeruPreview');
+  if(meruPrev && settings.paymentIcons?.meru){
+    meruPrev.innerHTML = `<img src="${settings.paymentIcons.meru}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">`;
   }
+  const supportPrev = document.getElementById('iconSupportPreview');
   const sliderIsActive = document.activeElement && document.activeElement.id === 'supportPosSlider';
-  if(settings.paymentIcons?.support && !sliderIsActive){
-    document.getElementById('iconSupportPreview').innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center ${settings.paymentIcons.supportPos ?? 50}%;">`;
+  if(supportPrev && settings.paymentIcons?.support && !sliderIsActive){
+    supportPrev.innerHTML = `<img src="${settings.paymentIcons.support}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center ${settings.paymentIcons.supportPos ?? 50}%;">`;
     const supportSlider = document.getElementById('supportPosSlider');
     if(supportSlider) supportSlider.value = settings.paymentIcons.supportPos ?? 50;
   }
-  document.getElementById('admin_trial').value = settings.trialDays;
+}
+window.populateIconPreviews = populateIconPreviews;
+
+function openIconSettingsModal(){
+  const box = document.createElement('div');
+  box.id = 'iconSettingsOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:460px;width:100%;max-height:90vh;overflow:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:15px;">💳 Icon Metòd Peman</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('iconSettingsOverlay').remove()">Fèmen</button>
+      </div>
+      <label>Icon MonCash (chwazi nan galri ou)</label>
+      <input id="iconMoncashFile" type="file" accept="image/*" onchange="uploadPaymentIcon('moncash', this)">
+      <div id="iconMoncashPreview" style="margin-top:8px;"></div>
+      <label>Icon NatCash (chwazi nan galri ou)</label>
+      <input id="iconNatcashFile" type="file" accept="image/*" onchange="uploadPaymentIcon('natcash', this)">
+      <div id="iconNatcashPreview" style="margin-top:8px;"></div>
+      <label>Icon BUH (chwazi nan galri ou)</label>
+      <input id="iconBuhFile" type="file" accept="image/*" onchange="uploadPaymentIcon('buh', this)">
+      <div id="iconBuhPreview" style="margin-top:8px;"></div>
+      <label>Icon Kont Meru USD (chwazi nan galri ou)</label>
+      <input id="iconMeruFile" type="file" accept="image/*" onchange="uploadPaymentIcon('meru', this)">
+      <div id="iconMeruPreview" style="margin-top:8px;"></div>
+      <label>Avatar Sèvis Kliyan (chwazi nan galri ou)</label>
+      <input id="iconSupportFile" type="file" accept="image/*" onchange="uploadPaymentIcon('support', this)">
+      <div id="iconSupportPreview" style="margin-top:8px;"></div>
+      <label>Ajiste pozisyon figi a nan avatar la</label>
+      <input id="supportPosSlider" type="range" min="0" max="100" value="50" oninput="adjustSupportPosition(this.value)">
+      <p class="hint">Deplase kizòt la si figi a koupe — anwo/anba</p>
+      <button type="button" class="btn btn-primary" style="margin-top:10px;" onclick="saveSupportPosition()">💾 Sovgade pozisyon</button>
+      <p id="iconUploadStatus" class="hint" style="margin-top:6px;"></p>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+  populateIconPreviews();
+}
+window.openIconSettingsModal = openIconSettingsModal;
   document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
   updateTeacherFeeText();
   updateCompanyCondText();
