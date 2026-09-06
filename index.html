@@ -634,7 +634,11 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Ki kou li mennen ale (opsyonèl)</label>
       <select id="promoPostCourse"><option value="">— San kou espesifik (jis imaj/videyo) —</option></select>
       <label>Foto oswa Videyo *</label>
-      <input id="promoPostFile" type="file" accept="image/*,video/*">
+      <input id="promoPostFile" type="file" accept="image/*,video/*" onchange="previewPromoPostFile(event)">
+      <div id="promoPostPreviewBox" style="display:none;margin-top:10px;">
+        <img id="promoPostPreviewImg" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:#000;display:none;">
+        <video id="promoPostPreviewVideo" controls style="width:100%;max-height:220px;border-radius:10px;background:#000;display:none;"></video>
+      </div>
       <button class="btn btn-primary" style="margin-top:10px;" onclick="submitPromoPost()">Ajoute Flyè</button>
       <div id="adminPromoPosts" style="margin-top:14px;"></div>
     </div>
@@ -2720,6 +2724,24 @@ async function deleteCourse(id){
 }
 window.deleteCourse = deleteCourse;
 
+function previewPromoPostFile(event){
+  const file = event.target.files[0];
+  const box = document.getElementById('promoPostPreviewBox');
+  const img = document.getElementById('promoPostPreviewImg');
+  const vid = document.getElementById('promoPostPreviewVideo');
+  if(!file){ box.style.display = 'none'; return; }
+  const url = URL.createObjectURL(file);
+  if(file.type.startsWith('video')){
+    vid.src = url; vid.style.display = 'block';
+    img.style.display = 'none';
+  } else {
+    img.src = url; img.style.display = 'block';
+    vid.style.display = 'none';
+  }
+  box.style.display = 'block';
+}
+window.previewPromoPostFile = previewPromoPostFile;
+
 async function submitPromoPost(){
   const title = document.getElementById('promoPostTitle').value.trim();
   const courseId = document.getElementById('promoPostCourse').value;
@@ -2734,6 +2756,7 @@ async function submitPromoPost(){
   document.getElementById('promoPostTitle').value = '';
   document.getElementById('promoPostCourse').value = '';
   fileInput.value = '';
+  document.getElementById('promoPostPreviewBox').style.display = 'none';
   await refreshPromoPosts();
   toast('Flyè ajoute ✅');
 }
