@@ -511,7 +511,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
           <li>Yon frè enskripsyon <b>1000 G</b> (yon sèl fwa) obligatwa pou soumèt demand ou</li>
           <li><span id="entTrialText">20</span> jou esè gratis, epi apre sa antrepriz la aktif san frè mansyèl</li>
-          <li>Platfòm nan kenbe yon pousantaj (detèmine pa Admin selon antrepriz la, anviwon 20%) sou chak vant kou ou fè — rès la se pa ou</li>
+          <li>Platfòm nan kenbe yon pousantaj (detèmine pa Admin selon antrepriz la, anviwon 15%) sou chak vant kou ou fè — rès la se pa ou</li>
           <li>Nimewo telefòn kont ou a ap sèvi pou voye w notifikasyon lè yon peman komisyon fèt</li>
           <li>Ou dwe respekte règleman ak estanda platfòm nan</li>
         </ul>
@@ -585,7 +585,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <label>Non antrepriz la</label>
         <input id="newCompanyName" placeholder="Ex: Antrepriz XYZ">
         <label>Pousantaj komisyon platfòm (%)</label>
-        <input id="newCompanyCommission" type="number" value="20" min="0" max="100" oninput="updateCompanyCondText()">
+        <input id="newCompanyCommission" type="number" value="15" min="0" max="100" oninput="updateCompanyCondText()">
         <label>Nimewo telefòn pwopriyetè (opsyonèl)</label>
         <input id="newCompanyOwnerPhone" placeholder="Ex: 38112233">
         <div class="benef-box">
@@ -2097,7 +2097,7 @@ function renderCompanyFinance(){
     const confirmedDeps = deposits.filter(d=>d.status==='konfime' && courseIds.includes(d.courseId));
     const totalHtg = confirmedDeps.filter(d=>d.devise!=='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
     const totalUsd = confirmedDeps.filter(d=>d.devise==='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
-    const rate = c.commissionRate ?? 20;
+    const rate = c.commissionRate ?? 15;
     const shareHtg = totalHtg * (100 - rate) / 100;
     const shareUsd = totalUsd * (100 - rate) / 100;
     const paidHtg = c.amountPaidOutHtg || 0;
@@ -2456,7 +2456,7 @@ async function createCompany(){
   const nameEl = document.getElementById('newCompanyName');
   const name = nameEl.value.trim();
   const commEl = document.getElementById('newCompanyCommission');
-  const commissionRate = commEl ? Number(commEl.value) : 20;
+  const commissionRate = commEl ? Number(commEl.value) : 15;
   const phoneEl = document.getElementById('newCompanyOwnerPhone');
   const ownerPhone = phoneEl ? phoneEl.value.trim() : '';
   if(!name){ toast('Antre non antrepriz la'); return; }
@@ -2465,13 +2465,13 @@ async function createCompany(){
     approved: true,
     trialStart: new Date().toISOString(),
     trialDays: settings.trialDays,
-    commissionRate: isNaN(commissionRate) ? 20 : commissionRate,
+    commissionRate: isNaN(commissionRate) ? 15 : commissionRate,
     amountPaidOutHtg: 0,
     amountPaidOutUsd: 0,
     ownerPhone: ownerPhone || null
   });
   nameEl.value = '';
-  if(commEl) commEl.value = '20';
+  if(commEl) commEl.value = '15';
   if(phoneEl) phoneEl.value = '';
   toast('Antrepriz kreye');
 }
@@ -2597,7 +2597,7 @@ function updateCompanyCondText(){
   const commEl = document.getElementById('companyCommText');
   const commInput = document.getElementById('newCompanyCommission');
   if(trialEl) trialEl.textContent = settings.trialDays ?? 20;
-  if(commEl) commEl.textContent = commInput ? (commInput.value || 20) : 20;
+  if(commEl) commEl.textContent = commInput ? (commInput.value || 15) : 15;
   const entTrialEl = document.getElementById('entTrialText');
   if(entTrialEl) entTrialEl.textContent = settings.trialDays ?? 20;
 
@@ -2705,7 +2705,7 @@ async function submitCompanyRequest(){
     approved: false,
     trialStart: new Date().toISOString(),
     trialDays: settings.trialDays,
-    commissionRate: 20,
+    commissionRate: 15,
     amountPaidOutHtg: 0,
     amountPaidOutUsd: 0,
     ownerPhone: currentUser.tel
