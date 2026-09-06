@@ -1270,7 +1270,7 @@ function go(pageId){
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
   if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); renderNotifStatus(); renderPaymentInfoForm(); }
-  if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); }
+  if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); restoreHideCodeState(); }
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
 }
@@ -1297,6 +1297,16 @@ function toggleHideCode(){
   }
 }
 window.toggleHideCode = toggleHideCode;
+
+function restoreHideCodeState(){
+  const el = document.getElementById('toggleCode');
+  const codeEl = document.getElementById('prof_code');
+  if(!el || !codeEl) return;
+  const hidden = localStorage.getItem('tp_hide_code') === '1';
+  el.classList.toggle('on', hidden);
+  codeEl.textContent = hidden ? '••••' : (currentUser?.accessCode || computeAccessCode(currentUser?.tel || ''));
+}
+window.restoreHideCodeState = restoreHideCodeState;
 
 async function togglePublicProfile(){
   const el = document.getElementById('togglePublic');
