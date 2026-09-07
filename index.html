@@ -247,6 +247,11 @@ window.addEventListener('unhandledrejection', function(e) {
     <div id="courseListFull"></div>
   </section>
 
+  <section id="tousFlyeYo" class="page">
+    <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Fòmasyon Rekòmande</span></div>
+    <div id="flyerListFull"></div>
+  </section>
+
   <section id="pajKou" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('touFormasyon')">←</button><span class="page-title" id="kouTitre">Kou</span></div>
     <div class="card" id="videoArea"></div>
@@ -1290,6 +1295,7 @@ function go(pageId){
   if(pageId==='akey') renderAkey();
   if(pageId==='achat') renderCompanyListFull();
   if(pageId==='touFormasyon') renderCourseListFull();
+  if(pageId==='tousFlyeYo') renderFlyerListFull();
   if(pageId==='depoze'){ renderDepositBox(); prefillDepositUserInfo(); }
   if(pageId==='support') renderSupportAvatar();
   if(pageId==='klasman') renderRanking();
@@ -1493,22 +1499,18 @@ function flyerCardHtml(p, width){
 }
 
 function openAllFlyers(){
-  const box = document.createElement('div');
-  box.id = 'allFlyersOverlay';
-  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
-  const rows = promoPosts.map(p=>flyerCardHtml(p, '100%')).join('');
-  box.innerHTML = `
-    <div style="background:#fff;border-radius:14px;padding:16px;max-width:460px;width:100%;max-height:90vh;overflow:auto;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:700;font-size:15px;">🌟 Fòmasyon Rekòmande (${promoPosts.length})</div>
-        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('allFlyersOverlay').remove()">Fèmen</button>
-      </div>
-      ${rows || `<div class="empty">Pa gen flyè ajoute pou kounye a.</div>`}
-    </div>`;
-  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
-  document.body.appendChild(box);
+  go('tousFlyeYo');
 }
 window.openAllFlyers = openAllFlyers;
+
+function renderFlyerListFull(){
+  const box = document.getElementById('flyerListFull');
+  if(!box) return;
+  box.innerHTML = promoPosts.length
+    ? promoPosts.map(p=>flyerCardHtml(p, '100%')).join('')
+    : `<div class="empty">Pa gen flyè ajoute pou kounye a.</div>`;
+}
+window.renderFlyerListFull = renderFlyerListFull;
 
 function courseCardHtml(k){
   return `
