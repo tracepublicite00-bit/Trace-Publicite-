@@ -1472,11 +1472,14 @@ async function requestCompanyAccess(companyId){
 }
 window.requestCompanyAccess = requestCompanyAccess;
 
-function flyerCardHtml(p, width){
+function flyerCardHtml(p, width, full){
   const k = p.courseId ? courses.find(c=>c.id===p.courseId) : null;
+  const mediaStyle = full
+    ? `width:${width};max-height:520px;object-fit:contain;border-radius:12px;background:#000;display:block;`
+    : `width:${width};height:150px;object-fit:cover;border-radius:12px;`;
   const media = p.mediaType==='video'
-    ? `<video src="${p.mediaUrl}" ${k?'':'controls'} style="width:${width};height:150px;object-fit:cover;border-radius:12px;background:#000;"></video>`
-    : `<img src="${p.mediaUrl}" style="width:${width};height:150px;object-fit:cover;border-radius:12px;">`;
+    ? `<video src="${p.mediaUrl}" ${k?'':'controls'} style="${mediaStyle}"></video>`
+    : `<img src="${p.mediaUrl}" style="${mediaStyle}">`;
   if(k){
     return `
     <div style="flex:0 0 auto;width:${width};cursor:pointer;margin-bottom:14px;" onclick="openCourse('${k.id}')">
@@ -1507,7 +1510,7 @@ function renderFlyerListFull(){
   const box = document.getElementById('flyerListFull');
   if(!box) return;
   box.innerHTML = promoPosts.length
-    ? promoPosts.map(p=>flyerCardHtml(p, '100%')).join('')
+    ? promoPosts.map(p=>flyerCardHtml(p, '100%', true)).join('')
     : `<div class="empty">Pa gen flyè ajoute pou kounye a.</div>`;
 }
 window.renderFlyerListFull = renderFlyerListFull;
