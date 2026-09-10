@@ -1836,9 +1836,18 @@ async function submitRegister(){
       newUser = match;
       reconnected = true;
     } else {
+      let finalCode = accessCode;
+      const codeTaken = existingUsers.some(u => u.accessCode === finalCode);
+      if(codeTaken){
+        let tries = 0;
+        do {
+          finalCode = String(Math.floor(Math.random()*10000)).padStart(4,'0');
+          tries++;
+        } while(existingUsers.some(u => u.accessCode === finalCode) && tries < 50);
+      }
       newUser = await insertRow('users', {
         non, email, tel, peyi, vil, blocked:false,
-        achte:0, fini:0, mwaAktif:0, piblik:true, accessCode
+        achte:0, fini:0, mwaAktif:0, piblik:true, accessCode: finalCode
       });
     }
   } catch(e){
