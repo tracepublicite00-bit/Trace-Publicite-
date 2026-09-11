@@ -1050,6 +1050,10 @@ function renderNotifications(){
 }
 async function markNotifRead(id){
   await updateRow('notifications', id, { isRead:true });
+  const n = notifications.find(x=>x.id===id);
+  if(n) n.isRead = true;
+  renderNotifications();
+  updateBadges();
 }
 window.markNotifRead = markNotifRead;
 
