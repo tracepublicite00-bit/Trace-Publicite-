@@ -1043,11 +1043,38 @@ function renderNotifications(){
   if(!box) return;
   box.innerHTML = notifications.length
     ? notifications.map(n=>`
-      <div class="kv" style="${n.isRead?'opacity:0.6;':''}" onclick="markNotifRead('${n.id}')">
-        <span class="k">${n.message}</span>
+      <div class="kv" style="${n.isRead?'opacity:0.6;':''}align-items:flex-start;">
+        <span class="k" style="cursor:pointer;" onclick="showNotifDetail('${n.id}')">${n.message}</span>
+        <button class="btn btn-danger" style="width:auto;padding:2px 8px;font-size:11px;flex-shrink:0;" onclick="event.stopPropagation(); deleteNotification('${n.id}')">Efase</button>
       </div>`).join('')
     : `<div class="empty">Ou pa gen notifikasyon.</div>`;
 }
+function showNotifDetail(id){
+  const n = notifications.find(x=>x.id===id);
+  if(!n) return;
+  markNotifRead(id);
+  const box = document.createElement('div');
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:20px;max-width:340px;width:100%;" onclick="event.stopPropagation();">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;">🔔 Detay notifikasyon</div>
+      <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">${n.message}</div>
+      <div style="font-size:12px;color:var(--tex-mou);margin-bottom:16px;">${formatDateTime(n.createdAt)}</div>
+      <button class="btn btn-primary" id="closeNotifDetailBtn">Fèmen</button>
+    </div>`;
+  box.onclick = ()=> box.remove();
+  document.body.appendChild(box);
+  document.getElementById('closeNotifDetailBtn').onclick = ()=> box.remove();
+}
+window.showNotifDetail = showNotifDetail;
+async function deleteNotification(id){
+  if(!confirm('Efase notifikasyon sa a?')) return;
+  await deleteRow('notifications', id);
+  notifications = notifications.filter(n=>n.id!==id);
+  renderNotifications();
+  updateBadges();
+}
+window.deleteNotification = deleteNotification;
 async function markNotifRead(id){
   await updateRow('notifications', id, { isRead:true });
   const n = notifications.find(x=>x.id===id);
