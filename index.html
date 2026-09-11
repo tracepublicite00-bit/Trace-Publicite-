@@ -590,11 +590,18 @@ window.addEventListener('unhandledrejection', function(e) {
 
     <div class="card">
       <div class="section-title">🔓 Bay Aksè Kou Manyèlman</div>
-      <p class="hint">Sèvi ak sa a si yon elèv deja peye (depo konfime) men li pa gen aksè a yon kou espesifik.</p>
+      <p class="hint">Sèvi ak sa a si yon elèv peye deyò app la (pa egzanp entènèt pa t bon) oswa si li deja gen yon depo konfime men li pa gen aksè a kou a.</p>
       <label>Itilizatè</label>
       <select id="grantAccessUser"></select>
       <label>Kou</label>
       <select id="grantAccessCourse"></select>
+      <label>Montan li te peye (kite vid si li deja gen yon depo konfime ki egziste)</label>
+      <input id="grantAccessMontan" type="number" placeholder="Ex: 1000" min="0">
+      <label>Deviz</label>
+      <select id="grantAccessDevise">
+        <option value="htg">Goud (G)</option>
+        <option value="usd">USD</option>
+      </select>
       <button class="btn btn-primary" style="margin-top:10px;" onclick="grantCourseAccess()">Bay Aksè</button>
     </div>
 
@@ -2579,6 +2586,29 @@ async function grantCourseAccess(){
   if(!userId || !courseId){ toast('Chwazi yon itilizatè ak yon kou'); return; }
   const already = purchases.some(p=>p.userId===userId && p.courseId===courseId);
   if(already){ toast('Itilizatè sa a gen aksè a kou sa a deja'); return; }
+
+  const montanEl = document.getElementById('grantAccessMontan');
+  const deviseEl = document.getElementById('grantAccessDevise');
+  const montanStr = montanEl ? montanEl.value.trim() : '';
+  const devise = deviseEl ? deviseEl.value : 'htg';
+
+  if(montanStr){
+    const montan = Number(montanStr);
+    if(isNaN(montan) || montan <= 0){ toast('Montan pa valab'); return; }
+    const user = allUsers.find(u=>u.id===userId);
+    await insertRow('deposits', {
+      userId,
+      courseId,
+      montan,
+      devise,
+      status: 'konfime',
+      method: 'manyèl',
+      prenon: user?.non || '',
+      siyati: '',
+      tel: user?.tel || ''
+    });
+  }
+
   await insertRow('purchases', { userId, courseId });
   await incrementField('users', userId, 'achte', 1);
   await insertRow('notifications', {
@@ -2588,7 +2618,9 @@ async function grantCourseAccess(){
   });
   await refreshPurchases();
   await refreshUsers();
-  toast('Aksè bay avèk siksè ✅');
+  if(montanStr) await refreshDeposits();
+  if(montanEl) montanEl.value = '';
+  toast('Aksè bay avèk siksè ✅' + (montanStr ? ' — vant anrejistre nan total' : ''));
 }
 window.grantCourseAccess = grantCourseAccess;
 
