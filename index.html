@@ -2368,7 +2368,10 @@ function renderPayoutHistory(companyId){
   const rows = list.slice(0,5).map(p=>`
     <div class="kv" style="font-size:12px;">
       <span class="k">${formatDateTime(p.createdAt)}</span>
-      <span class="v">${Number(p.amount).toFixed(p.currency==='usd'?2:0)} ${p.currency==='usd'?'USD':'G'}</span>
+      <span class="v" style="display:flex;align-items:center;gap:8px;">
+        ${Number(p.amount).toFixed(p.currency==='usd'?2:0)} ${p.currency==='usd'?'USD':'G'}
+        <button class="btn btn-danger" style="width:auto;padding:2px 8px;font-size:11px;" onclick="deletePayoutRecord('${p.id}')">Efase</button>
+      </span>
     </div>`).join('');
   return `
     <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
@@ -2376,6 +2379,15 @@ function renderPayoutHistory(companyId){
       ${rows}
     </div>`;
 }
+
+async function deletePayoutRecord(payoutId){
+  if(!confirm('Efase liy istorik peman sa a? (sa pa chanje montan ou dwe antrepriz la, se jis afichaj istorik la)')) return;
+  await deleteRow('company_payouts', payoutId);
+  companyPayouts = companyPayouts.filter(p=>p.id!==payoutId);
+  renderCompanyFinance();
+  toast('Liy istorik la efase');
+}
+window.deletePayoutRecord = deletePayoutRecord;
 
 async function applyCommissionToAll(){
   const input = document.getElementById('bulkCommissionRate');
