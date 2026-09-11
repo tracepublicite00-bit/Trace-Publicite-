@@ -855,6 +855,7 @@ let accessRequests = [];
 let visits = [];
 let purchases = [];
 let notifications = [];
+let companyPayouts = [];
 let courseComments = [];
 let settings = { price: 1000, trialDays: 20 };
 let currentUser = JSON.parse(localStorage.getItem('tp_current_user')) || null;
@@ -951,6 +952,10 @@ async function refreshVisits(){
 }
 async function refreshPurchases(){
   purchases = await fetchAll('purchases');
+  if(document.getElementById('admin').classList.contains('active')) renderCompanyFinance();
+}
+async function refreshCompanyPayouts(){
+  companyPayouts = await fetchAll('company_payouts');
   if(document.getElementById('admin').classList.contains('active')) renderCompanyFinance();
 }
 async function refreshCourseComments(){
@@ -1155,7 +1160,8 @@ function listenAll(){
     ['visits', refreshVisits],
     ['purchases', refreshPurchases],
     ['course_comments', refreshCourseComments],
-    ['notifications', refreshNotifications]
+    ['notifications', refreshNotifications],
+    ['company_payouts', refreshCompanyPayouts]
   ];
   tables.forEach(([table, refreshFn])=>{
     db.channel('public:'+table)
@@ -2332,10 +2338,28 @@ function renderCompanyFinance(){
       <div class="kv"><span class="k">Ou dwe antrepriz la (G)</span><span class="v" style="color:var(--vet);">${owedHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Ou dwe antrepriz la (USD)</span><span class="v" style="color:var(--vet);">${owedUsd.toFixed(2)} USD</span></div>
       <button class="btn btn-gold" style="margin-top:8px;" onclick="markCompanyPayout('${c.id}')">💸 Make peman fèt</button>
+      ${renderPayoutHistory(c.id)}
     </div>`;
   }).join('');
 }
 window.renderCompanyFinance = renderCompanyFinance;
+
+function renderPayoutHistory(companyId){
+  const list = companyPayouts
+    .filter(p=>p.companyId===companyId)
+    .sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  if(!list.length) return `<div class="hint" style="margin-top:8px;">Pa gen peman ki anrejistre pou kounye a.</div>`;
+  const rows = list.slice(0,5).map(p=>`
+    <div class="kv" style="font-size:12px;">
+      <span class="k">${formatDateTime(p.createdAt)}</span>
+      <span class="v">${Number(p.amount).toFixed(p.currency==='usd'?2:0)} ${p.currency==='usd'?'USD':'G'}</span>
+    </div>`).join('');
+  return `
+    <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+      <div style="font-size:12px;font-weight:700;color:var(--tex-mou);margin-bottom:4px;">Istorik peman</div>
+      ${rows}
+    </div>`;
+}
 
 async function applyCommissionToAll(){
   const input = document.getElementById('bulkCommissionRate');
@@ -2384,6 +2408,14 @@ async function markCompanyPayout(companyId){
     c.amountPaidOutHtg = newPaid;
   }
 
+  const newPayout = await insertRow('company_payouts', {
+    companyId,
+    amount: montan,
+    currency: isUsd ? 'usd' : 'htg'
+  });
+  companyPayouts.push(newPayout);
+
+  let notifSent = false;
   if(c.ownerPhone){
     const normOwner = normalizePhone(c.ownerPhone);
     const ownerUser = allUsers.find(u => normalizePhone(u.tel) === normOwner);
@@ -2393,11 +2425,16 @@ async function markCompanyPayout(companyId){
         message: `💸 ${c.name}: Sarah fèk voye ${montan} ${isUsd?'USD':'G'} ban ou (peman komisyon).`,
         isRead: false
       });
+      notifSent = true;
     }
   }
 
   renderCompanyFinance();
-  toast('Peman anrejistre — ' + montan + ' ' + (isUsd?'USD':'G'));
+  if(notifSent){
+    toast('Peman anrejistre — ' + montan + ' ' + (isUsd?'USD':'G'));
+  } else {
+    toast('Peman anrejistre nan istorik, men pa gen nimewo pwopriyetè pou voye mesaj la');
+  }
 }
 window.markCompanyPayout = markCompanyPayout;
 
