@@ -411,12 +411,61 @@ window.addEventListener('unhandledrejection', function(e) {
       <div class="section-title">🧾 Istorik Resi</div>
       <div id="receiptList"></div>
     </div>
+    <div class="card" id="myCompanyCourseCard" style="display:none;">
+      <div class="section-title">🎬 Kou pa mwen (Antrepriz)</div>
+      <p class="hint" id="myCompanyCourseHint"></p>
+      <button class="btn btn-primary" onclick="go('kouAntrepriz')">Jere kou antrepriz mwen</button>
+    </div>
     <div class="card">
       <a class="btn btn-outline" style="text-decoration:none;display:block;" href="guide.pdf" target="_blank">📘 Gid Itilizatè</a>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="go('enskripsyonFormatè')">🎓 Vin Fòmatè (KYC)</button>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="go('enskripsyonAntrepriz')">🏢 Enskri kòm Antrepriz</button>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="logoutUser()">🚪 Dekonèkte</button>
       <button class="btn btn-danger" style="margin-top:10px;" onclick="deleteAccount()">🗑️ Efase kont</button>
+    </div>
+  </section>
+
+  <section id="kouAntrepriz" class="page">
+    <div class="back-row"><button class="back-btn" onclick="go('profil')">←</button><span class="page-title">Kou Antrepriz Mwen</span></div>
+    <div class="card">
+      <div class="section-title">Kreye yon nouvo kou</div>
+      <label>Tit kou a</label>
+      <input id="co_newCourseTitle" placeholder="Ex: Baz Marketing Facebook">
+      <label>Pri (Goud)</label>
+      <input id="co_newCoursePrice" type="number" value="1000">
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="createCompanyCourse()">Kreye kou a</button>
+      <p class="hint" style="margin-top:8px;">Kou ou kreye oswa modifye ap tann apwobasyon admin anvan elèv yo ka wè l.</p>
+    </div>
+    <div class="card">
+      <div class="section-title">Kou mwen yo</div>
+      <div id="myCompanyCoursesList"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Ajoute videyo/imaj/vwa nan yon kou</div>
+      <label>Chwazi kou a</label>
+      <select id="co_stepCourseSelect"></select>
+      <label>Tit etap la</label>
+      <input id="co_stepTitle" placeholder="Ex: Etap 1 — Entwodiksyon">
+      <label>Videyo (max 40 MB)</label>
+      <input id="co_stepVideoFile" type="file" accept="video/*" onchange="previewStepFile('co_stepVideoFile','co_stepVideoPreview','video')">
+      <div id="co_stepVideoPreview"></div>
+      <label>OSWA lyen YouTube</label>
+      <input id="co_stepYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
+      <label>Lyen aplikasyon pou telechaje (opsyonèl)</label>
+      <input id="co_stepAppLink" placeholder="https://...">
+      <label>Imaj (opsyonèl — max 40 MB chak, ou ka chwazi plizyè)</label>
+      <input id="co_stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('co_stepImageFile','co_stepImagePreview','image')">
+      <div id="co_stepImagePreview"></div>
+      <label>Nòt vwa (fichye odyo, opsyonèl, max 40 MB)</label>
+      <input id="co_stepAudioFile" type="file" accept="audio/*" onchange="previewStepFile('co_stepAudioFile','co_stepAudioPreview','audio')">
+      <div id="co_stepAudioPreview"></div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="addCompanyCourseStep()">Ajoute etap la</button>
+      <div id="co_stepUploadProgressWrap" style="display:none;margin-top:10px;">
+        <div style="width:100%;height:10px;background:var(--gri);border-radius:6px;overflow:hidden;">
+          <div id="co_stepUploadProgressBar" style="height:100%;width:0%;background:var(--vet);transition:width .15s;"></div>
+        </div>
+      </div>
+      <p id="co_stepUploadStatus" class="hint" style="margin-top:8px;"></p>
     </div>
   </section>
 
@@ -1331,6 +1380,10 @@ function go(pageId){
   if(pageId==='admin'){
     if(!checkAdminAccess()){ return; }
   }
+  if(pageId==='kouAntrepriz' && !findMyCompany()){
+    toast('Ou pa pwopriyetè okenn antrepriz');
+    return;
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
   document.querySelectorAll('.bottomnav button').forEach(b=>b.classList.remove('active'));
@@ -1346,7 +1399,8 @@ function go(pageId){
   if(pageId==='weTout') renderAllUsers();
   if(pageId==='lisPwofese') renderTeacherList();
   if(pageId==='admin'){ localStorage.setItem('tp_is_admin','1'); renderAdmin(); renderAccessAndVisits(); renderCompanyFinance(); renderNotifStatus(); renderPaymentInfoForm(); }
-  if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); restoreHideCodeState(); restorePublicProfileState(); }
+  if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); restoreHideCodeState(); restorePublicProfileState(); renderMyCompanyCourseCard(); }
+  if(pageId==='kouAntrepriz'){ renderMyCompanyCourseCard(); renderMyCompanyCourses(); }
   if(pageId==='komantè') renderComments();
   window.scrollTo(0,0);
 }
@@ -1437,6 +1491,8 @@ function isOwnerUser(u){
   const digits = (u?.tel||'').replace(/\D/g,'');
   return digits.endsWith(OWNER_PHONE_DIGITS);
 }
+function isPublicCourse(k){ return k.status !== 'atant'; }
+
 function renderAkey(){
   const countedUsers = dedupeByPhone(allUsers.filter(u=>!isOwnerUser(u)));
   const vant = deposits.filter(d=>d.status==='konfime').length;
@@ -1458,7 +1514,7 @@ function renderAkey(){
     </div>`).join('');
 
   const cPreview = document.getElementById('courseListPreview');
-  cPreview.innerHTML = courses.slice(0,2).map(k=>courseCardHtml(k)).join('');
+  cPreview.innerHTML = courses.filter(isPublicCourse).slice(0,2).map(k=>courseCardHtml(k)).join('');
 
   const flyerCard = document.getElementById('recommendedFlyersCard');
   const flyerBox = document.getElementById('recommendedFlyers');
@@ -1500,7 +1556,7 @@ function openCompany(id){
     ? `<span class="status-pill ok">Ou gen aksè</span> <span class="hint">Otorizasyon antrepriz la aksepte</span>`
     : `<span class="status-pill blocked">San otorizasyon</span> <span class="hint">Ou bezwen otorizasyon antrepriz la ak pwopriyetè platfòm nan pou wè kou sa yo</span>
        <button class="btn btn-outline" style="margin-top:10px;" onclick="requestCompanyAccess('${id}')">Mande Aksè</button>`;
-  const list = courses.filter(k=>k.companyId===id);
+  const list = courses.filter(k=>k.companyId===id && isPublicCourse(k));
   document.getElementById('companyCourses').innerHTML = list.length
     ? list.map(k=>courseCardHtml(k)).join('')
     : `<div class="empty">Pa gen fòmasyon pou antrepriz sa a poko.</div>`;
@@ -1579,7 +1635,7 @@ function courseCardHtml(k){
 }
 
 function renderCourseListFull(){
-  document.getElementById('courseListFull').innerHTML = courses.map(k=>courseCardHtml(k)).join('');
+  document.getElementById('courseListFull').innerHTML = courses.filter(isPublicCourse).map(k=>courseCardHtml(k)).join('');
 }
 
 function prefillDepositUserInfo(){
@@ -2072,19 +2128,172 @@ async function submitTeacherKyc(){
   go('profil');
 }
 
+function findMyCompany(){
+  if(!currentUser) return null;
+  const normUser = normalizePhone(currentUser.tel);
+  return companies.find(c => c.ownerPhone && normalizePhone(c.ownerPhone) === normUser) || null;
+}
+window.findMyCompany = findMyCompany;
+
+function renderMyCompanyCourseCard(){
+  const card = document.getElementById('myCompanyCourseCard');
+  const hint = document.getElementById('myCompanyCourseHint');
+  if(!card) return;
+  const myCompany = findMyCompany();
+  if(myCompany){
+    card.style.display = 'block';
+    hint.textContent = `Ajoute ak jere kou pou "${myCompany.name}" — nouvo kou ap tann apwobasyon admin anvan yo parèt pou elèv yo.`;
+  } else {
+    card.style.display = 'none';
+  }
+}
+window.renderMyCompanyCourseCard = renderMyCompanyCourseCard;
+
+async function createCompanyCourse(){
+  const myCompany = findMyCompany();
+  if(!myCompany){ toast('Ou pa pwopriyetè okenn antrepriz'); return; }
+  const title = document.getElementById('co_newCourseTitle').value.trim();
+  const price = Number(document.getElementById('co_newCoursePrice').value);
+  if(!title || !price){ toast('Tanpri ranpli tout chan yo'); return; }
+  await insertRow('courses', {
+    companyId: myCompany.id, title, price, status:'atant',
+    videos: [{id:'v'+Date.now(), title:'Etap 1', locked:true}],
+    likes:0, comments:0, views:0, shares:0
+  });
+  await refreshCourses();
+  renderMyCompanyCourses();
+  toast('Kou a kreye — l ap tann apwobasyon admin ✅');
+  document.getElementById('co_newCourseTitle').value = '';
+}
+window.createCompanyCourse = createCompanyCourse;
+
+function renderMyCompanyCourses(){
+  const myCompany = findMyCompany();
+  const listBox = document.getElementById('myCompanyCoursesList');
+  const stepSel = document.getElementById('co_stepCourseSelect');
+  if(!myCompany || !listBox) return;
+  const myCourses = courses.filter(k=>k.companyId===myCompany.id);
+  listBox.innerHTML = myCourses.length
+    ? myCourses.map(k=>`
+      <div class="kv">
+        <span class="k">${k.title} — ${k.price} G ${k.status==='atant'?'<span class="badge" style="background:var(--or);color:#fff;">An atant</span>':'<span class="badge" style="background:var(--vet);color:#fff;">Apwouve</span>'}</span>
+        <span class="hint">${(k.videos||[]).length} etap</span>
+      </div>`).join('')
+    : `<div class="empty">Ou poko gen okenn kou. Kreye premye a anwo a.</div>`;
+  if(stepSel) stepSel.innerHTML = myCourses.map(k=>`<option value="${k.id}">${k.title}</option>`).join('');
+}
+window.renderMyCompanyCourses = renderMyCompanyCourses;
+
+const MAX_COMPANY_UPLOAD_BYTES = 40 * 1024 * 1024;
+function showUploadProgressCo(pct){
+  const wrap = document.getElementById('co_stepUploadProgressWrap');
+  const bar = document.getElementById('co_stepUploadProgressBar');
+  if(wrap) wrap.style.display = 'block';
+  if(bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+function hideUploadProgressCo(){
+  const wrap = document.getElementById('co_stepUploadProgressWrap');
+  const bar = document.getElementById('co_stepUploadProgressBar');
+  if(wrap) wrap.style.display = 'none';
+  if(bar) bar.style.width = '0%';
+}
+
+async function addCompanyCourseStep(){
+  const myCompany = findMyCompany();
+  if(!myCompany){ toast('Ou pa pwopriyetè okenn antrepriz'); return; }
+  const courseId = document.getElementById('co_stepCourseSelect').value;
+  const k = courses.find(c=>c.id===courseId && c.companyId===myCompany.id);
+  if(!k){ toast('Chwazi yon kou ki pou antrepriz ou'); return; }
+  const title = document.getElementById('co_stepTitle').value.trim();
+  if(!title){ toast('Antre tit etap la'); return; }
+  const statusEl = document.getElementById('co_stepUploadStatus');
+  const videoFile = document.getElementById('co_stepVideoFile').files[0];
+  const imageFiles = document.getElementById('co_stepImageFile').files;
+  const audioFile = document.getElementById('co_stepAudioFile').files[0];
+  const youtubeUrl = document.getElementById('co_stepYoutubeUrl').value.trim();
+  const appLink = document.getElementById('co_stepAppLink').value.trim();
+
+  const oversized = [videoFile, ...(imageFiles||[]), audioFile].filter(f=>f && f.size > MAX_COMPANY_UPLOAD_BYTES);
+  if(oversized.length){ toast(`Fichye "${oversized[0].name}" twò gwo — limit la se 40 MB pa fichye`); return; }
+
+  statusEl.textContent = 'Ajoute etap la...';
+  const step = { id: 'v'+Date.now(), title, locked:false };
+  if(youtubeUrl) step.youtubeUrl = youtubeUrl;
+  if(appLink) step.appLink = appLink;
+  let uploadFailed = false;
+  let uploadErrors = [];
+  if(videoFile){
+    statusEl.textContent = 'Ap telechaje videyo... 0%';
+    showUploadProgressCo(0);
+    const res = await uploadFileWithProgress(videoFile, 'videos', (pct)=>{ showUploadProgressCo(pct); statusEl.textContent = `Ap telechaje videyo... ${pct}%`; });
+    if(res.url) step.videoUrl = res.url; else { uploadFailed = true; uploadErrors.push('Videyo: ' + res.error); }
+  }
+  if(imageFiles && imageFiles.length>0){
+    const urls = [];
+    for(let i=0;i<imageFiles.length;i++){
+      const f = imageFiles[i];
+      statusEl.textContent = `Ap telechaje imaj ${i+1}/${imageFiles.length}... 0%`;
+      showUploadProgressCo(0);
+      const res = await uploadFileWithProgress(f, 'images', (pct)=>{ showUploadProgressCo(pct); statusEl.textContent = `Ap telechaje imaj ${i+1}/${imageFiles.length}... ${pct}%`; });
+      if(res.url) urls.push(res.url); else { uploadFailed = true; uploadErrors.push(`Imaj ${i+1}: ` + res.error); }
+    }
+    if(urls.length===1){ step.imageUrl = urls[0]; }
+    else if(urls.length>1){ step.imageUrls = urls; }
+  }
+  if(audioFile){
+    statusEl.textContent = 'Ap telechaje nòt vwa... 0%';
+    showUploadProgressCo(0);
+    const res = await uploadFileWithProgress(audioFile, 'audio', (pct)=>{ showUploadProgressCo(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
+    if(res.url) step.audioUrl = res.url; else { uploadFailed = true; uploadErrors.push('Nòt vwa: ' + res.error); }
+  }
+  hideUploadProgressCo();
+  if(uploadFailed){
+    statusEl.innerHTML = '⚠️ ' + uploadErrors.join('<br>⚠️ ') + '<br><small>Etap la ap ajoute ak sa ki reyisi yo sèlman.</small>';
+    statusEl.style.color = 'var(--wouj)';
+  }
+
+  const videos = [...(k.videos||[]), step];
+  await updateRow('courses', courseId, { videos, status:'atant' });
+  k.videos = videos;
+  k.status = 'atant';
+  renderMyCompanyCourses();
+
+  if(!uploadFailed){ statusEl.style.color = ''; statusEl.textContent = 'Etap ajoute — kou a ap tann apwobasyon admin ankò ✅'; }
+  document.getElementById('co_stepTitle').value = '';
+  document.getElementById('co_stepVideoFile').value = '';
+  document.getElementById('co_stepImageFile').value = '';
+  document.getElementById('co_stepAudioFile').value = '';
+  document.getElementById('co_stepYoutubeUrl').value = '';
+  document.getElementById('co_stepAppLink').value = '';
+  document.getElementById('co_stepVideoPreview').innerHTML = '';
+  document.getElementById('co_stepImagePreview').innerHTML = '';
+  document.getElementById('co_stepAudioPreview').innerHTML = '';
+  setTimeout(()=>{ statusEl.textContent=''; }, 4000);
+}
+window.addCompanyCourseStep = addCompanyCourseStep;
+
 async function createCourse(){
   const companyId = document.getElementById('newCourseCompany').value;
   const title = document.getElementById('newCourseTitle').value;
   const price = Number(document.getElementById('newCoursePrice').value);
   if(!title || !price){ toast('Tanpri ranpli tout chan yo'); return; }
   await insertRow('courses', {
-    companyId: companyId || null, title, price,
+    companyId: companyId || null, title, price, status: 'apwouve',
     videos: [{id:'v'+Date.now(), title:'Etap 1', locked:true}],
     likes:0, comments:0, views:0, shares:0
   });
   toast('Kou a kreye!');
   document.getElementById('newCourseTitle').value = '';
 }
+
+async function approveCourse(courseId){
+  await updateRow('courses', courseId, { status: 'apwouve' });
+  const k = courses.find(c=>c.id===courseId);
+  if(k) k.status = 'apwouve';
+  renderAdmin();
+  toast('Kou a apwouve — li vizib pou elèv yo kounye a ✅');
+}
+window.approveCourse = approveCourse;
 
 function uploadProfilePhoto(event){
   const file = event.target.files[0];
@@ -2301,10 +2510,14 @@ window.openIconSettingsModal = openIconSettingsModal;
     coursesBox.innerHTML = courses.length
       ? courses.map(k=>{
         const comp = companies.find(c=>c.id===k.companyId);
+        const isPending = k.status==='atant';
         return `
         <div class="kv">
-          <span class="k">${k.title} — ${k.price} G${comp?' ('+comp.name+')':''}</span>
-          <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCourse('${k.id}')">Efase</button>
+          <span class="k">${k.title} — ${k.price} G${comp?' ('+comp.name+')':''} ${isPending?'<span class="badge" style="background:var(--or);color:#fff;">An atant</span>':''}</span>
+          <span style="display:flex;gap:6px;">
+            ${isPending?`<button class="btn btn-primary" style="width:auto;padding:4px 10px;font-size:11px;" onclick="approveCourse('${k.id}')">Apwouve</button>`:''}
+            <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCourse('${k.id}')">Efase</button>
+          </span>
         </div>`;
       }).join('')
       : `<div class="empty">Pa gen kou kreye pou kounye a.</div>`;
