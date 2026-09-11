@@ -1452,6 +1452,7 @@ async function togglePublicProfile(){
   if(currentUser){
     currentUser.piblik = piblik;
     await updateRow('users', currentUser.id, { piblik });
+    localStorage.setItem('tp_current_user', JSON.stringify(currentUser));
     toast(piblik ? 'Pwofil ou piblik kounye a' : 'Pwofil ou prive kounye a');
   }
 }
