@@ -2312,16 +2312,21 @@ window.openIconSettingsModal = openIconSettingsModal;
   renderCompanyFinance();
 }
 
+function computeCompanySalesTotals(companyId){
+  const courseIds = courses.filter(k=>k.companyId===companyId).map(k=>k.id);
+  const confirmedDeps = deposits.filter(d=>d.status==='konfime' && courseIds.includes(d.courseId));
+  const totalHtg = confirmedDeps.filter(d=>d.devise!=='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
+  const totalUsd = confirmedDeps.filter(d=>d.devise==='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
+  return { totalHtg, totalUsd };
+}
+
 function renderCompanyFinance(){
   const box = document.getElementById('adminCompanyFinance');
   if(!box) return;
   if(!companies.length){ box.innerHTML = `<div class="empty">Pa gen antrepriz kreye pou kounye a.</div>`; return; }
 
   box.innerHTML = companies.map(c=>{
-    const courseIds = courses.filter(k=>k.companyId===c.id).map(k=>k.id);
-    const confirmedDeps = deposits.filter(d=>d.status==='konfime' && courseIds.includes(d.courseId));
-    const totalHtg = confirmedDeps.filter(d=>d.devise!=='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
-    const totalUsd = confirmedDeps.filter(d=>d.devise==='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
+    const { totalHtg, totalUsd } = computeCompanySalesTotals(c.id);
     const rate = c.commissionRate ?? 15;
     const shareHtg = totalHtg * (100 - rate) / 100;
     const shareUsd = totalUsd * (100 - rate) / 100;
@@ -2329,12 +2334,16 @@ function renderCompanyFinance(){
     const paidUsd = c.amountPaidOutUsd || 0;
     const owedHtg = Math.max(0, shareHtg - paidHtg);
     const owedUsd = Math.max(0, shareUsd - paidUsd);
+    const newSalesHtg = Math.max(0, totalHtg - (c.lastPayoutTotalHtg || 0));
+    const newSalesUsd = Math.max(0, totalUsd - (c.lastPayoutTotalUsd || 0));
 
     return `
     <div class="card" style="background:var(--gri);margin-bottom:10px;">
       <div style="font-weight:700;font-size:14px;margin-bottom:6px;">${c.name}</div>
       <div class="kv"><span class="k">Total vant (G)</span><span class="v">${totalHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Total vant (USD)</span><span class="v">${totalUsd.toFixed(2)} USD</span></div>
+      <div class="kv"><span class="k">🆕 Nouvo vant (G)</span><span class="v" style="color:var(--or-fonse);">${newSalesHtg.toFixed(0)} G</span></div>
+      <div class="kv"><span class="k">🆕 Nouvo vant (USD)</span><span class="v" style="color:var(--or-fonse);">${newSalesUsd.toFixed(2)} USD</span></div>
       <div class="kv">
         <span class="k">Komisyon platfòm (%)</span>
         <span style="display:flex;align-items:center;gap:6px;">
@@ -2405,14 +2414,17 @@ async function markCompanyPayout(companyId){
 
   const c = companies.find(x=>x.id===companyId);
   if(!c) return;
+  const { totalHtg, totalUsd } = computeCompanySalesTotals(companyId);
   if(isUsd){
     const newPaid = (c.amountPaidOutUsd || 0) + montan;
-    await updateRow('companies', companyId, { amountPaidOutUsd: newPaid });
+    await updateRow('companies', companyId, { amountPaidOutUsd: newPaid, lastPayoutTotalUsd: totalUsd });
     c.amountPaidOutUsd = newPaid;
+    c.lastPayoutTotalUsd = totalUsd;
   } else {
     const newPaid = (c.amountPaidOutHtg || 0) + montan;
-    await updateRow('companies', companyId, { amountPaidOutHtg: newPaid });
+    await updateRow('companies', companyId, { amountPaidOutHtg: newPaid, lastPayoutTotalHtg: totalHtg });
     c.amountPaidOutHtg = newPaid;
+    c.lastPayoutTotalHtg = totalHtg;
   }
 
   const newPayout = await insertRow('company_payouts', {
