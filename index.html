@@ -1385,8 +1385,8 @@ function go(pageId){
   if(pageId==='admin'){
     if(!checkAdminAccess()){ return; }
   }
-  if(pageId==='kouAntrepriz' && !findMyCompany()){
-    toast('Ou pa pwopriyetè okenn antrepriz');
+  if(pageId==='kouAntrepriz' && !findMyCompany() && !findMyTeacher()){
+    toast('Ou pa gen antrepriz ni estati fòmatè apwouve');
     return;
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2140,14 +2140,24 @@ function findMyCompany(){
 }
 window.findMyCompany = findMyCompany;
 
+function findMyTeacher(){
+  if(!currentUser) return null;
+  const normUser = normalizePhone(currentUser.tel);
+  return teachers.find(t => t.status==='apwouve' && normalizePhone(t.tel) === normUser) || null;
+}
+window.findMyTeacher = findMyTeacher;
+
 function renderMyCompanyCourseCard(){
   const card = document.getElementById('myCompanyCourseCard');
   const hint = document.getElementById('myCompanyCourseHint');
   if(!card) return;
   const myCompany = findMyCompany();
-  if(myCompany){
+  const myTeacher = findMyTeacher();
+  if(myCompany || myTeacher){
     card.style.display = 'block';
-    hint.textContent = `Ajoute ak jere kou pou "${myCompany.name}" — nouvo kou ap tann apwobasyon admin anvan yo parèt pou elèv yo.`;
+    hint.textContent = myCompany
+      ? `Ajoute ak jere kou pou "${myCompany.name}" — nouvo kou ap tann apwobasyon admin anvan yo parèt pou elèv yo.`
+      : `Ajoute ak jere kou pa ou kòm fòmatè endepandan — nouvo kou ap tann apwobasyon admin anvan yo parèt pou elèv yo.`;
   } else {
     card.style.display = 'none';
   }
@@ -2156,12 +2166,15 @@ window.renderMyCompanyCourseCard = renderMyCompanyCourseCard;
 
 async function createCompanyCourse(){
   const myCompany = findMyCompany();
-  if(!myCompany){ toast('Ou pa pwopriyetè okenn antrepriz'); return; }
+  const myTeacher = findMyTeacher();
+  if(!myCompany && !myTeacher){ toast('Ou pa gen antrepriz ni estati fòmatè apwouve'); return; }
   const title = document.getElementById('co_newCourseTitle').value.trim();
   const price = Number(document.getElementById('co_newCoursePrice').value);
   if(!title || !price){ toast('Tanpri ranpli tout chan yo'); return; }
   await insertRow('courses', {
-    companyId: myCompany.id, title, price, status:'atant',
+    companyId: myCompany ? myCompany.id : null,
+    teacherId: myCompany ? null : myTeacher.id,
+    title, price, status:'atant',
     videos: [{id:'v'+Date.now(), title:'Etap 1', locked:true}],
     likes:0, comments:0, views:0, shares:0
   });
@@ -2174,10 +2187,14 @@ window.createCompanyCourse = createCompanyCourse;
 
 function renderMyCompanyCourses(){
   const myCompany = findMyCompany();
+  const myTeacher = findMyTeacher();
   const listBox = document.getElementById('myCompanyCoursesList');
   const stepSel = document.getElementById('co_stepCourseSelect');
-  if(!myCompany || !listBox) return;
-  const myCourses = courses.filter(k=>k.companyId===myCompany.id);
+  if((!myCompany && !myTeacher) || !listBox) return;
+  const myCourses = courses.filter(k =>
+    (myCompany && k.companyId===myCompany.id) ||
+    (myTeacher && k.teacherId===myTeacher.id)
+  );
   listBox.innerHTML = myCourses.length
     ? myCourses.map(k=>`
       <div class="kv">
@@ -2205,10 +2222,11 @@ function hideUploadProgressCo(){
 
 async function addCompanyCourseStep(){
   const myCompany = findMyCompany();
-  if(!myCompany){ toast('Ou pa pwopriyetè okenn antrepriz'); return; }
+  const myTeacher = findMyTeacher();
+  if(!myCompany && !myTeacher){ toast('Ou pa gen antrepriz ni estati fòmatè apwouve'); return; }
   const courseId = document.getElementById('co_stepCourseSelect').value;
-  const k = courses.find(c=>c.id===courseId && c.companyId===myCompany.id);
-  if(!k){ toast('Chwazi yon kou ki pou antrepriz ou'); return; }
+  const k = courses.find(c => c.id===courseId && ((myCompany && c.companyId===myCompany.id) || (myTeacher && c.teacherId===myTeacher.id)));
+  if(!k){ toast('Chwazi yon kou ki pou ou'); return; }
   const title = document.getElementById('co_stepTitle').value.trim();
   if(!title){ toast('Antre tit etap la'); return; }
   const statusEl = document.getElementById('co_stepUploadStatus');
