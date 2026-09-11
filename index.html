@@ -456,8 +456,13 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Imaj (opsyonèl — max 40 MB chak, ou ka chwazi plizyè)</label>
       <input id="co_stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('co_stepImageFile','co_stepImagePreview','image')">
       <div id="co_stepImagePreview"></div>
-      <label>Nòt vwa (fichye odyo, opsyonèl, max 40 MB)</label>
-      <input id="co_stepAudioFile" type="file" accept="audio/*" onchange="previewStepFile('co_stepAudioFile','co_stepAudioPreview','audio')">
+      <label>Nòt vwa (opsyonèl, max 40 MB)</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="co_recordBtn" style="width:auto;padding:8px 16px;" onclick="toggleRecording('co_')">🎙️ Anrejistre</button>
+        <button type="button" class="btn btn-danger" style="width:auto;padding:8px 16px;" onclick="deleteRecording('co_')">🗑️ Efase</button>
+        <span class="hint">oswa</span>
+        <input id="co_stepAudioFile" type="file" accept="audio/*" style="flex:1;min-width:180px;" onchange="previewStepFile('co_stepAudioFile','co_stepAudioPreview','audio')">
+      </div>
       <div id="co_stepAudioPreview"></div>
       <button class="btn btn-primary" style="margin-top:14px;" onclick="addCompanyCourseStep()">Ajoute etap la</button>
       <div id="co_stepUploadProgressWrap" style="display:none;margin-top:10px;">
@@ -2245,6 +2250,12 @@ async function addCompanyCourseStep(){
     showUploadProgressCo(0);
     const res = await uploadFileWithProgress(audioFile, 'audio', (pct)=>{ showUploadProgressCo(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
     if(res.url) step.audioUrl = res.url; else { uploadFailed = true; uploadErrors.push('Nòt vwa: ' + res.error); }
+  } else if(recordedBlob && recordedBlobPrefix==='co_'){
+    statusEl.textContent = 'Ap telechaje nòt vwa... 0%';
+    showUploadProgressCo(0);
+    const recFile = new File([recordedBlob], 'nòt-vwa.webm', { type:'audio/webm' });
+    const res = await uploadFileWithProgress(recFile, 'audio', (pct)=>{ showUploadProgressCo(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
+    if(res.url) step.audioUrl = res.url; else { uploadFailed = true; uploadErrors.push('Nòt vwa: ' + res.error); }
   }
   hideUploadProgressCo();
   if(uploadFailed){
@@ -2268,6 +2279,8 @@ async function addCompanyCourseStep(){
   document.getElementById('co_stepVideoPreview').innerHTML = '';
   document.getElementById('co_stepImagePreview').innerHTML = '';
   document.getElementById('co_stepAudioPreview').innerHTML = '';
+  recordedBlob = null;
+  recordedBlobPrefix = '';
   setTimeout(()=>{ statusEl.textContent=''; }, 4000);
 }
 window.addCompanyCourseStep = addCompanyCourseStep;
@@ -3479,8 +3492,9 @@ window.previewStepFile = previewStepFile;
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordedBlob = null;
-async function toggleRecording(){
-  const btn = document.getElementById('recordBtn');
+let recordedBlobPrefix = '';
+async function toggleRecording(prefix=''){
+  const btn = document.getElementById(prefix+'recordBtn');
   if(mediaRecorder && mediaRecorder.state === 'recording'){
     mediaRecorder.stop();
     return;
@@ -3492,8 +3506,9 @@ async function toggleRecording(){
     mediaRecorder.ondataavailable = (e)=>{ if(e.data.size>0) recordedChunks.push(e.data); };
     mediaRecorder.onstop = ()=>{
       recordedBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+      recordedBlobPrefix = prefix;
       const url = URL.createObjectURL(recordedBlob);
-      document.getElementById('stepAudioPreview').innerHTML = `<audio src="${url}" controls style="width:100%;margin-top:8px;"></audio>`;
+      document.getElementById(prefix+'stepAudioPreview').innerHTML = `<audio src="${url}" controls style="width:100%;margin-top:8px;"></audio>`;
       btn.textContent = '🎙️ Anrejistre';
       btn.classList.remove('btn-danger');
       btn.classList.add('btn-primary');
@@ -3503,7 +3518,7 @@ async function toggleRecording(){
     btn.textContent = '⏹️ Sispann';
     btn.classList.remove('btn-primary');
     btn.classList.add('btn-danger');
-    document.getElementById('stepAudioFile').value = '';
+    document.getElementById(prefix+'stepAudioFile').value = '';
   } catch(err){
     console.error(err);
     toast('Pa gen aksè a mikwofòn nan — verifye pèmisyon telefòn ou');
@@ -3552,7 +3567,7 @@ async function addCourseStep(){
     showUploadProgress(0);
     const res = await uploadFileWithProgress(audioFile, 'audio', (pct)=>{ showUploadProgress(pct); statusEl.textContent = `Ap telechaje nòt vwa... ${pct}%`; });
     if(res.url) step.audioUrl = res.url; else { uploadFailed = true; uploadErrors.push('Nòt vwa: ' + res.error); }
-  } else if(recordedBlob){
+  } else if(recordedBlob && recordedBlobPrefix===''){
     statusEl.textContent = 'Ap telechaje nòt vwa... 0%';
     showUploadProgress(0);
     const recFile = new File([recordedBlob], 'nòt-vwa.webm', { type:'audio/webm' });
@@ -3583,15 +3598,17 @@ async function addCourseStep(){
   document.getElementById('stepImagePreview').innerHTML = '';
   document.getElementById('stepAudioPreview').innerHTML = '';
   recordedBlob = null;
+  recordedBlobPrefix = '';
   setTimeout(()=>{ statusEl.textContent=''; }, 3000);
 }
 window.addCourseStep = addCourseStep;
 
-function deleteRecording(){
+function deleteRecording(prefix=''){
   recordedBlob = null;
-  document.getElementById('stepAudioFile').value = '';
-  document.getElementById('stepAudioPreview').innerHTML = '';
-  const btn = document.getElementById('recordBtn');
+  recordedBlobPrefix = '';
+  document.getElementById(prefix+'stepAudioFile').value = '';
+  document.getElementById(prefix+'stepAudioPreview').innerHTML = '';
+  const btn = document.getElementById(prefix+'recordBtn');
   btn.textContent = '🎙️ Anrejistre';
   btn.classList.remove('btn-danger');
   btn.classList.add('btn-primary');
