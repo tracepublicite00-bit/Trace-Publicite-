@@ -1499,6 +1499,12 @@ function isOwnerUser(u){
 }
 function isPublicCourse(k){ return k.status !== 'atant'; }
 
+function companyLiveStats(companyId){
+  const courseIds = courses.filter(k=>k.companyId===companyId && isPublicCourse(k)).map(k=>k.id);
+  const students = new Set(purchases.filter(p=>courseIds.includes(p.courseId)).map(p=>p.userId)).size;
+  return { coursesCount: courseIds.length, students };
+}
+
 function renderAkey(){
   const countedUsers = dedupeByPhone(allUsers.filter(u=>!isOwnerUser(u)));
   const vant = deposits.filter(d=>d.status==='konfime').length;
@@ -1509,15 +1515,18 @@ function renderAkey(){
   document.getElementById('stat_elev').textContent = elev;
 
   const cList = document.getElementById('companyList');
-  cList.innerHTML = companies.slice(0,3).map(c=>`
+  cList.innerHTML = companies.slice(0,3).map(c=>{
+    const stats = companyLiveStats(c.id);
+    return `
     <div class="company-row" onclick="openCompany('${c.id}')">
       <div class="avatar">${initials(c.name)}</div>
       <div class="info">
         <div class="name">${c.name}</div>
-        <div class="meta">${c.coursesCount||0} fòmasyon · ${c.students||0} elèv</div>
+        <div class="meta">${stats.coursesCount} fòmasyon · ${stats.students} elèv</div>
       </div>
       <span class="badge">${c.approved?'Aktif':'Nan revizyon'}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const cPreview = document.getElementById('courseListPreview');
   cPreview.innerHTML = courses.filter(isPublicCourse).slice(0,2).map(k=>courseCardHtml(k)).join('');
@@ -1542,15 +1551,18 @@ function renderAkey(){
 }
 
 function renderCompanyListFull(){
-  document.getElementById('companyListFull').innerHTML = companies.map(c=>`
+  document.getElementById('companyListFull').innerHTML = companies.map(c=>{
+    const stats = companyLiveStats(c.id);
+    return `
     <div class="company-row" onclick="openCompany('${c.id}')">
       <div class="avatar">${initials(c.name)}</div>
       <div class="info">
         <div class="name">${c.name}</div>
-        <div class="meta">${c.coursesCount||0} fòmasyon · ${c.students||0} elèv</div>
+        <div class="meta">${stats.coursesCount} fòmasyon · ${stats.students} elèv</div>
       </div>
       <span class="badge">${c.approved?'Aktif':'Nan revizyon'}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function openCompany(id){
@@ -2009,7 +2021,7 @@ function renderRanking(){
     const courseIds = companyCourseIds(c.id);
     const salesCount = purchases.filter(p=>courseIds.includes(p.courseId)).length;
     const uniqueBuyers = new Set(purchases.filter(p=>courseIds.includes(p.courseId)).map(p=>p.userId)).size;
-    return { c, vant: salesCount, abone: uniqueBuyers, elev: c.students||0 };
+    return { c, vant: salesCount, abone: uniqueBuyers, elev: uniqueBuyers };
   });
   const labelMap = { vant:'vant', abone:'aboné', elev:'elèv' };
   const sorted = rows.slice().sort((a,b)=> b[rankTab] - a[rankTab]);
