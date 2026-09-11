@@ -471,6 +471,7 @@ window.addEventListener('unhandledrejection', function(e) {
         </div>
       </div>
       <p id="co_stepUploadStatus" class="hint" style="margin-top:8px;"></p>
+      <div id="co_stepList" style="margin-top:14px;"></div>
     </div>
   </section>
 
@@ -2196,15 +2197,44 @@ function renderMyCompanyCourses(){
     (myTeacher && k.teacherId===myTeacher.id)
   );
   listBox.innerHTML = myCourses.length
-    ? myCourses.map(k=>`
-      <div class="kv">
-        <span class="k">${k.title} — ${k.price} G ${k.status==='atant'?'<span class="badge" style="background:var(--or);color:#fff;">An atant</span>':'<span class="badge" style="background:var(--vet);color:#fff;">Apwouve</span>'}</span>
-        <span class="hint">${(k.videos||[]).length} etap</span>
-      </div>`).join('')
+    ? myCourses.map(k=>{
+      const steps = k.videos||[];
+      const statusBadge = k.status==='atant'
+        ? '<span class="badge" style="background:var(--or);color:#fff;">An atant</span>'
+        : '<span class="badge" style="background:var(--vet);color:#fff;">Apwouve</span>';
+      return `
+      <div class="course-card" onclick="openStepListModal('${k.id}')">
+        <div class="course-thumb" style="background:linear-gradient(135deg,var(--or),var(--or-fonse));">🎬</div>
+        <div class="course-body">
+          <div class="title">${k.title} — ${k.price} G ${statusBadge}</div>
+          <div class="price">${steps.length} etap ajoute</div>
+        </div>
+      </div>`;
+    }).join('')
     : `<div class="empty">Ou poko gen okenn kou. Kreye premye a anwo a.</div>`;
   if(stepSel) stepSel.innerHTML = myCourses.map(k=>`<option value="${k.id}">${k.title}</option>`).join('');
+  renderMyStepPreview();
 }
 window.renderMyCompanyCourses = renderMyCompanyCourses;
+
+function renderMyStepPreview(){
+  const stepSel = document.getElementById('co_stepCourseSelect');
+  const box = document.getElementById('co_stepList');
+  if(!stepSel || !box) return;
+  const k = courses.find(c=>c.id===stepSel.value);
+  if(!k){ box.innerHTML=''; return; }
+  const steps = k.videos||[];
+  box.innerHTML = `
+    <div class="course-card" onclick="openStepListModal('${k.id}')">
+      <div class="course-thumb" style="background:linear-gradient(135deg,var(--or),var(--or-fonse));">🎬</div>
+      <div class="course-body">
+        <div class="title">${k.title}</div>
+        <div class="price">${steps.length} etap ajoute</div>
+      </div>
+    </div>`;
+}
+window.renderMyStepPreview = renderMyStepPreview;
+document.addEventListener('change', (e)=>{ if(e.target.id==='co_stepCourseSelect') renderMyStepPreview(); });
 
 const MAX_COMPANY_UPLOAD_BYTES = 40 * 1024 * 1024;
 function showUploadProgressCo(pct){
@@ -3457,7 +3487,14 @@ function openStepListModal(courseId){
       ${steps.length ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">` +
         steps.map((v,i)=>`
           <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;">
-            <div style="height:64px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;">${stepThumbHtml(v)}</div>
+            <div style="padding:6px;">
+              ${v.videoUrl ? `<video src="${v.videoUrl}" controls style="width:100%;border-radius:8px;max-height:140px;"></video>`
+                : v.youtubeUrl ? `<div style="position:relative;padding-bottom:56%;height:0;overflow:hidden;border-radius:8px;"><iframe src="${ytEmbed(v.youtubeUrl)}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen></iframe></div>`
+                : v.imageUrl ? `<img src="${v.imageUrl}" style="width:100%;border-radius:8px;max-height:140px;object-fit:cover;">`
+                : (v.imageUrls && v.imageUrls.length) ? `<img src="${v.imageUrls[0]}" style="width:100%;border-radius:8px;max-height:140px;object-fit:cover;">`
+                : v.audioUrl ? `<audio src="${v.audioUrl}" controls style="width:100%;"></audio>`
+                : `<div style="height:64px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;border-radius:8px;">${stepThumbHtml(v)}</div>`}
+            </div>
             <div style="padding:8px;">
               <div style="font-size:12px;font-weight:600;margin-bottom:8px;line-height:1.3;">${i+1}. ${v.title}</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
