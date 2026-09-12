@@ -2003,6 +2003,7 @@ async function submitRegister(){
         non, email, tel, peyi, vil, blocked:false,
         achte:0, fini:0, mwaAktif:0, piblik:true, accessCode: finalCode
       });
+      sendEmailNotification(email, 'Byenveni sou Trace Publicite!', `Byenveni ${non}! Kont ou kreye avèk siksè.`, 'registration');
     }
   } catch(e){
     btn.disabled = false;
@@ -3045,6 +3046,17 @@ async function grantCourseAccess(){
 }
 window.grantCourseAccess = grantCourseAccess;
 
+async function sendEmailNotification(to, subject, message, type) {
+  if(!to) return;
+  try {
+    await fetch('https://pifxgwbxntkcprbxezyd.supabase.co/functions/v1/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, message, type })
+    });
+  } catch (e) { console.error('Email error:', e); }
+}
+
 async function confirmDeposit(id){
   const btn = document.getElementById('confBtn_'+id);
   if(btn){ if(btn.disabled) return; btn.disabled = true; btn.textContent = 'Ap konfime...'; }
@@ -3060,6 +3072,10 @@ async function confirmDeposit(id){
       message: `✅ Depo ou a (${dep.montan} ${dep.devise==='usd'?'USD':'G'}) konfime! Ou gen aksè kounye a nan kou a. Gade resi a nan pwofil ou.`,
       isRead: false
     });
+    const depUser = allUsers.find(u=>u.id===dep.userId);
+    if(depUser?.email){
+      sendEmailNotification(depUser.email, 'Depo ou konfime!', `Depo ${dep.montan} ${dep.devise==='usd'?'USD':'HTG'} ou a konfime. Ou gen aksè kounye a nan kou a.`, 'deposit_confirmed');
+    }
   }
   toast('✅ Depo konfime — aksè bay itilizatè a');
   await refreshDeposits();
