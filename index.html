@@ -1956,6 +1956,8 @@ async function submitDeposit(){
     fotoUrl
   });
 
+  sendEmailNotification('tracepublicite00@gmail.com', 'Nouvo depo rive!', `Yon nouvo depo rive: ${montan} ${state.dev==='usd'?'USD':'HTG'} soti nan ${prenon} ${siyati} (tel: ${tel}). Al konfime li nan Panèl Admin.`, 'new_deposit');
+
   toast('Reyisi! ' + montan + ' ' + (state.dev==='usd'?'USD':'HTG') + ' — depo an atant konfimasyon');
   document.getElementById('dep_montan').value='';
   document.getElementById('dep_prenon').value='';
