@@ -3053,7 +3053,7 @@ async function sendEmailNotification(to, subject, message, type) {
   try {
     await fetch('https://pifxgwbxntkcprbxezyd.supabase.co/functions/v1/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
       body: JSON.stringify({ to, subject, message, type })
     });
   } catch (e) { console.error('Email error:', e); }
