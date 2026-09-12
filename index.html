@@ -1759,6 +1759,40 @@ async function submitComment(){
 }
 window.submitComment = submitComment;
 
+async function cachedMediaUrl(url){
+  try{
+    if(!window.caches) return url;
+    const cache = await caches.open('tp-media-cache-v1');
+    let resp = await cache.match(url);
+    if(!resp){
+      const netResp = await fetch(url);
+      if(netResp && netResp.ok){
+        await cache.put(url, netResp.clone());
+        resp = netResp;
+      } else {
+        return url;
+      }
+    }
+    const blob = await resp.blob();
+    return URL.createObjectURL(blob);
+  } catch(err){
+    console.error('cachedMediaUrl error', err);
+    return url;
+  }
+}
+
+function hydrateMediaCache(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  container.querySelectorAll('[data-cache-src]').forEach(el=>{
+    const src = el.getAttribute('data-cache-src');
+    if(!src) return;
+    el.removeAttribute('data-cache-src');
+    cachedMediaUrl(src).then(blobUrl=>{ el.src = blobUrl; });
+  });
+}
+window.hydrateMediaCache = hydrateMediaCache;
+
 async function openCourse(id){
   state.currentCourse = id;
   await incrementField('courses', id, 'views', 1);
@@ -1777,16 +1811,17 @@ async function openCourse(id){
             <iframe src="${ytEmbed(v.youtubeUrl)}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen></iframe>
           </div>` : ''}
         ${v.videoUrl ? (v.allowDownload
-            ? `<video src="${v.videoUrl}" controls style="width:100%;border-radius:10px;margin-top:8px;"></video>
+            ? `<video data-cache-src="${v.videoUrl}" controls style="width:100%;border-radius:10px;margin-top:8px;"></video>
                <a class="btn btn-outline" style="margin-top:8px;text-decoration:none;" href="${v.videoUrl}" download>⬇️ Telechaje videyo a</a>`
-            : `<video src="${v.videoUrl}" controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false;" style="width:100%;border-radius:10px;margin-top:8px;"></video>`
+            : `<video data-cache-src="${v.videoUrl}" controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false;" style="width:100%;border-radius:10px;margin-top:8px;"></video>`
           ) : ''}
         ${v.imageUrl ? `<img src="${v.imageUrl}" style="width:100%;border-radius:10px;margin-top:8px;">` : ''}
         ${(v.imageUrls && v.imageUrls.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${v.imageUrls.map(u=>`<img src="${u}" style="width:100%;max-width:100%;border-radius:10px;">`).join('')}</div>` : ''}
-        ${v.audioUrl ? `<audio src="${v.audioUrl}" controls style="width:100%;margin-top:8px;"></audio>` : ''}
+        ${v.audioUrl ? `<audio data-cache-src="${v.audioUrl}" controls style="width:100%;margin-top:8px;"></audio>` : ''}
         ${v.appLink ? `<a class="btn btn-gold" style="margin-top:10px;text-decoration:none;" href="${v.appLink}" target="_blank">📲 Telechaje Aplikasyon</a>` : ''}
         ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl && !v.appLink && !(v.imageUrls && v.imageUrls.length)) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
       </div>`).join('') || `<div class="empty">Pa gen etap kreye pou kou sa a.</div>`;
+    hydrateMediaCache('videoListEtap');
   } else {
     document.getElementById('videoArea').innerHTML = `
       <div style="text-align:center;padding:20px 10px;">
@@ -2582,12 +2617,15 @@ window.openIconSettingsModal = openIconSettingsModal;
   const coursesBox = document.getElementById('adminCourses');
   if(coursesBox){
     coursesBox.innerHTML = courses.length
-      ? courses.map(k=>{
+      ? [...courses].sort((a,b)=>(b.views||0)-(a.views||0)).map(k=>{
         const comp = companies.find(c=>c.id===k.companyId);
         const isPending = k.status==='atant';
+        const directVideos = (k.videos||[]).filter(v=>v.videoUrl).length;
         return `
-        <div class="kv">
-          <span class="k">${k.title} — ${k.price} G${comp?' ('+comp.name+')':''} ${isPending?'<span class="badge" style="background:var(--or);color:#fff;">An atant</span>':''}</span>
+        <div class="kv" style="align-items:flex-start;">
+          <span class="k">${k.title} — ${k.price} G${comp?' ('+comp.name+')':''} ${isPending?'<span class="badge" style="background:var(--or);color:#fff;">An atant</span>':''}<br>
+            <small style="color:var(--tex-mou);">👁️ ${k.views||0} gade · 🎥 ${directVideos} videyo dirèk (Supabase)</small>
+          </span>
           <span style="display:flex;gap:6px;">
             ${isPending?`<button class="btn btn-primary" style="width:auto;padding:4px 10px;font-size:11px;" onclick="approveCourse('${k.id}')">Apwouve</button>`:''}
             <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deleteCourse('${k.id}')">Efase</button>
@@ -2620,11 +2658,29 @@ window.openIconSettingsModal = openIconSettingsModal;
   const teachBox = document.getElementById('adminTeachersApproved');
   if(teachBox){
     teachBox.innerHTML = approvedTeachers.length
-      ? approvedTeachers.map(t=>`
-        <div class="kv" style="align-items:flex-start;">
-          <span class="k">${t.non}<br><small style="color:var(--tex-mou);">Enskri: ${formatDateTime(t.createdAt)}</small></span>
-          <button class="btn ${t.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="toggleTeacherBlock('${t.id}', ${!!t.blocked})">${t.blocked?'Debloke':'Bloke'}</button>
-        </div>`).join('')
+      ? approvedTeachers.map(t=>{
+        const renewedAt = t.subscriptionRenewedAt ? new Date(t.subscriptionRenewedAt) : new Date(t.createdAt);
+        const daysLeft = 30 - Math.floor((Date.now() - renewedAt.getTime()) / 86400000);
+        let daysColor = 'var(--vet)';
+        let daysText = `${daysLeft} jou rete`;
+        if(daysLeft <= 0){ daysColor = 'var(--wouj)'; daysText = `Ekspire depi ${Math.abs(daysLeft)} jou`; }
+        else if(daysLeft <= 5){ daysColor = 'var(--or-fonse)'; }
+        return `
+        <div class="card" style="background:var(--gri);margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <span style="font-weight:700;font-size:13px;">${t.non}<br><small style="color:var(--tex-mou);font-weight:400;">Enskri: ${formatDateTime(t.createdAt)}</small></span>
+            <span style="font-size:11px;font-weight:700;color:${daysColor};white-space:nowrap;">${daysText}</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn ${t.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:6px 10px;font-size:11px;" onclick="toggleTeacherBlock('${t.id}', ${!!t.blocked})">${t.blocked?'Debloke':'Bloke'}</button>
+            <button class="btn btn-primary" style="width:auto;padding:6px 10px;font-size:11px;" onclick="renewTeacherSubscription('${t.id}')">Peman resevwa (reset 30j)</button>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;">
+            <input id="teacherMsg_${t.id}" placeholder="Ekri yon mesaj pou ${t.non}..." style="flex:1;">
+            <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;white-space:nowrap;" onclick="sendTeacherMessage('${t.id}')">Voye</button>
+          </div>
+        </div>`;
+      }).join('')
       : `<div class="empty">Pa gen pwofesè apwouve.</div>`;
   }
   renderCompanyFinance();
@@ -2913,11 +2969,34 @@ async function approveAccessRequest(reqId, companyId, userId){
 window.approveAccessRequest = approveAccessRequest;
 
 async function approveTeacher(id){
-  await updateRow('teachers', id, { status:'apwouve' });
+  await updateRow('teachers', id, { status:'apwouve', subscriptionRenewedAt: new Date().toISOString() });
   await refreshTeachers();
   toast('Pwofesè apwouve');
 }
 window.approveTeacher = approveTeacher;
+
+async function renewTeacherSubscription(id){
+  const now = new Date().toISOString();
+  await updateRow('teachers', id, { subscriptionRenewedAt: now });
+  const t = teachers.find(x=>x.id===id);
+  if(t) t.subscriptionRenewedAt = now;
+  renderAdmin();
+  toast('Abònman renouvle pou 30 jou ✅');
+}
+window.renewTeacherSubscription = renewTeacherSubscription;
+
+async function sendTeacherMessage(id){
+  const t = teachers.find(x=>x.id===id);
+  if(!t){ toast('Pwofesè pa jwenn'); return; }
+  const input = document.getElementById('teacherMsg_'+id);
+  const msg = input.value.trim();
+  if(!msg){ toast('Ekri yon mesaj anvan ou voye'); return; }
+  if(!t.userId){ toast('Pwofesè sa a pa gen kont itilizatè lye'); return; }
+  await insertRow('notifications', { userId: t.userId, message: msg, isRead:false });
+  input.value = '';
+  toast('Mesaj voye bay ' + t.non + ' ✅');
+}
+window.sendTeacherMessage = sendTeacherMessage;
 window.createCourse = createCourse;
 window.submitTeacherKyc = submitTeacherKyc;
 window.uploadProfilePhoto = uploadProfilePhoto;
