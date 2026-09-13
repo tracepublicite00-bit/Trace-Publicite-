@@ -919,6 +919,7 @@ let purchases = [];
 let notifications = [];
 let companyPayouts = [];
 let courseComments = [];
+let stepViews = [];
 let settings = { price: 1000, trialDays: 20 };
 let currentUser = JSON.parse(localStorage.getItem('tp_current_user')) || null;
 
@@ -1025,6 +1026,10 @@ async function refreshCourseComments(){
   if(document.getElementById('touFormasyon')?.classList.contains('active')) renderCourseListFull();
   if(document.getElementById('akey')?.classList.contains('active')) renderAkey();
   if(document.getElementById('komantè')?.classList.contains('active')) renderComments();
+}
+async function refreshStepViews(){
+  stepViews = await fetchAll('step_views');
+  if(document.getElementById('admin')?.classList.contains('active')) renderStepList();
 }
 async function refreshNotifications(){
   if(!currentUser) return;
@@ -1254,7 +1259,8 @@ function listenAll(){
     ['purchases', refreshPurchases],
     ['course_comments', refreshCourseComments],
     ['notifications', refreshNotifications],
-    ['company_payouts', refreshCompanyPayouts]
+    ['company_payouts', refreshCompanyPayouts],
+    ['step_views', refreshStepViews]
   ];
   tables.forEach(([table, refreshFn])=>{
     db.channel('public:'+table)
@@ -1793,6 +1799,95 @@ function hydrateMediaCache(containerId){
 }
 window.hydrateMediaCache = hydrateMediaCache;
 
+const STEP_VIEW_LIMIT = 3;
+function findStepView(courseId, index, userId){
+  return stepViews.find(sv=>sv.courseId===courseId && sv.stepIndex===index && sv.userId===userId);
+}
+function myStepWatchCount(courseId, index){
+  if(!currentUser) return 0;
+  const sv = findStepView(courseId, index, currentUser.id);
+  return sv ? (sv.watchCount||0) : 0;
+}
+function isStepBlocked(courseId, index){
+  if(!currentUser) return false;
+  const sv = findStepView(courseId, index, currentUser.id);
+  return !!(sv && sv.blocked);
+}
+async function markStepWatched(courseId, index){
+  if(!currentUser) return;
+  let sv = findStepView(courseId, index, currentUser.id);
+  if(sv){
+    sv.watchCount = (sv.watchCount||0) + 1;
+    await updateRow('step_views', sv.id, { watchCount: sv.watchCount });
+  } else {
+    sv = await insertRow('step_views', { userId: currentUser.id, courseId, stepIndex: index, watchCount: 1, blocked: false });
+    stepViews.push(sv);
+  }
+}
+window.markStepWatched = markStepWatched;
+function stepVideoHtml(v, i, courseId){
+  if(!v.videoUrl) return '';
+  const endedAttr = v.onceOnly ? ` onended="markStepWatched('${courseId}', ${i})"` : '';
+  return v.allowDownload
+    ? `<video src="${v.videoUrl}" controls style="width:100%;border-radius:10px;margin-top:8px;"${endedAttr}></video>
+       <a class="btn btn-outline" style="margin-top:8px;text-decoration:none;" href="${v.videoUrl}" download>⬇️ Telechaje videyo a</a>`
+    : `<video src="${v.videoUrl}" controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false;" style="width:100%;border-radius:10px;margin-top:8px;"${endedAttr}></video>`;
+}
+function revealStepVideo(courseId, index){
+  const k = courses.find(c=>c.id===courseId);
+  const v = k && (k.videos||[])[index];
+  const box = document.getElementById(`onceOnlyBox_${courseId}_${index}`);
+  if(!k || !v || !box) return;
+  box.outerHTML = `<div id="onceOnlyBox_${courseId}_${index}">${stepVideoHtml(v, index, courseId)}</div>`;
+}
+window.revealStepVideo = revealStepVideo;
+
+async function toggleStepUserBlock(courseId, index, userId){
+  let sv = findStepView(courseId, index, userId);
+  if(sv){
+    sv.blocked = !sv.blocked;
+    await updateRow('step_views', sv.id, { blocked: sv.blocked });
+  } else {
+    sv = await insertRow('step_views', { userId, courseId, stepIndex: index, watchCount: 0, blocked: true });
+    stepViews.push(sv);
+  }
+  toast(sv.blocked ? 'Elèv la bloke pou etap sa a' : 'Elèv la debloke pou etap sa a');
+  openStepViewersModal(courseId, index);
+}
+window.toggleStepUserBlock = toggleStepUserBlock;
+
+function openStepViewersModal(courseId, index){
+  const k = courses.find(c=>c.id===courseId);
+  const v = k && (k.videos||[])[index];
+  if(!k || !v) return;
+  const viewers = stepViews.filter(sv=>sv.courseId===courseId && sv.stepIndex===index)
+    .sort((a,b)=>(b.watchCount||0)-(a.watchCount||0));
+  const old = document.getElementById('stepViewersOverlay');
+  if(old) old.remove();
+  const box = document.createElement('div');
+  box.id = 'stepViewersOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:420px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-weight:700;font-size:14px;">Elèv — ${v.title}</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('stepViewersOverlay').remove()">Fèmen</button>
+      </div>
+      <div class="hint" style="margin-bottom:10px;">Limit otomatik: ${STEP_VIEW_LIMIT} gad. Ou ka bloke yon elèv espesifik nenpòt kilè.</div>
+      ${viewers.length ? viewers.map(sv=>{
+        const u = allUsers.find(x=>x.id===sv.userId);
+        const name = u ? (u.non||u.email||sv.userId) : sv.userId;
+        return `<div class="kv" style="align-items:center;">
+          <span class="k">${name} — ${sv.watchCount||0} gad</span>
+          <button class="btn ${sv.blocked?'btn-danger':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepUserBlock('${courseId}', ${index}, '${sv.userId}')">${sv.blocked?'Debloke':'Bloke'}</button>
+        </div>`;
+      }).join('') : `<div class="empty">Okenn elèv poko gade etap sa a.</div>`}
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.openStepViewersModal = openStepViewersModal;
+
 async function openCourse(id){
   state.currentCourse = id;
   await incrementField('courses', id, 'views', 1);
@@ -1810,18 +1905,26 @@ async function openCourse(id){
         ${v.youtubeUrl ? `<div style="position:relative;padding-bottom:56%;height:0;overflow:hidden;border-radius:10px;">
             <iframe src="${ytEmbed(v.youtubeUrl)}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen></iframe>
           </div>` : ''}
-        ${v.videoUrl ? (v.allowDownload
-            ? `<video data-cache-src="${v.videoUrl}" controls style="width:100%;border-radius:10px;margin-top:8px;"></video>
-               <a class="btn btn-outline" style="margin-top:8px;text-decoration:none;" href="${v.videoUrl}" download>⬇️ Telechaje videyo a</a>`
-            : `<video data-cache-src="${v.videoUrl}" controls controlsList="nodownload noremoteplayback" disablePictureInPicture oncontextmenu="return false;" style="width:100%;border-radius:10px;margin-top:8px;"></video>`
+        ${v.videoUrl ? (
+            (v.onceOnly && !isAdmin && isStepBlocked(id, i))
+              ? `<div id="onceOnlyBox_${id}_${i}" style="margin-top:8px;padding:14px;border:1px dashed var(--border);border-radius:10px;text-align:center;">
+                   <div style="font-size:20px;">🔒</div>
+                   <div class="hint" style="margin:6px 0;">Aksè w bloke pou etap sa a. Kontakte sèvis kliyan.</div>
+                 </div>`
+              : (v.onceOnly && !isAdmin && myStepWatchCount(id, i) >= STEP_VIEW_LIMIT)
+                ? `<div id="onceOnlyBox_${id}_${i}" style="margin-top:8px;padding:14px;border:1px dashed var(--border);border-radius:10px;text-align:center;">
+                     <div style="font-size:20px;">✅</div>
+                     <div class="hint" style="margin:6px 0;">Ou gentan gade etap sa a ${STEP_VIEW_LIMIT} fwa</div>
+                     <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;" onclick="revealStepVideo('${id}', ${i})">Gade ankò kanmenm</button>
+                   </div>`
+                : `<div id="onceOnlyBox_${id}_${i}">${stepVideoHtml(v, i, id)}</div>`
           ) : ''}
         ${v.imageUrl ? `<img src="${v.imageUrl}" style="width:100%;border-radius:10px;margin-top:8px;">` : ''}
         ${(v.imageUrls && v.imageUrls.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${v.imageUrls.map(u=>`<img src="${u}" style="width:100%;max-width:100%;border-radius:10px;">`).join('')}</div>` : ''}
-        ${v.audioUrl ? `<audio data-cache-src="${v.audioUrl}" controls style="width:100%;margin-top:8px;"></audio>` : ''}
+        ${v.audioUrl ? `<audio src="${v.audioUrl}" controls style="width:100%;margin-top:8px;"></audio>` : ''}
         ${v.appLink ? `<a class="btn btn-gold" style="margin-top:10px;text-decoration:none;" href="${v.appLink}" target="_blank">📲 Telechaje Aplikasyon</a>` : ''}
         ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl && !v.appLink && !(v.imageUrls && v.imageUrls.length)) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
       </div>`).join('') || `<div class="empty">Pa gen etap kreye pou kou sa a.</div>`;
-    hydrateMediaCache('videoListEtap');
   } else {
     document.getElementById('videoArea').innerHTML = `
       <div style="text-align:center;padding:20px 10px;">
@@ -3609,6 +3712,8 @@ function openStepListModal(courseId){
               <div style="font-size:12px;font-weight:600;margin-bottom:8px;line-height:1.3;">${i+1}. ${v.title}</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 ${v.videoUrl ? `<button class="btn ${v.allowDownload?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepDownload('${k.id}', ${i})">${v.allowDownload?'Debloke':'Bloke'}</button>` : ''}
+                ${v.videoUrl ? `<button class="btn ${v.onceOnly?'btn-primary':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepOnceOnly('${k.id}', ${i})">${v.onceOnly?'Limite 3 gad ✓':'Gade lib'}</button>` : ''}
+                ${(v.videoUrl && v.onceOnly) ? `<button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="openStepViewersModal('${k.id}', ${i})">👁️ Wè elèv</button>` : ''}
                 <button class="btn btn-danger" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="deleteCourseStep('${k.id}', ${i}); document.getElementById('stepModalOverlay').remove();">Efase</button>
               </div>
             </div>
@@ -3633,6 +3738,18 @@ async function toggleStepDownload(courseId, index){
   toast(videos[index].allowDownload ? 'Telechajman pèmèt' : 'Telechajman bloke');
 }
 window.toggleStepDownload = toggleStepDownload;
+
+async function toggleStepOnceOnly(courseId, index){
+  const k = courses.find(c=>c.id===courseId);
+  if(!k) return;
+  const videos = [...(k.videos||[])];
+  videos[index] = { ...videos[index], onceOnly: !videos[index].onceOnly };
+  await updateRow('courses', courseId, { videos });
+  k.videos = videos;
+  renderStepList();
+  toast(videos[index].onceOnly ? `Etap sa a limite a ${STEP_VIEW_LIMIT} gad pou chak elèv` : 'Etap sa a kounye a gade lib');
+}
+window.toggleStepOnceOnly = toggleStepOnceOnly;
 
 function previewStepFile(inputId, previewId, kind){
   const files = document.getElementById(inputId).files;
