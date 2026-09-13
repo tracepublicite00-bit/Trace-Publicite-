@@ -651,23 +651,14 @@ window.addEventListener('unhandledrejection', function(e) {
     <div class="card">
       <div class="section-title">Antrepriz yo</div>
       <div id="adminCompanies"></div>
-      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
-        <label>Non antrepriz la</label>
-        <input id="newCompanyName" placeholder="Ex: Antrepriz XYZ">
-        <label>Pousantaj komisyon platfòm (%)</label>
-        <input id="newCompanyCommission" type="number" value="15" min="0" max="100" oninput="updateCompanyCondText()">
-        <label>Nimewo telefòn pwopriyetè (opsyonèl)</label>
-        <input id="newCompanyOwnerPhone" placeholder="Ex: 38112233">
-        <div class="benef-box">
-          <b>Kondisyon Antrepriz:</b>
-          <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
-            <li><span id="companyTrialText">20</span> jou esè gratis, epi apre sa antrepriz la aktif san frè mansyèl</li>
-            <li>Platfòm nan kenbe <span id="companyCommText">20</span>% sou chak vant kou antrepriz la fè — rès la se sa antrepriz la dwe resevwa</li>
-            <li>Si pwopriyetè a gen yon kont sou app la ak nimewo telefòn ki lye, l ap resevwa notifikasyon nan pwofil li lè peman komisyon make fèt</li>
-          </ul>
-          <div id="companyDepositNumsBox" style="margin-top:10px;"></div>
+      <div style="margin-top:14px;">
+        <div class="course-card" style="cursor:pointer;" onclick="openCreateCompanyModal()">
+          <div class="course-thumb" style="background:linear-gradient(135deg,#FDF3D6,#F0D98A);color:#7A5C10;">🏢</div>
+          <div class="course-body">
+            <div class="title">Kreye Nouvo Antrepriz</div>
+            <div class="price" style="color:#7A5C10;">Peze pou ajoute yon antrepriz</div>
+          </div>
         </div>
-        <button class="btn btn-primary" style="margin-top:10px;" onclick="createCompany()">Kreye antrepriz</button>
       </div>
     </div>
 
@@ -3424,6 +3415,41 @@ async function toggleCompanyApproval(id){
 }
 window.toggleCompanyApproval = toggleCompanyApproval;
 
+function openCreateCompanyModal(){
+  const old = document.getElementById('createCompanyOverlay');
+  if(old) old.remove();
+  const box = document.createElement('div');
+  box.id = 'createCompanyOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div class="card" style="max-width:420px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="section-title" style="margin:0;">🏢 Kreye Nouvo Antrepriz</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('createCompanyOverlay').remove()">Fèmen</button>
+      </div>
+      <label>Non antrepriz la</label>
+      <input id="newCompanyName" placeholder="Ex: Antrepriz XYZ">
+      <label>Pousantaj komisyon platfòm (%)</label>
+      <input id="newCompanyCommission" type="number" value="15" min="0" max="100" oninput="updateCompanyCondText()">
+      <label>Nimewo telefòn pwopriyetè (opsyonèl)</label>
+      <input id="newCompanyOwnerPhone" placeholder="Ex: 38112233">
+      <div class="benef-box">
+        <b>Kondisyon Antrepriz:</b>
+        <ul style="margin:8px 0 0 18px;font-size:13px;color:var(--tex-mou);line-height:1.6;">
+          <li><span id="companyTrialText">20</span> jou esè gratis, epi apre sa antrepriz la aktif san frè mansyèl</li>
+          <li>Platfòm nan kenbe <span id="companyCommText">20</span>% sou chak vant kou antrepriz la fè — rès la se sa antrepriz la dwe resevwa</li>
+          <li>Si pwopriyetè a gen yon kont sou app la ak nimewo telefòn ki lye, l ap resevwa notifikasyon nan pwofil li lè peman komisyon make fèt</li>
+        </ul>
+        <div id="companyDepositNumsBox" style="margin-top:10px;"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="createCompany()">Kreye antrepriz</button>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+  updateCompanyCondText();
+}
+window.openCreateCompanyModal = openCreateCompanyModal;
+
 async function createCompany(){
   const nameEl = document.getElementById('newCompanyName');
   const name = nameEl.value.trim();
@@ -3446,6 +3472,8 @@ async function createCompany(){
   if(commEl) commEl.value = '15';
   if(phoneEl) phoneEl.value = '';
   toast('Antrepriz kreye');
+  const overlay = document.getElementById('createCompanyOverlay');
+  if(overlay) overlay.remove();
 }
 window.createCompany = createCompany;
 
