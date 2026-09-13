@@ -1931,7 +1931,7 @@ async function openCourse(id){
                      <div class="hint" style="margin:6px 0;">Ou rive nan limit ${STEP_VIEW_LIMIT} gad pou etap sa a. Kontakte pwofesè/antrepriz la pou l otorize w gade l ankò.</div>
                    </div>`
                 : `<div id="onceOnlyBox_${id}_${i}">
-                     ${v.onceOnly ? `<div class="hint" style="margin:8px 0 2px;">🔁 Videyo sa a limite a ${STEP_VIEW_LIMIT} gad${isAdmin ? ' (elèv yo)' : ` — gade l byen (${myStepWatchCount(id, i)}/${STEP_VIEW_LIMIT})`}</div>` : ''}
+                     ${v.onceOnly ? `<div class="hint" style="margin:8px 0 2px;">🔁 Videyo sa a limite a ${STEP_VIEW_LIMIT} gad — gade l byen (${myStepWatchCount(id, i)}/${STEP_VIEW_LIMIT})</div>` : ''}
                      ${stepVideoHtml(v, i, id)}
                    </div>`
           ) : ''}
