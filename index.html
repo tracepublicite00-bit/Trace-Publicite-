@@ -1917,7 +1917,10 @@ async function openCourse(id){
                      <div class="hint" style="margin:6px 0;">Ou gentan gade etap sa a ${STEP_VIEW_LIMIT} fwa</div>
                      <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;" onclick="revealStepVideo('${id}', ${i})">Gade ankò kanmenm</button>
                    </div>`
-                : `<div id="onceOnlyBox_${id}_${i}">${stepVideoHtml(v, i, id)}</div>`
+                : `<div id="onceOnlyBox_${id}_${i}">
+                     <div class="hint" style="margin:8px 0 2px;">🔁 Videyo sa a limite a ${STEP_VIEW_LIMIT} gad — gade l byen (${myStepWatchCount(id, i)}/${STEP_VIEW_LIMIT})</div>
+                     ${stepVideoHtml(v, i, id)}
+                   </div>`
           ) : ''}
         ${v.imageUrl ? `<img src="${v.imageUrl}" style="width:100%;border-radius:10px;margin-top:8px;">` : ''}
         ${(v.imageUrls && v.imageUrls.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${v.imageUrls.map(u=>`<img src="${u}" style="width:100%;max-width:100%;border-radius:10px;">`).join('')}</div>` : ''}
