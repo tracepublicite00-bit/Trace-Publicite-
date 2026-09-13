@@ -3687,6 +3687,8 @@ function stepThumbHtml(v){
 function openStepListModal(courseId){
   const k = courses.find(c=>c.id===courseId);
   if(!k) return;
+  const old = document.getElementById('stepModalOverlay');
+  if(old) old.remove();
   const steps = k.videos||[];
   const box = document.createElement('div');
   box.id = 'stepModalOverlay';
@@ -3735,6 +3737,7 @@ async function toggleStepDownload(courseId, index){
   await updateRow('courses', courseId, { videos });
   k.videos = videos;
   renderStepList();
+  if(document.getElementById('stepModalOverlay')) openStepListModal(courseId);
   toast(videos[index].allowDownload ? 'Telechajman pèmèt' : 'Telechajman bloke');
 }
 window.toggleStepDownload = toggleStepDownload;
@@ -3747,6 +3750,7 @@ async function toggleStepOnceOnly(courseId, index){
   await updateRow('courses', courseId, { videos });
   k.videos = videos;
   renderStepList();
+  if(document.getElementById('stepModalOverlay')) openStepListModal(courseId);
   toast(videos[index].onceOnly ? `Etap sa a limite a ${STEP_VIEW_LIMIT} gad pou chak elèv` : 'Etap sa a kounye a gade lib');
 }
 window.toggleStepOnceOnly = toggleStepOnceOnly;
