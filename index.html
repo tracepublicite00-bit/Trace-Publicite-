@@ -1576,11 +1576,7 @@ function openCompany(id){
   state.currentCompany = id;
   const c = companies.find(x=>x.id===id);
   document.getElementById('companyPageName').textContent = c.name;
-  const myAccess = currentUser && (c.approvedUsers||[]).includes(currentUser.id);
-  document.getElementById('companyAccessNotice').innerHTML = myAccess
-    ? `<span class="status-pill ok">Ou gen aksè</span> <span class="hint">Otorizasyon antrepriz la aksepte</span>`
-    : `<span class="status-pill blocked">San otorizasyon</span> <span class="hint">Ou bezwen otorizasyon antrepriz la ak pwopriyetè platfòm nan pou wè kou sa yo</span>
-       <button class="btn btn-outline" style="margin-top:10px;" onclick="requestCompanyAccess('${id}')">Mande Aksè</button>`;
+  document.getElementById('companyAccessNotice').innerHTML = '';
   const list = courses.filter(k=>k.companyId===id && isPublicCourse(k));
   document.getElementById('companyCourses').innerHTML = list.length
     ? list.map(k=>courseCardHtml(k)).join('')
