@@ -643,21 +643,9 @@ window.addEventListener('unhandledrejection', function(e) {
       <div id="adminConfirmedDeposits"></div>
     </div>
 
-    <div class="card" style="background:linear-gradient(135deg,#E7F6EA 0%,#FDE7F3 100%);border:2px solid #2F9E44;border-radius:16px;">
+    <div class="card" style="background:linear-gradient(135deg,#E7F6EA 0%,#FDE7F3 100%);border:2px solid #2F9E44;border-radius:16px;cursor:pointer;" onclick="openGrantAccessModal()">
       <div class="section-title" style="color:#1F7A34;">🔓 Bay Aksè Kou Manyèlman</div>
-      <p class="hint">Sèvi ak sa a si yon elèv peye deyò app la (pa egzanp entènèt pa t bon) oswa si li deja gen yon depo konfime men li pa gen aksè a kou a.</p>
-      <label>Itilizatè</label>
-      <select id="grantAccessUser"></select>
-      <label>Kou</label>
-      <select id="grantAccessCourse"></select>
-      <label>Montan li te peye (kite vid si li deja gen yon depo konfime ki egziste)</label>
-      <input id="grantAccessMontan" type="number" placeholder="Ex: 1000" min="0">
-      <label>Deviz</label>
-      <select id="grantAccessDevise">
-        <option value="htg">Goud (G)</option>
-        <option value="usd">USD</option>
-      </select>
-      <button class="btn" style="margin-top:10px;background:linear-gradient(90deg,#2F9E44,#E85D9E);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="grantCourseAccess()">Bay Aksè</button>
+      <p class="hint" style="margin:0;">Peze la a pou bay yon elèv aksè yon kou manyèlman (pa egzanp si li peye deyò app la).</p>
     </div>
 
     <div class="card">
@@ -3158,6 +3146,43 @@ window.createCourse = createCourse;
 window.submitTeacherKyc = submitTeacherKyc;
 window.uploadProfilePhoto = uploadProfilePhoto;
 
+function openGrantAccessModal(){
+  const old = document.getElementById('grantAccessOverlay');
+  if(old) old.remove();
+  const box = document.createElement('div');
+  box.id = 'grantAccessOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,#E7F6EA 0%,#FDE7F3 100%);border:2px solid #2F9E44;border-radius:16px;max-width:420px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="section-title" style="color:#1F7A34;margin:0;">🔓 Bay Aksè Kou Manyèlman</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('grantAccessOverlay').remove()">Fèmen</button>
+      </div>
+      <p class="hint">Sèvi ak sa a si yon elèv peye deyò app la (pa egzanp entènèt pa t bon) oswa si li deja gen yon depo konfime men li pa gen aksè a kou a.</p>
+      <label>Itilizatè</label>
+      <select id="grantAccessUser"></select>
+      <label>Kou</label>
+      <select id="grantAccessCourse"></select>
+      <label>Montan li te peye (kite vid si li deja gen yon depo konfime ki egziste)</label>
+      <input id="grantAccessMontan" type="number" placeholder="Ex: 1000" min="0">
+      <label>Deviz</label>
+      <select id="grantAccessDevise">
+        <option value="htg">Goud (G)</option>
+        <option value="usd">USD</option>
+      </select>
+      <button class="btn" style="margin-top:10px;background:linear-gradient(90deg,#2F9E44,#E85D9E);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="grantCourseAccess()">Bay Aksè</button>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+
+  document.getElementById('grantAccessUser').innerHTML = dedupeByPhone(allUsers).map(u=>`<option value="${u.id}">${u.non} (${u.tel})</option>`).join('');
+  document.getElementById('grantAccessCourse').innerHTML = courses.map(k=>{
+    const comp = companies.find(c=>c.id===k.companyId);
+    return `<option value="${k.id}">${k.title}${comp?' ('+comp.name+')':''}</option>`;
+  }).join('');
+}
+window.openGrantAccessModal = openGrantAccessModal;
+
 async function grantCourseAccess(){
   const userId = document.getElementById('grantAccessUser').value;
   const courseId = document.getElementById('grantAccessCourse').value;
@@ -3199,6 +3224,8 @@ async function grantCourseAccess(){
   if(montanStr) await refreshDeposits();
   if(montanEl) montanEl.value = '';
   toast('Aksè bay avèk siksè ✅' + (montanStr ? ' — vant anrejistre nan total' : ''));
+  const overlay = document.getElementById('grantAccessOverlay');
+  if(overlay) overlay.remove();
 }
 window.grantCourseAccess = grantCourseAccess;
 
