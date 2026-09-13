@@ -1856,6 +1856,16 @@ async function toggleStepUserBlock(courseId, index, userId){
 }
 window.toggleStepUserBlock = toggleStepUserBlock;
 
+async function authorizeStepRewatch(courseId, index, userId){
+  let sv = findStepView(courseId, index, userId);
+  if(!sv) return;
+  sv.watchCount = 0;
+  await updateRow('step_views', sv.id, { watchCount: 0 });
+  toast('Elèv otorize gade etap sa a ankò');
+  openStepViewersModal(courseId, index);
+}
+window.authorizeStepRewatch = authorizeStepRewatch;
+
 function openStepViewersModal(courseId, index){
   const k = courses.find(c=>c.id===courseId);
   const v = k && (k.videos||[])[index];
@@ -1873,13 +1883,17 @@ function openStepViewersModal(courseId, index){
         <div style="font-weight:700;font-size:14px;">Elèv — ${v.title}</div>
         <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('stepViewersOverlay').remove()">Fèmen</button>
       </div>
-      <div class="hint" style="margin-bottom:10px;">Limit otomatik: ${STEP_VIEW_LIMIT} gad. Ou ka bloke yon elèv espesifik nenpòt kilè.</div>
+      <div class="hint" style="margin-bottom:10px;">Limit otomatik: ${STEP_VIEW_LIMIT} gad. Elèv la bloke otomatikman lè li rive nan limit la — sèlman ou ka otorize l gade ankò, oswa bloke l pi bonè.</div>
       ${viewers.length ? viewers.map(sv=>{
         const u = allUsers.find(x=>x.id===sv.userId);
         const name = u ? (u.non||u.email||sv.userId) : sv.userId;
+        const atLimit = (sv.watchCount||0) >= STEP_VIEW_LIMIT;
         return `<div class="kv" style="align-items:center;">
-          <span class="k">${name} — ${sv.watchCount||0} gad</span>
-          <button class="btn ${sv.blocked?'btn-danger':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepUserBlock('${courseId}', ${index}, '${sv.userId}')">${sv.blocked?'Debloke':'Bloke'}</button>
+          <span class="k">${name} — ${sv.watchCount||0} gad ${atLimit?'<span class="badge" style="background:var(--or);color:#fff;">Rive nan limit</span>':''}</span>
+          <span style="display:flex;gap:6px;">
+            ${atLimit ? `<button class="btn btn-primary" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="authorizeStepRewatch('${courseId}', ${index}, '${sv.userId}')">Otorize</button>` : ''}
+            <button class="btn ${sv.blocked?'btn-danger':'btn-outline'}" style="width:auto;padding:4px 8px;font-size:10.5px;" onclick="toggleStepUserBlock('${courseId}', ${index}, '${sv.userId}')">${sv.blocked?'Debloke':'Bloke'}</button>
+          </span>
         </div>`;
       }).join('') : `<div class="empty">Okenn elèv poko gade etap sa a.</div>`}
     </div>`;
@@ -1913,9 +1927,8 @@ async function openCourse(id){
                  </div>`
               : (v.onceOnly && !isAdmin && myStepWatchCount(id, i) >= STEP_VIEW_LIMIT)
                 ? `<div id="onceOnlyBox_${id}_${i}" style="margin-top:8px;padding:14px;border:1px dashed var(--border);border-radius:10px;text-align:center;">
-                     <div style="font-size:20px;">✅</div>
-                     <div class="hint" style="margin:6px 0;">Ou gentan gade etap sa a ${STEP_VIEW_LIMIT} fwa</div>
-                     <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;" onclick="revealStepVideo('${id}', ${i})">Gade ankò kanmenm</button>
+                     <div style="font-size:20px;">🔒</div>
+                     <div class="hint" style="margin:6px 0;">Ou rive nan limit ${STEP_VIEW_LIMIT} gad pou etap sa a. Kontakte pwofesè/antrepriz la pou l otorize w gade l ankò.</div>
                    </div>`
                 : `<div id="onceOnlyBox_${id}_${i}">
                      <div class="hint" style="margin:8px 0 2px;">🔁 Videyo sa a limite a ${STEP_VIEW_LIMIT} gad — gade l byen (${myStepWatchCount(id, i)}/${STEP_VIEW_LIMIT})</div>
