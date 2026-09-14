@@ -3178,13 +3178,17 @@ async function grantCourseAccess(){
   const userId = document.getElementById('grantAccessUser').value;
   const courseId = document.getElementById('grantAccessCourse').value;
   if(!userId || !courseId){ toast('Chwazi yon itilizatè ak yon kou'); return; }
-  const already = purchases.some(p=>p.userId===userId && p.courseId===courseId);
-  if(already){ toast('Itilizatè sa a gen aksè a kou sa a deja'); return; }
 
   const montanEl = document.getElementById('grantAccessMontan');
   const deviseEl = document.getElementById('grantAccessDevise');
   const montanStr = montanEl ? montanEl.value.trim() : '';
   const devise = deviseEl ? deviseEl.value : 'htg';
+  const alreadyHasAccess = purchases.some(p=>p.userId===userId && p.courseId===courseId);
+
+  if(alreadyHasAccess && !montanStr){
+    toast('Itilizatè sa a gen aksè a kou sa a deja');
+    return;
+  }
 
   if(montanStr){
     const montan = Number(montanStr);
@@ -3203,18 +3207,20 @@ async function grantCourseAccess(){
     });
   }
 
-  await insertRow('purchases', { userId, courseId });
-  await incrementField('users', userId, 'achte', 1);
-  await insertRow('notifications', {
-    userId,
-    message: `✅ Ou resevwa aksè a yon nouvo kou! Al gade l nan seksyon Kou.`,
-    isRead: false
-  });
-  await refreshPurchases();
-  await refreshUsers();
+  if(!alreadyHasAccess){
+    await insertRow('purchases', { userId, courseId });
+    await incrementField('users', userId, 'achte', 1);
+    await insertRow('notifications', {
+      userId,
+      message: `✅ Ou resevwa aksè a yon nouvo kou! Al gade l nan seksyon Kou.`,
+      isRead: false
+    });
+    await refreshPurchases();
+    await refreshUsers();
+  }
   if(montanStr) await refreshDeposits();
   if(montanEl) montanEl.value = '';
-  toast('Aksè bay avèk siksè ✅' + (montanStr ? ' — vant anrejistre nan total' : ''));
+  toast(alreadyHasAccess ? 'Vant anrejistre ✅ (li te gen aksè deja)' : 'Aksè bay avèk siksè ✅' + (montanStr ? ' — vant anrejistre nan total' : ''));
   const overlay = document.getElementById('grantAccessOverlay');
   if(overlay) overlay.remove();
 }
