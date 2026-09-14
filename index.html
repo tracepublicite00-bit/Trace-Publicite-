@@ -705,42 +705,47 @@ window.addEventListener('unhandledrejection', function(e) {
       <div id="adminCourses"></div>
     </div>
 
-    <div class="card">
-      <div class="section-title">Ajoute videyo/imaj/vwa nan yon kou</div>
-      <label>Chwazi kou a</label>
-      <select id="stepCourseSelect"></select>
-      <label>Tit etap la</label>
-      <input id="stepTitle" placeholder="Ex: Etap 1 — Entwodiksyon">
-      <label>Videyo (chwazi nan galri telefòn ou)</label>
-      <input id="stepVideoFile" type="file" accept="video/*" onchange="previewStepFile('stepVideoFile','stepVideoPreview','video')">
-      <div id="stepVideoPreview"></div>
-      <label>OSWA lyen YouTube</label>
-      <input id="stepYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
-      <label>Lyen aplikasyon pou telechaje (opsyonèl)</label>
-      <input id="stepAppLink" placeholder="https://...">
-      <p class="hint">Lyen sa a ap parèt kòm yon bouton anba etap la pou elèv yo ka al telechaje yon aplikasyon.</p>
-      <label>Imaj (opsyonèl — ou ka chwazi plizyè)</label>
-      <input id="stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('stepImageFile','stepImagePreview','image')">
-      <div id="stepImagePreview"></div>
-      <div class="kv" style="margin-top:10px;">
-        <span class="k">Pèmèt elèv yo telechaje videyo sa a</span>
-        <div class="toggle" id="toggleAllowDownload" onclick="this.classList.toggle('on')"><div class="dot"></div></div>
+    <div class="card" style="background:linear-gradient(135deg,#E0F7F5 0%,#E8E7FB 100%);border:2px solid #0D9488;border-radius:16px;">
+      <div class="section-title" style="color:#0D9488;cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="toggleAddStepForm()">
+        <span>🎬 Ajoute videyo/imaj/vwa nan yon kou</span>
+        <span id="addStepFormArrow" style="font-size:14px;">▾</span>
       </div>
-      <label>Nòt vwa (opsyonèl)</label>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button type="button" class="btn btn-primary" id="recordBtn" style="width:auto;padding:8px 16px;" onclick="toggleRecording()">🎙️ Anrejistre</button>
-        <button type="button" class="btn btn-danger" style="width:auto;padding:8px 16px;" onclick="deleteRecording()">🗑️ Efase</button>
-        <span class="hint">oswa</span>
-        <input id="stepAudioFile" type="file" accept="audio/*" style="flex:1;min-width:180px;" onchange="previewStepFile('stepAudioFile','stepAudioPreview','audio')">
-      </div>
-      <div id="stepAudioPreview"></div>
-      <button class="btn btn-primary" style="margin-top:14px;" onclick="addCourseStep()">Ajoute etap la</button>
-      <div id="stepUploadProgressWrap" style="display:none;margin-top:10px;">
-        <div style="width:100%;height:10px;background:var(--gri);border-radius:6px;overflow:hidden;">
-          <div id="stepUploadProgressBar" style="height:100%;width:0%;background:var(--vet);transition:width .15s;"></div>
+      <div id="addStepFormBody" style="display:none;">
+        <label>Chwazi kou a</label>
+        <select id="stepCourseSelect"></select>
+        <label>Tit etap la</label>
+        <input id="stepTitle" placeholder="Ex: Etap 1 — Entwodiksyon">
+        <label>Videyo (chwazi nan galri telefòn ou)</label>
+        <input id="stepVideoFile" type="file" accept="video/*" onchange="previewStepFile('stepVideoFile','stepVideoPreview','video')">
+        <div id="stepVideoPreview"></div>
+        <label>OSWA lyen YouTube</label>
+        <input id="stepYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
+        <label>Lyen aplikasyon pou telechaje (opsyonèl)</label>
+        <input id="stepAppLink" placeholder="https://...">
+        <p class="hint">Lyen sa a ap parèt kòm yon bouton anba etap la pou elèv yo ka al telechaje yon aplikasyon.</p>
+        <label>Imaj (opsyonèl — ou ka chwazi plizyè)</label>
+        <input id="stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('stepImageFile','stepImagePreview','image')">
+        <div id="stepImagePreview"></div>
+        <div class="kv" style="margin-top:10px;">
+          <span class="k">Pèmèt elèv yo telechaje videyo sa a</span>
+          <div class="toggle" id="toggleAllowDownload" onclick="this.classList.toggle('on')"><div class="dot"></div></div>
         </div>
+        <label>Nòt vwa (opsyonèl)</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="recordBtn" style="width:auto;padding:8px 16px;" onclick="toggleRecording()">🎙️ Anrejistre</button>
+          <button type="button" class="btn btn-danger" style="width:auto;padding:8px 16px;" onclick="deleteRecording()">🗑️ Efase</button>
+          <span class="hint">oswa</span>
+          <input id="stepAudioFile" type="file" accept="audio/*" style="flex:1;min-width:180px;" onchange="previewStepFile('stepAudioFile','stepAudioPreview','audio')">
+        </div>
+        <div id="stepAudioPreview"></div>
+        <button class="btn btn-primary" style="margin-top:14px;" onclick="addCourseStep()">Ajoute etap la</button>
+        <div id="stepUploadProgressWrap" style="display:none;margin-top:10px;">
+          <div style="width:100%;height:10px;background:var(--gri);border-radius:6px;overflow:hidden;">
+            <div id="stepUploadProgressBar" style="height:100%;width:0%;background:var(--vet);transition:width .15s;"></div>
+          </div>
+        </div>
+        <p id="stepUploadStatus" class="hint" style="margin-top:8px;"></p>
       </div>
-      <p id="stepUploadStatus" class="hint" style="margin-top:8px;"></p>
       <div id="stepList" style="margin-top:14px;"></div>
     </div>
 
@@ -3891,6 +3896,16 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let recordedBlob = null;
 let recordedBlobPrefix = '';
+function toggleAddStepForm(){
+  const body = document.getElementById('addStepFormBody');
+  const arrow = document.getElementById('addStepFormArrow');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(arrow) arrow.textContent = open ? '▾' : '▴';
+}
+window.toggleAddStepForm = toggleAddStepForm;
+
 async function toggleRecording(prefix=''){
   const btn = document.getElementById(prefix+'recordBtn');
   if(mediaRecorder && mediaRecorder.state === 'recording'){
