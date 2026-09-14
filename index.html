@@ -1314,6 +1314,7 @@ const PAYMENT_METHOD_FIELDS = {
 const PAYMENT_METHOD_LABELS = { moncash:'MonCash', natcash:'NatCash', buh:'BUH', meru:'Kont Meru USD' };
 const PAYMENT_METHOD_ICONS = { moncash:'💳', natcash:'💳', buh:'🏦', meru:'💵' };
 const PAYMENT_ROW_BORDER_COLORS = ['#10B981', '#F97316', '#10B981', '#F97316'];
+const PAYMENT_ROW_BG_COLORS = ['#EAFBF4', '#FFF3E8', '#EAFBF4', '#FFF3E8'];
 const PAYMENT_FIELD_LABELS = { nom:'Non benefisyè', num:'Nimewo', accountNum:'Nimewo kont', montanRef:'Montan referans', email:'Imèl', tag:'Tag', numero:'Nimewo', companyNom:'Non benefisyè (pou Antrepriz yo)', companyNum:'Nimewo pou Antrepriz yo (opsyonèl)', companyNote:'Nòt pèsonèl (parèt bay antrepriz yo)' };
 
 function renderPaymentInfoForm(){
@@ -1323,7 +1324,7 @@ function renderPaymentInfoForm(){
     const info = benefInfo[method];
     const summary = info.num || info.accountNum || info.numero || '';
     return `
-    <div class="course-card" style="cursor:pointer;border-left:5px solid ${PAYMENT_ROW_BORDER_COLORS[idx % PAYMENT_ROW_BORDER_COLORS.length]};" onclick="openPaymentMethodModal('${method}')">
+    <div class="course-card" style="cursor:pointer;border-left:5px solid ${PAYMENT_ROW_BORDER_COLORS[idx % PAYMENT_ROW_BORDER_COLORS.length]};background:${PAYMENT_ROW_BG_COLORS[idx % PAYMENT_ROW_BG_COLORS.length]};" onclick="openPaymentMethodModal('${method}')">
       <div style="display:flex;align-items:center;gap:12px;padding:12px;">
         <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${PAYMENT_METHOD_ICONS[method]}</div>
         <div style="flex:1;min-width:0;">
