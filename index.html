@@ -672,8 +672,8 @@ window.addEventListener('unhandledrejection', function(e) {
       <div id="adminCompanyFinance"></div>
     </div>
 
-    <div class="card">
-      <div class="section-title">🌟 Fòmasyon Rekòmande (Flyè Akèy)</div>
+    <div class="card" style="background:linear-gradient(135deg,#FFE4EC 0%,#EDE4FF 100%);border:2px solid #C026D3;border-radius:16px;">
+      <div class="section-title" style="color:#A21CAF;">🌟 Fòmasyon Rekòmande (Flyè Akèy)</div>
       <p class="hint">Ajoute foto oswa videyo pwomosyonèl (pou kou oswa antrepriz) ki ap parèt nan yon seksyon espesyal sou Akèy la, san yo pa touche okenn kou ki egziste deja.</p>
       <label>Tit (opsyonèl)</label>
       <input id="promoPostTitle" placeholder="Ex: Nouvo kou Marketing disponib!">
@@ -685,7 +685,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <img id="promoPostPreviewImg" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:#000;display:none;">
         <video id="promoPostPreviewVideo" controls style="width:100%;max-height:220px;border-radius:10px;background:#000;display:none;"></video>
       </div>
-      <button class="btn btn-primary" style="margin-top:10px;" onclick="submitPromoPost()">Ajoute Flyè</button>
+      <button class="btn" style="margin-top:10px;background:linear-gradient(90deg,#C026D3,#F472B6);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="submitPromoPost()">Ajoute Flyè</button>
       <div id="adminPromoPosts" style="margin-top:14px;"></div>
     </div>
 
@@ -789,14 +789,15 @@ window.addEventListener('unhandledrejection', function(e) {
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="background:linear-gradient(135deg,#FFF0F5 0%,#FFE0EC 100%);border:2px solid #DB2777;border-radius:16px;">
+      <div class="section-title" style="color:#BE185D;">💲 Chanje Pri Platfòm</div>
       <label>Chanje pri fòmasyon (G)</label>
       <input id="admin_price" type="number" value="1000">
       <label>Chanje kantite jou esè gratis antrepriz</label>
       <input id="admin_trial" type="number" value="20">
       <label>Chanje pri abònman fòmatè (G/mwa)</label>
       <input id="admin_teacherFee" type="number" value="3000">
-      <button class="btn btn-primary" style="margin-top:14px;" onclick="saveAdminSettings()">Anrejistre chanjman yo</button>
+      <button class="btn" style="margin-top:14px;background:linear-gradient(90deg,#DB2777,#F472B6);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="saveAdminSettings()">Anrejistre chanjman yo</button>
     </div>
   </section>
 
