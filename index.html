@@ -1313,6 +1313,12 @@ const PAYMENT_METHOD_FIELDS = {
 };
 const PAYMENT_METHOD_LABELS = { moncash:'MonCash', natcash:'NatCash', buh:'BUH', meru:'Kont Meru USD' };
 const PAYMENT_METHOD_ICONS = { moncash:'💳', natcash:'💳', buh:'🏦', meru:'💵' };
+const PAYMENT_METHOD_COLORS = {
+  moncash: 'linear-gradient(135deg,#F03A47,#B8202B)',
+  natcash: 'linear-gradient(135deg,#F7931E,#C9690A)',
+  buh: 'linear-gradient(135deg,#1B4F9C,#0D2C5C)',
+  meru: 'linear-gradient(135deg,#2B2B2B,#000000)'
+};
 const PAYMENT_FIELD_LABELS = { nom:'Non benefisyè', num:'Nimewo', accountNum:'Nimewo kont', montanRef:'Montan referans', email:'Imèl', tag:'Tag', numero:'Nimewo', companyNom:'Non benefisyè (pou Antrepriz yo)', companyNum:'Nimewo pou Antrepriz yo (opsyonèl)', companyNote:'Nòt pèsonèl (parèt bay antrepriz yo)' };
 
 function renderPaymentInfoForm(){
@@ -1324,7 +1330,7 @@ function renderPaymentInfoForm(){
     return `
     <div class="course-card" style="cursor:pointer;" onclick="openPaymentMethodModal('${method}')">
       <div style="display:flex;align-items:center;gap:12px;padding:12px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--or),var(--or-fonse));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${PAYMENT_METHOD_ICONS[method]}</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:${PAYMENT_METHOD_COLORS[method]};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${PAYMENT_METHOD_ICONS[method]}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:14px;">${PAYMENT_METHOD_LABELS[method]}</div>
           <div style="color:var(--tex-mou);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${summary}</div>
