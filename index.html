@@ -273,6 +273,7 @@ window.addEventListener('unhandledrejection', function(e) {
 
   <section id="depoze" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Depoze Lajan</span></div>
+    <div id="depositExplainerBox"></div>
     <div class="card">
       <label>Tip Depo</label>
       <div class="method-choice">
@@ -789,6 +790,16 @@ window.addEventListener('unhandledrejection', function(e) {
       </div>
     </div>
 
+    <div class="card" style="background:linear-gradient(135deg,#EEF2FF 0%,#E0F2FE 100%);border:2px solid #4F46E5;border-radius:16px;">
+      <div class="section-title" style="color:#4338CA;">🎥 Videyo Eksplikasyon (paj Depoze)</div>
+      <p class="hint">Videyo sa a ap parèt anlè paj "Depoze Lajan" an, pou elèv yo ka gade l anvan yo fè yon depo. Yo dwe klike ▶️ pou l jwe.</p>
+      <div id="depositVideoAdminPreview"></div>
+      <label>Chwazi videyo a</label>
+      <input id="depositVideoFile" type="file" accept="video/*">
+      <button class="btn" style="margin-top:10px;background:linear-gradient(90deg,#4F46E5,#0EA5E9);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="uploadDepositExplainerVideo()">Telechaje videyo a</button>
+      <p id="depositVideoUploadStatus" class="hint" style="margin-top:8px;"></p>
+    </div>
+
     <div class="card" style="background:linear-gradient(135deg,#FFF0F5 0%,#FFE0EC 100%);border:2px solid #DB2777;border-radius:16px;">
       <div class="section-title" style="color:#BE185D;">💲 Chanje Pri Platfòm</div>
       <label>Chanje pri fòmasyon (G)</label>
@@ -991,7 +1002,8 @@ async function refreshSettings(){
   }
   updateTeacherFeeText();
   updateCompanyCondText();
-  if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderPaymentInfoForm(); }
+  renderDepositExplainerVideo();
+  if(document.getElementById('admin').classList.contains('active')){ renderAdmin(); renderPaymentInfoForm(); renderDepositVideoAdminPreview(); }
   if(document.getElementById('depoze').classList.contains('active')) renderDepositBox();
 }
 async function refreshAccessRequests(){
@@ -1982,6 +1994,57 @@ function selectMethod(v){
   });
   renderDepositBox();
 }
+function renderDepositVideoAdminPreview(){
+  const box = document.getElementById('depositVideoAdminPreview');
+  if(!box) return;
+  box.innerHTML = settings.depositVideoUrl
+    ? `<video src="${settings.depositVideoUrl}" controls style="width:100%;border-radius:10px;margin-bottom:10px;"></video>
+       <button class="btn btn-danger" style="margin-bottom:10px;" onclick="deleteDepositExplainerVideo()">🗑️ Efase videyo aktyèl la</button>`
+    : `<p class="hint">Pa gen videyo ki telechaje kounye a.</p>`;
+}
+window.renderDepositVideoAdminPreview = renderDepositVideoAdminPreview;
+
+async function uploadDepositExplainerVideo(){
+  const fileEl = document.getElementById('depositVideoFile');
+  const statusEl = document.getElementById('depositVideoUploadStatus');
+  const file = fileEl?.files?.[0];
+  if(!file){ toast('Chwazi yon fichye videyo dabò'); return; }
+  if(statusEl) statusEl.textContent = 'Telechajman ap fèt... 0%';
+  const { url, error } = await uploadFileWithProgress(file, 'deposit-explainer', (pct)=>{
+    if(statusEl) statusEl.textContent = `Telechajman ap fèt... ${pct}%`;
+  });
+  if(error){ if(statusEl) statusEl.textContent = ''; toast(error); return; }
+  await updateRow('settings', 'main', { depositVideoUrl: url });
+  settings.depositVideoUrl = url;
+  if(statusEl) statusEl.textContent = '';
+  if(fileEl) fileEl.value = '';
+  renderDepositVideoAdminPreview();
+  renderDepositExplainerVideo();
+  toast('Videyo telechaje avèk siksè ✅');
+}
+window.uploadDepositExplainerVideo = uploadDepositExplainerVideo;
+
+async function deleteDepositExplainerVideo(){
+  await updateRow('settings', 'main', { depositVideoUrl: null });
+  settings.depositVideoUrl = null;
+  renderDepositVideoAdminPreview();
+  renderDepositExplainerVideo();
+  toast('Videyo efase');
+}
+window.deleteDepositExplainerVideo = deleteDepositExplainerVideo;
+
+function renderDepositExplainerVideo(){
+  const box = document.getElementById('depositExplainerBox');
+  if(!box) return;
+  if(!settings.depositVideoUrl){ box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,#EEF2FF 0%,#E0F2FE 100%);border:2px solid #4F46E5;border-radius:16px;">
+      <div class="section-title" style="color:#4338CA;">🎥 Gade sa anvan ou depoze</div>
+      <video src="${settings.depositVideoUrl}" controls style="width:100%;border-radius:10px;margin-top:6px;"></video>
+    </div>`;
+}
+window.renderDepositExplainerVideo = renderDepositExplainerVideo;
+
 function renderDepositBox(){
   const info = benefInfo[state.method];
   document.getElementById('methodLabel').textContent = info.label;
