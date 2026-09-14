@@ -796,6 +796,8 @@ window.addEventListener('unhandledrejection', function(e) {
       <div id="depositVideoAdminPreview"></div>
       <label>Chwazi videyo a</label>
       <input id="depositVideoFile" type="file" accept="video/*">
+      <label style="margin-top:8px;">Nòt anba videyo a (opsyonèl)</label>
+      <textarea id="depositVideoNote" rows="2" placeholder="Ex: Swiv tout etap yo byen anvan w fè depo w la"></textarea>
       <button class="btn" style="margin-top:10px;background:linear-gradient(90deg,#4F46E5,#0EA5E9);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="uploadDepositExplainerVideo()">Telechaje videyo a</button>
       <p id="depositVideoUploadStatus" class="hint" style="margin-top:8px;"></p>
     </div>
@@ -1996,6 +1998,8 @@ function selectMethod(v){
 }
 function renderDepositVideoAdminPreview(){
   const box = document.getElementById('depositVideoAdminPreview');
+  const noteEl = document.getElementById('depositVideoNote');
+  if(noteEl) noteEl.value = settings.depositVideoNote || '';
   if(!box) return;
   box.innerHTML = settings.depositVideoUrl
     ? `<video src="${settings.depositVideoUrl}" controls style="width:100%;border-radius:10px;margin-bottom:10px;"></video>
@@ -2006,16 +2010,29 @@ window.renderDepositVideoAdminPreview = renderDepositVideoAdminPreview;
 
 async function uploadDepositExplainerVideo(){
   const fileEl = document.getElementById('depositVideoFile');
+  const noteEl = document.getElementById('depositVideoNote');
   const statusEl = document.getElementById('depositVideoUploadStatus');
+  const note = noteEl ? noteEl.value.trim() : '';
   const file = fileEl?.files?.[0];
-  if(!file){ toast('Chwazi yon fichye videyo dabò'); return; }
+  if(!file){
+    if(settings.depositVideoUrl){
+      await updateRow('settings', 'main', { depositVideoNote: note });
+      settings.depositVideoNote = note;
+      renderDepositExplainerVideo();
+      toast('Nòt anrejistre ✅');
+    } else {
+      toast('Chwazi yon fichye videyo dabò');
+    }
+    return;
+  }
   if(statusEl) statusEl.textContent = 'Telechajman ap fèt... 0%';
   const { url, error } = await uploadFileWithProgress(file, 'deposit-explainer', (pct)=>{
     if(statusEl) statusEl.textContent = `Telechajman ap fèt... ${pct}%`;
   });
   if(error){ if(statusEl) statusEl.textContent = ''; toast(error); return; }
-  await updateRow('settings', 'main', { depositVideoUrl: url });
+  await updateRow('settings', 'main', { depositVideoUrl: url, depositVideoNote: note });
   settings.depositVideoUrl = url;
+  settings.depositVideoNote = note;
   if(statusEl) statusEl.textContent = '';
   if(fileEl) fileEl.value = '';
   renderDepositVideoAdminPreview();
@@ -2041,6 +2058,7 @@ function renderDepositExplainerVideo(){
     <div class="card" style="background:linear-gradient(135deg,#EEF2FF 0%,#E0F2FE 100%);border:2px solid #4F46E5;border-radius:16px;">
       <div class="section-title" style="color:#4338CA;">🎥 Gade sa anvan ou depoze</div>
       <video src="${settings.depositVideoUrl}" controls style="width:100%;border-radius:10px;margin-top:6px;"></video>
+      ${settings.depositVideoNote ? `<p class="hint" style="margin-top:8px;">${settings.depositVideoNote}</p>` : ''}
     </div>`;
 }
 window.renderDepositExplainerVideo = renderDepositExplainerVideo;
