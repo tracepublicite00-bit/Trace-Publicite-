@@ -880,6 +880,7 @@ async function updateRow(table, id, obj){
 async function deleteRow(table, id){
   const { error } = await db.from(table).delete().eq('id', id);
   if(error) console.error('Erè efase ('+table+'):', error);
+  return !error;
 }
 async function incrementField(table, id, field, delta=1){
   const { data } = await db.from(table).select(toSnakeKey(field)).eq('id', id).single();
@@ -3167,22 +3168,30 @@ function openVisitsList(){
 window.openVisitsList = openVisitsList;
 
 async function deleteVisit(id){
-  await deleteRow('visits', id);
+  const success = await deleteRow('visits', id);
   await refreshVisits();
   const listOverlay = document.getElementById('visitsListOverlay');
   if(listOverlay){ listOverlay.remove(); openVisitsList(); }
-  toast('Vizit efase');
+  toast(success ? 'Vizit efase' : 'Efase a echwe — verifye règ RLS sou "visits"');
 }
 window.deleteVisit = deleteVisit;
 
 async function deleteAllVisits(){
   const sur = confirm('Efase TOUT vizit yo? Aksyon sa a pa ka anile.');
   if(!sur) return;
-  for(const v of visits){ await deleteRow('visits', v.id); }
+  let ok = 0, fail = 0;
+  for(const v of visits){
+    const success = await deleteRow('visits', v.id);
+    if(success) ok++; else fail++;
+  }
   await refreshVisits();
   const listOverlay = document.getElementById('visitsListOverlay');
   if(listOverlay) listOverlay.remove();
-  toast('Tout vizit efase');
+  if(fail > 0){
+    toast(`${ok} efase, ${fail} pa t ka efase (verifye règ RLS sou "visits")`);
+  } else {
+    toast('Tout vizit efase');
+  }
 }
 window.deleteAllVisits = deleteAllVisits;
 
