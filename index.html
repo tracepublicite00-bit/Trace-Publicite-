@@ -13,6 +13,7 @@
 <meta property="og:image" content="https://i.postimg.cc/3Rf9Ccwv/logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 <style>
   :root{
     --bleu:#1B3A6B;
@@ -1221,13 +1222,61 @@ function hideUploadProgress(){
   if(bar) bar.style.width = '0%';
 }
 function uploadFileWithProgress(file, folder, onProgress){
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+  if(file.size > MAX_UPLOAD_MB * 1024 * 1024){
+    return Promise.resolve({ url:null, error:`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo) — maksimòm ${MAX_UPLOAD_MB} Mo. Konprese l anvan.` });
+  }
+  if(typeof tus === 'undefined'){
+    return uploadFileWithProgressXHR(file, path, onProgress);
+  }
   return new Promise((resolve)=>{
-    if(file.size > MAX_UPLOAD_MB * 1024 * 1024){
-      resolve({ url:null, error:`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo) — maksimòm ${MAX_UPLOAD_MB} Mo. Konprese l anvan.` });
-      return;
-    }
-    const ext = file.name.split('.').pop();
-    const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    let lastPct = -1;
+    let settled = false;
+    const upload = new tus.Upload(file, {
+      endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
+      retryDelays: [0, 1000, 3000, 5000, 8000, 15000],
+      headers: {
+        authorization: 'Bearer ' + SUPABASE_KEY,
+        apikey: SUPABASE_KEY,
+        'x-upsert': 'true'
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: {
+        bucketName: 'course-media',
+        objectName: path,
+        contentType: file.type || 'application/octet-stream',
+        cacheControl: '3600'
+      },
+      chunkSize: 6 * 1024 * 1024,
+      onError: function(error){
+        if(settled) return;
+        settled = true;
+        console.error('Erè telechajman (tus):', error);
+        resolve({ url:null, error:'Koneksyon an koupe pandan telechajman an — verifye entènèt ou epi eseye ankò' });
+      },
+      onProgress: function(bytesUploaded, bytesTotal){
+        const pct = Math.round((bytesUploaded / bytesTotal) * 100);
+        if(pct !== lastPct && onProgress){ lastPct = pct; onProgress(pct); }
+      },
+      onSuccess: function(){
+        if(settled) return;
+        settled = true;
+        const { data } = db.storage.from('course-media').getPublicUrl(path);
+        resolve({ url:data.publicUrl, error:null });
+      }
+    });
+    upload.findPreviousUploads().then(function(previousUploads){
+      if(previousUploads.length) upload.resumeFromPreviousUpload(previousUploads[0]);
+      upload.start();
+    }).catch(function(){
+      upload.start();
+    });
+  });
+}
+function uploadFileWithProgressXHR(file, path, onProgress){
+  return new Promise((resolve)=>{
     const url = `${SUPABASE_URL}/storage/v1/object/course-media/${path}`;
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
