@@ -795,10 +795,16 @@ window.addEventListener('unhandledrejection', function(e) {
       <p class="hint">Videyo sa a ap parèt anlè paj "Depoze Lajan" an, pou elèv yo ka gade l anvan yo fè yon depo. Yo dwe klike ▶️ pou l jwe.</p>
       <div id="depositVideoAdminPreview"></div>
       <label>Chwazi videyo a</label>
-      <input id="depositVideoFile" type="file" accept="video/*">
+      <input id="depositVideoFile" type="file" accept="video/*" onchange="previewStepFile('depositVideoFile','depositVideoLocalPreview','video')">
+      <div id="depositVideoLocalPreview"></div>
       <label style="margin-top:8px;">Nòt anba videyo a (opsyonèl)</label>
       <textarea id="depositVideoNote" rows="2" placeholder="Ex: Swiv tout etap yo byen anvan w fè depo w la"></textarea>
       <button class="btn" style="margin-top:10px;background:linear-gradient(90deg,#4F46E5,#0EA5E9);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="uploadDepositExplainerVideo()">Telechaje videyo a</button>
+      <div id="depositVideoProgressWrap" style="display:none;margin-top:10px;">
+        <div style="width:100%;height:10px;background:var(--gri);border-radius:6px;overflow:hidden;">
+          <div id="depositVideoProgressBar" style="height:100%;width:0%;background:var(--vet);transition:width .15s;"></div>
+        </div>
+      </div>
       <p id="depositVideoUploadStatus" class="hint" style="margin-top:8px;"></p>
     </div>
 
@@ -876,6 +882,7 @@ async function insertRow(table, obj){
 async function updateRow(table, id, obj){
   const { error } = await db.from(table).update(objToSnake(obj)).eq('id', id);
   if(error) console.error('Erè modifye ('+table+'):', error);
+  return { success: !error, error };
 }
 async function deleteRow(table, id){
   const { error } = await db.from(table).delete().eq('id', id);
@@ -2003,7 +2010,7 @@ function renderDepositVideoAdminPreview(){
   if(noteEl) noteEl.value = settings.depositVideoNote || '';
   if(!box) return;
   box.innerHTML = settings.depositVideoUrl
-    ? `<video src="${settings.depositVideoUrl}" controls style="width:100%;border-radius:10px;margin-bottom:10px;"></video>
+    ? `<video src="${settings.depositVideoUrl}" controls style="width:100%;max-height:240px;object-fit:contain;background:#000;border-radius:10px;margin-bottom:10px;"></video>
        <button class="btn btn-danger" style="margin-bottom:10px;" onclick="deleteDepositExplainerVideo()">🗑️ Efase videyo aktyèl la</button>`
     : `<p class="hint">Pa gen videyo ki telechaje kounye a.</p>`;
 }
@@ -2013,11 +2020,15 @@ async function uploadDepositExplainerVideo(){
   const fileEl = document.getElementById('depositVideoFile');
   const noteEl = document.getElementById('depositVideoNote');
   const statusEl = document.getElementById('depositVideoUploadStatus');
+  const progressWrap = document.getElementById('depositVideoProgressWrap');
+  const progressBar = document.getElementById('depositVideoProgressBar');
+  const localPreview = document.getElementById('depositVideoLocalPreview');
   const note = noteEl ? noteEl.value.trim() : '';
   const file = fileEl?.files?.[0];
   if(!file){
     if(settings.depositVideoUrl){
-      await updateRow('settings', 'main', { depositVideoNote: note });
+      const res = await updateRow('settings', 'main', { depositVideoNote: note });
+      if(!res.success){ toast('Nòt la pa t anrejistre — verifye koneksyon w epi eseye ankò ❌'); return; }
       settings.depositVideoNote = note;
       renderDepositExplainerVideo();
       toast('Nòt anrejistre ✅');
@@ -2027,15 +2038,29 @@ async function uploadDepositExplainerVideo(){
     return;
   }
   if(statusEl) statusEl.textContent = 'Telechajman ap fèt... 0%';
+  if(progressWrap) progressWrap.style.display = 'block';
+  if(progressBar) progressBar.style.width = '0%';
   const { url, error } = await uploadFileWithProgress(file, 'deposit-explainer', (pct)=>{
     if(statusEl) statusEl.textContent = `Telechajman ap fèt... ${pct}%`;
+    if(progressBar) progressBar.style.width = pct + '%';
   });
-  if(error){ if(statusEl) statusEl.textContent = ''; toast(error); return; }
-  await updateRow('settings', 'main', { depositVideoUrl: url, depositVideoNote: note });
+  if(error){
+    if(statusEl) statusEl.textContent = '';
+    if(progressWrap) progressWrap.style.display = 'none';
+    toast(error);
+    return;
+  }
+  const res = await updateRow('settings', 'main', { depositVideoUrl: url, depositVideoNote: note });
+  if(progressWrap) progressWrap.style.display = 'none';
+  if(statusEl) statusEl.textContent = '';
+  if(!res.success){
+    toast('Videyo a fin telechaje men li PA T anrejistre nan sistèm nan — verifye koneksyon w epi eseye peze bouton an ankò ❌');
+    return;
+  }
   settings.depositVideoUrl = url;
   settings.depositVideoNote = note;
-  if(statusEl) statusEl.textContent = '';
   if(fileEl) fileEl.value = '';
+  if(localPreview) localPreview.innerHTML = '';
   renderDepositVideoAdminPreview();
   renderDepositExplainerVideo();
   toast('Videyo telechaje avèk siksè ✅');
@@ -2043,7 +2068,8 @@ async function uploadDepositExplainerVideo(){
 window.uploadDepositExplainerVideo = uploadDepositExplainerVideo;
 
 async function deleteDepositExplainerVideo(){
-  await updateRow('settings', 'main', { depositVideoUrl: null });
+  const res = await updateRow('settings', 'main', { depositVideoUrl: null });
+  if(!res.success){ toast('Videyo a pa t efase — verifye koneksyon w epi eseye ankò ❌'); return; }
   settings.depositVideoUrl = null;
   renderDepositVideoAdminPreview();
   renderDepositExplainerVideo();
