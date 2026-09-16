@@ -2077,7 +2077,7 @@ async function uploadDepositExplainerVideo(){
   if(!file){
     if(settings.depositVideoUrl){
       const res = await updateRow('settings', 'main', { depositVideoNote: note });
-      if(!res.success){ toast('Nòt la pa t anrejistre — verifye koneksyon w epi eseye ankò ❌'); return; }
+      if(!res.success){ const d = res.error?.message || JSON.stringify(res.error||{}); toast('Erè sove nòt: ' + d); return; }
       settings.depositVideoNote = note;
       renderDepositExplainerVideo();
       toast('Nòt anrejistre ✅');
@@ -2103,7 +2103,9 @@ async function uploadDepositExplainerVideo(){
   if(progressWrap) progressWrap.style.display = 'none';
   if(statusEl) statusEl.textContent = '';
   if(!res.success){
-    toast('Videyo a fin telechaje men li PA T anrejistre nan sistèm nan — verifye koneksyon w epi eseye peze bouton an ankò ❌');
+    const detail = res.error?.message || res.error?.hint || res.error?.code || JSON.stringify(res.error||{});
+    toast('Erè sove: ' + detail);
+    if(statusEl) statusEl.textContent = 'Erè: ' + detail;
     return;
   }
   settings.depositVideoUrl = url;
