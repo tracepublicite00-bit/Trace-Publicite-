@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
     --bleu:#1B3A6B;
@@ -3578,13 +3579,22 @@ async function grantCourseAccess(){
 }
 window.grantCourseAccess = grantCourseAccess;
 
+const EMAILJS_PUBLIC_KEY = 'l_PBNGMaCNj4OGpYq';
+const EMAILJS_SERVICE_ID = 'service_gqjnil3';
+const EMAILJS_TEMPLATE_ID = 'template_32psx62';
+if (window.emailjs) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
 async function sendEmailNotification(to, subject, message, type) {
   if(!to) return;
+  const m = message.match(/([\d.,]+)\s*(USD|HTG|G)\b/i);
+  const amount = m ? m[1] : '';
+  const currency = m ? (m[2].toUpperCase()==='G' ? 'HTG' : m[2].toUpperCase()) : '';
   try {
-    await fetch('https://pifxgwbxntkcprbxezyd.supabase.co/functions/v1/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
-      body: JSON.stringify({ to, subject, message, type })
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      email: to,
+      name: subject,
+      amount,
+      currency
     });
   } catch (e) { console.error('Email error:', e); }
 }
