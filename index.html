@@ -682,6 +682,7 @@ window.addEventListener('unhandledrejection', function(e) {
         <button class="btn btn-outline" style="width:auto;padding:10px 14px;white-space:nowrap;" onclick="applyCommissionToAll()">Aplike pou tout</button>
       </div>
       <p class="hint" style="margin-top:-8px;margin-bottom:14px;">Mete yon pousantaj epi peze "Aplike pou tout" pou chanje komisyon TOUT antrepriz yo yon sèl kou.</p>
+      <input id="companySearchBox" type="text" placeholder="🔍 Chèche yon antrepriz pa non..." style="margin-bottom:12px;" oninput="renderCompanyFinance()">
       <div id="adminCompanyFinance"></div>
     </div>
 
@@ -3083,8 +3084,12 @@ function renderCompanyFinance(){
   if(!box) return;
   if(!companies.length){ box.innerHTML = `<div class="empty">Pa gen antrepriz kreye pou kounye a.</div>`; return; }
   if(!state.expandedCompanyCards) state.expandedCompanyCards = new Set();
+  const searchBox = document.getElementById('companySearchBox');
+  const q = (searchBox?.value || '').trim().toLowerCase();
+  const filteredCompanies = q ? companies.filter(c=>(c.name||'').toLowerCase().includes(q)) : companies;
+  if(!filteredCompanies.length){ box.innerHTML = `<div class="empty">Pa gen antrepriz ki matche "${q}".</div>`; return; }
 
-  box.innerHTML = companies.map(c=>{
+  box.innerHTML = filteredCompanies.map(c=>{
     const { totalHtg, totalUsd } = computeCompanySalesTotals(c.id);
     const rate = c.commissionRate ?? 15;
     const shareHtg = totalHtg * (100 - rate) / 100;
