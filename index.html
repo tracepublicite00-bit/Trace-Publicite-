@@ -2789,11 +2789,14 @@ function uploadProfilePhoto(event){
     const img = new Image();
     img.onload = async ()=>{
       const canvas = document.createElement('canvas');
-      const size = 160;
+      const size = 480;
       canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, size, size);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      const srcSize = Math.min(img.width, img.height);
+      const srcX = (img.width - srcSize) / 2;
+      const srcY = (img.height - srcSize) / 2;
+      ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, size, size);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       document.getElementById('photoPreview').innerHTML = `<img src="${dataUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;">`;
       if(currentUser){
         await updateRow('users', currentUser.id, { photoUrl: dataUrl });
