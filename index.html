@@ -272,6 +272,12 @@ window.addEventListener('unhandledrejection', function(e) {
     <div id="commentListBox"></div>
   </section>
 
+  <section id="jèm" class="page">
+    <div class="back-row"><button class="back-btn" onclick="go('touFormasyon')">←</button><span class="page-title">Moun ki jèm — <span id="jèmKouTitre"></span></span></div>
+    <div id="likesListBox"></div>
+  </section>
+
+
   <section id="depoze" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Depoze Lajan</span></div>
     <div id="depositExplainerBox"></div>
@@ -929,6 +935,7 @@ let accessRequests = [];
 let visits = [];
 let purchases = [];
 let notifications = [];
+let courseLikes = [];
 let companyPayouts = [];
 let courseComments = [];
 let stepViews = [];
@@ -1033,6 +1040,11 @@ async function refreshPurchases(){
 async function refreshCompanyPayouts(){
   companyPayouts = await fetchAll('company_payouts');
   if(document.getElementById('admin').classList.contains('active')) renderCompanyFinance();
+}
+async function refreshCourseLikes(){
+  courseLikes = await fetchAll('course_likes');
+  rerenderCourseViews();
+  if(document.getElementById('jèm')?.classList.contains('active')) renderLikesList();
 }
 async function refreshCourseComments(){
   courseComments = await fetchAll('course_comments');
@@ -1321,6 +1333,7 @@ function listenAll(){
     ['course_comments', refreshCourseComments],
     ['notifications', refreshNotifications],
     ['company_payouts', refreshCompanyPayouts],
+    ['course_likes', refreshCourseLikes],
     ['step_views', refreshStepViews]
   ];
   tables.forEach(([table, refreshFn])=>{
@@ -1477,6 +1490,7 @@ function go(pageId){
   if(pageId==='profil'){ renderNotifications(); renderReceipts(); renderNotifStatus(); restoreHideCodeState(); restorePublicProfileState(); renderMyCompanyCourseCard(); }
   if(pageId==='kouAntrepriz'){ renderMyCompanyCourseCard(); renderMyCompanyCourses(); }
   if(pageId==='komantè') renderComments();
+  if(pageId==='jèm') renderLikesList();
   window.scrollTo(0,0);
 }
 
@@ -1671,7 +1685,8 @@ function flyerCardHtml(p, width, full){
       <div style="font-weight:700;font-size:13.5px;margin-top:6px;line-height:1.3;">${p.title || k.title}</div>
       <div class="price">${k.price} Goud</div>
       <div class="icon-row">
-        <span onclick="event.stopPropagation(); react('${k.id}','likes')">👍 ${k.likes||0}</span>
+        <span onclick="event.stopPropagation(); toggleLike('${k.id}')">${hasLiked(k.id)?'✅':'👍'}</span>
+        <span onclick="event.stopPropagation(); openLikes('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')" style="text-decoration:underline;">${k.likes||0}</span>
         <span onclick="event.stopPropagation(); openComments('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">💬 ${courseComments.filter(c=>c.courseId===k.id).length}</span>
         <span>👁️ ${k.views||0}</span>
         <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗 ${k.shares||0} Pataje</span>
@@ -1709,7 +1724,8 @@ function courseCardHtml(k){
         <div class="title">${k.title}</div>
         <div class="price">${k.price} Goud</div>
         <div class="icon-row">
-          <span onclick="event.stopPropagation(); react('${k.id}','likes')">👍 ${k.likes||0}</span>
+          <span onclick="event.stopPropagation(); toggleLike('${k.id}')">${hasLiked(k.id)?'✅':'👍'}</span>
+          <span onclick="event.stopPropagation(); openLikes('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')" style="text-decoration:underline;">${k.likes||0}</span>
           <span onclick="event.stopPropagation(); openComments('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">💬 ${courseComments.filter(c=>c.courseId===k.id).length}</span>
           <span>👁️ ${k.views||0}</span>
           <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗 ${k.shares||0} Pataje</span>
@@ -1752,6 +1768,52 @@ function checkAccessCode(courseId){
   }
 }
 window.checkAccessCode = checkAccessCode;
+
+function hasLiked(courseId){
+  return !!(currentUser && courseLikes.some(l=>l.courseId===courseId && l.userId===currentUser.id));
+}
+window.hasLiked = hasLiked;
+
+async function toggleLike(courseId){
+  if(!currentUser){ toast('Ou dwe enskri anvan pou jèm'); return; }
+  const existing = courseLikes.find(l=>l.courseId===courseId && l.userId===currentUser.id);
+  if(existing){
+    await deleteRow('course_likes', existing.id);
+    courseLikes = courseLikes.filter(l=>l.id!==existing.id);
+    await incrementField('courses', courseId, 'likes', -1);
+    const k = courses.find(c=>c.id===courseId);
+    if(k) k.likes = Math.max(0, (k.likes||0) - 1);
+  } else {
+    const newLike = await insertRow('course_likes', { courseId, userId: currentUser.id, userName: currentUser.non });
+    courseLikes.push(newLike);
+    await incrementField('courses', courseId, 'likes', 1);
+    const k = courses.find(c=>c.id===courseId);
+    if(k) k.likes = (k.likes||0) + 1;
+  }
+  rerenderCourseViews();
+  if(document.getElementById('jèm')?.classList.contains('active')) renderLikesList();
+}
+window.toggleLike = toggleLike;
+
+function openLikes(courseId, title){
+  state.currentLikeCourse = courseId;
+  document.getElementById('jèmKouTitre').textContent = title || '';
+  go('jèm');
+}
+window.openLikes = openLikes;
+
+function renderLikesList(){
+  const box = document.getElementById('likesListBox');
+  if(!box) return;
+  const list = courseLikes.filter(l=>l.courseId===state.currentLikeCourse)
+    .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  box.innerHTML = list.length ? list.map(l=>`
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-weight:700;font-size:13.5px;">👍 ${l.userName||'Anonim'}</div>
+      ${currentUser && l.userId===currentUser.id ? `<button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:12px;" onclick="toggleLike('${l.courseId}')">Retire jèm mwen</button>` : ''}
+    </div>`).join('') : `<div class="empty">Pèsonn poko jèm kou sa a.</div>`;
+}
+window.renderLikesList = renderLikesList;
 
 async function react(courseId, field){
   await incrementField('courses', courseId, field, 1);
@@ -2994,8 +3056,11 @@ function renderCompanyFinance(){
           <button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:11px;" onclick="saveCommissionRate('${c.id}')">OK</button>
         </span>
       </div>
+      <div class="kv"><span class="k">Pati antrepriz la (G)</span><span class="v" style="color:var(--tex-mou);">${shareHtg.toFixed(0)} G</span></div>
+      <div class="kv"><span class="k">Deja peye (G)</span><span class="v" style="color:var(--tex-mou);">${paidHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Ou dwe antrepriz la (G)</span><span class="v" style="color:var(--vet);">${owedHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Ou dwe antrepriz la (USD)</span><span class="v" style="color:var(--vet);">${owedUsd.toFixed(2)} USD</span></div>
+      <button class="btn btn-outline" style="margin-top:6px;" onclick="resetCompanyPayoutTracking('${c.id}')">🔄 Reyajiste konte peman (si li parèt mal)</button>
       <button class="btn btn-gold" style="margin-top:8px;" onclick="markCompanyPayout('${c.id}')">💸 Make peman fèt</button>
       ${renderPayoutHistory(c.id)}
     </div>`;
@@ -3057,6 +3122,20 @@ async function saveCommissionRate(companyId){
   toast('Pousantaj komisyon mete ajou');
 }
 window.saveCommissionRate = saveCommissionRate;
+
+async function resetCompanyPayoutTracking(companyId){
+  const c = companies.find(x=>x.id===companyId);
+  if(!c) return;
+  if(!confirm(`Sa ap remete "Deja peye" ak "Nouvo vant" a zewo pou ${c.name}, san li pa touche istorik peman ki deja anrejistre anba a. Kontinye?`)) return;
+  await updateRow('companies', companyId, { amountPaidOutHtg: 0, amountPaidOutUsd: 0, lastPayoutTotalHtg: 0, lastPayoutTotalUsd: 0 });
+  c.amountPaidOutHtg = 0;
+  c.amountPaidOutUsd = 0;
+  c.lastPayoutTotalHtg = 0;
+  c.lastPayoutTotalUsd = 0;
+  renderCompanyFinance();
+  toast('Konte a reyajiste');
+}
+window.resetCompanyPayoutTracking = resetCompanyPayoutTracking;
 
 async function markCompanyPayout(companyId){
   const devise = prompt('Ki deviz ou peye a? Tape "G" pou Goud oswa "USD" pou dola.', 'G');
