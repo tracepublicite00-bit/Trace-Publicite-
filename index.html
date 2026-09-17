@@ -2331,7 +2331,7 @@ async function submitDeposit(){
     fotoUrl
   });
 
-  sendEmailNotification('tracepublicite00@gmail.com', 'Nouvo depo rive!', `Yon nouvo depo rive: ${montan} ${state.dev==='usd'?'USD':'HTG'} soti nan ${prenon} ${siyati} (tel: ${tel}). Al konfime li nan Panèl Admin.`, 'new_deposit');
+  sendEmailNotification('tracepublicite00@gmail.com', 'Nouvo depo rive!', `Yon nouvo depo rive: ${montan} ${state.dev==='usd'?'USD':'HTG'} soti nan ${prenon} ${siyati} (tel: ${tel}). Al konfime li nan Panèl Admin.`, 'new_deposit', `${prenon} ${siyati}`);
 
   toast('Reyisi! ' + montan + ' ' + (state.dev==='usd'?'USD':'HTG') + ' — depo an atant konfimasyon');
   document.getElementById('dep_montan').value='';
@@ -2380,7 +2380,7 @@ async function submitRegister(){
         non, email, tel, peyi, vil, blocked:false,
         achte:0, fini:0, mwaAktif:0, piblik:true, accessCode: finalCode
       });
-      sendEmailNotification(email, 'Byenveni sou Trace Publicite!', `Byenveni ${non}! Kont ou kreye avèk siksè.`, 'registration');
+      sendEmailNotification(email, 'Byenveni sou Trace Publicite!', `Byenveni ${non}! Kont ou kreye avèk siksè.`, 'registration', non);
     }
   } catch(e){
     btn.disabled = false;
@@ -3581,18 +3581,30 @@ window.grantCourseAccess = grantCourseAccess;
 
 const EMAILJS_PUBLIC_KEY = 'l_PBNGMaCNj4OGpYq';
 const EMAILJS_SERVICE_ID = 'service_gqjnil3';
-const EMAILJS_TEMPLATE_ID = 'template_32psx62';
+const EMAILJS_TEMPLATE_DEPOSIT = 'template_32psx62';
+const EMAILJS_TEMPLATE_WELCOME = 'template_nvwwin2';
 if (window.emailjs) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
-async function sendEmailNotification(to, subject, message, type) {
+async function sendEmailNotification(to, subject, message, type, name) {
   if(!to) return;
+  if(type === 'new_deposit'){
+    try {
+      await fetch('https://pifxgwbxntkcprbxezyd.supabase.co/functions/v1/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        body: JSON.stringify({ to, subject, message, type })
+      });
+    } catch (e) { console.error('Email error (Resend):', e); }
+    return;
+  }
+  const templateId = (type === 'registration') ? EMAILJS_TEMPLATE_WELCOME : EMAILJS_TEMPLATE_DEPOSIT;
   const m = message.match(/([\d.,]+)\s*(USD|HTG|G)\b/i);
   const amount = m ? m[1] : '';
   const currency = m ? (m[2].toUpperCase()==='G' ? 'HTG' : m[2].toUpperCase()) : '';
   try {
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    await emailjs.send(EMAILJS_SERVICE_ID, templateId, {
       email: to,
-      name: subject,
+      name: name || subject,
       amount,
       currency
     });
@@ -3616,7 +3628,7 @@ async function confirmDeposit(id){
     });
     const depUser = allUsers.find(u=>u.id===dep.userId);
     if(depUser?.email){
-      sendEmailNotification(depUser.email, 'Depo ou konfime!', `Depo ${dep.montan} ${dep.devise==='usd'?'USD':'HTG'} ou a konfime. Ou gen aksè kounye a nan kou a.`, 'deposit_confirmed');
+      sendEmailNotification(depUser.email, 'Depo ou konfime!', `Depo ${dep.montan} ${dep.devise==='usd'?'USD':'HTG'} ou a konfime. Ou gen aksè kounye a nan kou a.`, 'deposit_confirmed', depUser.non);
     }
   }
   toast('✅ Depo konfime — aksè bay itilizatè a');
