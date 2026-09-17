@@ -3063,6 +3063,13 @@ function computeCompanySalesTotals(companyId){
   return { totalHtg, totalUsd };
 }
 
+function computeCourseSalesTotal(courseId){
+  const confirmedDeps = deposits.filter(d=>d.status==='konfime' && d.courseId===courseId);
+  const totalHtg = confirmedDeps.filter(d=>d.devise!=='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
+  const totalUsd = confirmedDeps.filter(d=>d.devise==='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
+  return { totalHtg, totalUsd };
+}
+
 function renderCompanyFinance(){
   const box = document.getElementById('adminCompanyFinance');
   if(!box) return;
@@ -3079,12 +3086,19 @@ function renderCompanyFinance(){
     const owedUsd = Math.max(0, shareUsd - paidUsd);
     const newSalesHtg = Math.max(0, totalHtg - (c.lastPayoutTotalHtg || 0));
     const newSalesUsd = Math.max(0, totalUsd - (c.lastPayoutTotalUsd || 0));
+    const companyCourses = courses.filter(k=>k.companyId===c.id);
+    const perCourseRows = companyCourses.map(k=>{
+      const { totalHtg: kHtg, totalUsd: kUsd } = computeCourseSalesTotal(k.id);
+      if(!kHtg && !kUsd) return '';
+      return `<div class="kv" style="font-size:12.5px;"><span class="k">— ${k.title}</span><span class="v">${kHtg?kHtg.toFixed(0)+' G':''}${kHtg&&kUsd?' + ':''}${kUsd?kUsd.toFixed(2)+' USD':''}</span></div>`;
+    }).join('');
 
     return `
     <div class="card" style="background:var(--gri);margin-bottom:10px;">
       <div style="font-weight:700;font-size:14px;margin-bottom:6px;">${c.name}</div>
       <div class="kv"><span class="k">Total vant (G)</span><span class="v">${totalHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Total vant (USD)</span><span class="v">${totalUsd.toFixed(2)} USD</span></div>
+      ${perCourseRows ? `<div style="margin:4px 0 4px 6px;border-left:2px solid var(--border);padding-left:8px;">${perCourseRows}</div>` : ''}
       <div class="kv"><span class="k">🆕 Nouvo vant (G)</span><span class="v" style="color:var(--or-fonse);">${newSalesHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">🆕 Nouvo vant (USD)</span><span class="v" style="color:var(--or-fonse);">${newSalesUsd.toFixed(2)} USD</span></div>
       <div class="kv">
