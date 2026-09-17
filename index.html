@@ -3070,10 +3070,19 @@ function computeCourseSalesTotal(courseId){
   return { totalHtg, totalUsd };
 }
 
+function toggleCompanyCard(companyId){
+  if(!state.expandedCompanyCards) state.expandedCompanyCards = new Set();
+  if(state.expandedCompanyCards.has(companyId)) state.expandedCompanyCards.delete(companyId);
+  else state.expandedCompanyCards.add(companyId);
+  renderCompanyFinance();
+}
+window.toggleCompanyCard = toggleCompanyCard;
+
 function renderCompanyFinance(){
   const box = document.getElementById('adminCompanyFinance');
   if(!box) return;
   if(!companies.length){ box.innerHTML = `<div class="empty">Pa gen antrepriz kreye pou kounye a.</div>`; return; }
+  if(!state.expandedCompanyCards) state.expandedCompanyCards = new Set();
 
   box.innerHTML = companies.map(c=>{
     const { totalHtg, totalUsd } = computeCompanySalesTotals(c.id);
@@ -3092,10 +3101,19 @@ function renderCompanyFinance(){
       if(!kHtg && !kUsd) return '';
       return `<div class="kv" style="font-size:12.5px;"><span class="k">— ${k.title}</span><span class="v">${kHtg?kHtg.toFixed(0)+' G':''}${kHtg&&kUsd?' + ':''}${kUsd?kUsd.toFixed(2)+' USD':''}</span></div>`;
     }).join('');
+    const expanded = state.expandedCompanyCards.has(c.id);
 
     return `
     <div class="card" style="background:var(--gri);margin-bottom:10px;">
-      <div style="font-weight:700;font-size:14px;margin-bottom:6px;">${c.name}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleCompanyCard('${c.id}')">
+        <div style="font-weight:700;font-size:14px;">${c.name}</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--tex-mou);">
+          <span>${owedHtg>0?`Ou dwe: ${owedHtg.toFixed(0)} G`:'À jou ✅'}</span>
+          <span>${expanded?'▲':'▼'}</span>
+        </div>
+      </div>
+      ${expanded ? `
+      <div style="margin-top:8px;">
       <div class="kv"><span class="k">Total vant (G)</span><span class="v">${totalHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Total vant (USD)</span><span class="v">${totalUsd.toFixed(2)} USD</span></div>
       ${perCourseRows ? `<div style="margin:4px 0 4px 6px;border-left:2px solid var(--border);padding-left:8px;">${perCourseRows}</div>` : ''}
@@ -3105,16 +3123,17 @@ function renderCompanyFinance(){
         <span class="k">Komisyon platfòm (%)</span>
         <span style="display:flex;align-items:center;gap:6px;">
           <input id="commRate_${c.id}" type="number" value="${rate}" min="0" max="100" style="width:60px;padding:4px 6px;font-size:12px;">
-          <button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:11px;" onclick="saveCommissionRate('${c.id}')">OK</button>
+          <button class="btn btn-outline" style="width:auto;padding:4px 8px;font-size:11px;" onclick="event.stopPropagation(); saveCommissionRate('${c.id}')">OK</button>
         </span>
       </div>
       <div class="kv"><span class="k">Pati antrepriz la (G)</span><span class="v" style="color:var(--tex-mou);">${shareHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Deja peye (G)</span><span class="v" style="color:var(--tex-mou);">${paidHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Ou dwe antrepriz la (G)</span><span class="v" style="color:var(--vet);">${owedHtg.toFixed(0)} G</span></div>
       <div class="kv"><span class="k">Ou dwe antrepriz la (USD)</span><span class="v" style="color:var(--vet);">${owedUsd.toFixed(2)} USD</span></div>
-      <button class="btn btn-outline" style="margin-top:6px;" onclick="resetCompanyPayoutTracking('${c.id}')">🔄 Reyajiste konte peman (si li parèt mal)</button>
-      <button class="btn btn-gold" style="margin-top:8px;" onclick="markCompanyPayout('${c.id}')">💸 Make peman fèt</button>
+      <button class="btn btn-outline" style="margin-top:6px;" onclick="event.stopPropagation(); resetCompanyPayoutTracking('${c.id}')">🔄 Reyajiste konte peman (si li parèt mal)</button>
+      <button class="btn btn-gold" style="margin-top:8px;" onclick="event.stopPropagation(); markCompanyPayout('${c.id}')">💸 Make peman fèt</button>
       ${renderPayoutHistory(c.id)}
+      </div>` : ''}
     </div>`;
   }).join('');
 }
