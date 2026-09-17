@@ -3164,14 +3164,18 @@ window.saveCommissionRate = saveCommissionRate;
 async function resetCompanyPayoutTracking(companyId){
   const c = companies.find(x=>x.id===companyId);
   if(!c) return;
-  if(!confirm(`Sa ap remete "Deja peye" ak "Nouvo vant" a zewo pou ${c.name}, san li pa touche istorik peman ki deja anrejistre anba a. Kontinye?`)) return;
-  await updateRow('companies', companyId, { amountPaidOutHtg: 0, amountPaidOutUsd: 0, lastPayoutTotalHtg: 0, lastPayoutTotalUsd: 0 });
-  c.amountPaidOutHtg = 0;
-  c.amountPaidOutUsd = 0;
-  c.lastPayoutTotalHtg = 0;
-  c.lastPayoutTotalUsd = 0;
+  if(!confirm(`Sa ap make tou sa ki vann jiska KOUNYE A kòm "solde" pou ${c.name} (Ou dwe ap tounen 0 G), san li pa touche istorik peman ki anba a. Apati kounye a, "Ou dwe" ap grandi sèlman ak nouvo vant k ap fèt apati la. Kontinye?`)) return;
+  const { totalHtg, totalUsd } = computeCompanySalesTotals(companyId);
+  const rate = c.commissionRate ?? 15;
+  const shareHtg = totalHtg * (100 - rate) / 100;
+  const shareUsd = totalUsd * (100 - rate) / 100;
+  await updateRow('companies', companyId, { amountPaidOutHtg: shareHtg, amountPaidOutUsd: shareUsd, lastPayoutTotalHtg: totalHtg, lastPayoutTotalUsd: totalUsd });
+  c.amountPaidOutHtg = shareHtg;
+  c.amountPaidOutUsd = shareUsd;
+  c.lastPayoutTotalHtg = totalHtg;
+  c.lastPayoutTotalUsd = totalUsd;
   renderCompanyFinance();
-  toast('Konte a reyajiste');
+  toast('Konte a reyajiste — kòmanse a 0 G apati kounye a');
 }
 window.resetCompanyPayoutTracking = resetCompanyPayoutTracking;
 
