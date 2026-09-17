@@ -277,6 +277,11 @@ window.addEventListener('unhandledrejection', function(e) {
     <div id="likesListBox"></div>
   </section>
 
+  <section id="pataje" class="page">
+    <div class="back-row"><button class="back-btn" onclick="go('touFormasyon')">←</button><span class="page-title">Moun ki pataje — <span id="patajeKouTitre"></span></span></div>
+    <div id="sharesListBox"></div>
+  </section>
+
 
   <section id="depoze" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Depoze Lajan</span></div>
@@ -935,6 +940,7 @@ let accessRequests = [];
 let visits = [];
 let purchases = [];
 let notifications = [];
+let courseShares = [];
 let courseLikes = [];
 let companyPayouts = [];
 let courseComments = [];
@@ -1045,6 +1051,10 @@ async function refreshCourseLikes(){
   courseLikes = await fetchAll('course_likes');
   rerenderCourseViews();
   if(document.getElementById('jèm')?.classList.contains('active')) renderLikesList();
+}
+async function refreshCourseShares(){
+  courseShares = await fetchAll('course_shares');
+  if(document.getElementById('pataje')?.classList.contains('active')) renderSharesList();
 }
 async function refreshCourseComments(){
   courseComments = await fetchAll('course_comments');
@@ -1334,6 +1344,7 @@ function listenAll(){
     ['notifications', refreshNotifications],
     ['company_payouts', refreshCompanyPayouts],
     ['course_likes', refreshCourseLikes],
+    ['course_shares', refreshCourseShares],
     ['step_views', refreshStepViews]
   ];
   tables.forEach(([table, refreshFn])=>{
@@ -1491,6 +1502,7 @@ function go(pageId){
   if(pageId==='kouAntrepriz'){ renderMyCompanyCourseCard(); renderMyCompanyCourses(); }
   if(pageId==='komantè') renderComments();
   if(pageId==='jèm') renderLikesList();
+  if(pageId==='pataje') renderSharesList();
   window.scrollTo(0,0);
 }
 
@@ -1689,7 +1701,8 @@ function flyerCardHtml(p, width, full){
         <span onclick="event.stopPropagation(); openLikes('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')" style="text-decoration:underline;">${k.likes||0}</span>
         <span onclick="event.stopPropagation(); openComments('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">💬 ${courseComments.filter(c=>c.courseId===k.id).length}</span>
         <span>👁️ ${k.views||0}</span>
-        <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗 ${k.shares||0} Pataje</span>
+        <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗</span>
+        <span onclick="event.stopPropagation(); openShares('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')" style="text-decoration:underline;">${k.shares||0} Pataje</span>
       </div>
     </div>`;
   }
@@ -1728,7 +1741,8 @@ function courseCardHtml(k){
           <span onclick="event.stopPropagation(); openLikes('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')" style="text-decoration:underline;">${k.likes||0}</span>
           <span onclick="event.stopPropagation(); openComments('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">💬 ${courseComments.filter(c=>c.courseId===k.id).length}</span>
           <span>👁️ ${k.views||0}</span>
-          <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗 ${k.shares||0} Pataje</span>
+          <span onclick="event.stopPropagation(); shareCourse('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')">🔗</span>
+          <span onclick="event.stopPropagation(); openShares('${k.id}','${(k.title||'').replace(/'/g,"\\'")}')" style="text-decoration:underline;">${k.shares||0} Pataje</span>
         </div>
       </div>
     </div>`;
@@ -1836,11 +1850,35 @@ async function shareCourse(courseId, title){
     await incrementField('courses', courseId, 'shares', 1);
     const k = courses.find(c=>c.id===courseId);
     if(k) k.shares = (k.shares||0) + 1;
+    if(currentUser){
+      const newShare = await insertRow('course_shares', { courseId, userId: currentUser.id, userName: currentUser.non });
+      courseShares.push(newShare);
+    }
     rerenderCourseViews();
   } catch(e){
   }
 }
 window.shareCourse = shareCourse;
+
+function openShares(courseId, title){
+  state.currentShareCourse = courseId;
+  document.getElementById('patajeKouTitre').textContent = title || '';
+  go('pataje');
+}
+window.openShares = openShares;
+
+function renderSharesList(){
+  const box = document.getElementById('sharesListBox');
+  if(!box) return;
+  const list = courseShares.filter(s=>s.courseId===state.currentShareCourse)
+    .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  box.innerHTML = list.length ? list.map(s=>`
+    <div class="card">
+      <div style="font-weight:700;font-size:13.5px;">🔗 ${s.userName||'Anonim'}</div>
+      <div class="hint" style="margin-top:2px;">${formatDateTime(s.createdAt)}</div>
+    </div>`).join('') : `<div class="empty">Pèsonn poko pataje kou sa a.</div>`;
+}
+window.renderSharesList = renderSharesList;
 
 function rerenderCourseViews(){
   if(document.getElementById('akey')?.classList.contains('active')) renderAkey();
