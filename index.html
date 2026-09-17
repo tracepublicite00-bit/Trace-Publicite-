@@ -3589,12 +3589,13 @@ async function sendEmailNotification(to, subject, message, type, name) {
   if(!to) return;
   if(type === 'new_deposit'){
     try {
-      await fetch('https://pifxgwbxntkcprbxezyd.supabase.co/functions/v1/send-email', {
+      const r = await fetch('https://pifxgwbxntkcprbxezyd.supabase.co/functions/v1/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
         body: JSON.stringify({ to, subject, message, type })
       });
-    } catch (e) { console.error('Email error (Resend):', e); }
+      if(!r.ok){ const t = await r.text(); toast('⚠️ Imèl admin pa voye: '+r.status+' '+t.slice(0,120)); }
+    } catch (e) { console.error('Email error (Resend):', e); toast('⚠️ Imèl admin echwe: '+e.message); }
     return;
   }
   const templateId = (type === 'registration') ? EMAILJS_TEMPLATE_WELCOME : EMAILJS_TEMPLATE_DEPOSIT;
@@ -3608,7 +3609,7 @@ async function sendEmailNotification(to, subject, message, type, name) {
       amount,
       currency
     });
-  } catch (e) { console.error('Email error:', e); }
+  } catch (e) { console.error('Email error:', e); toast('⚠️ Imèl pa voye: '+(e?.text||e?.message||JSON.stringify(e)).slice(0,120)); }
 }
 
 async function confirmDeposit(id){
