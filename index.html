@@ -3592,7 +3592,7 @@ async function sendEmailNotification(to, subject, message, type, name) {
       const r = await fetch('https://pifxgwbxntkcprbxezyd.supabase.co/functions/v1/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
-        body: JSON.stringify({ to, subject, message, type })
+        body: JSON.stringify({ to, subject, message, html: `<p>${message}</p>`, type })
       });
       if(!r.ok){ const t = await r.text(); toast('⚠️ Imèl admin pa voye: '+r.status+' '+t.slice(0,120)); }
     } catch (e) { console.error('Email error (Resend):', e); toast('⚠️ Imèl admin echwe: '+e.message); }
