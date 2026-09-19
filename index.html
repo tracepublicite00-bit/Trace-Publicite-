@@ -688,7 +688,11 @@ window.addEventListener('unhandledrejection', function(e) {
     </div>
 
     <div class="card" style="background:linear-gradient(135deg,#FFE4EC 0%,#EDE4FF 100%);border:2px solid #C026D3;border-radius:16px;">
-      <div class="section-title" style="color:#A21CAF;">🌟 Fòmasyon Rekòmande (Flyè Akèy)</div>
+      <div class="section-title" style="color:#A21CAF;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0;" onclick="togglePromoCard()">
+        <span>🌟 Fòmasyon Rekòmande (Flyè Akèy) <small id="promoCount" style="font-weight:600;"></small></span>
+        <span id="promoCardArrow" style="font-size:13px;">▼</span>
+      </div>
+      <div id="promoCardBody" style="display:none;margin-top:10px;">
       <p class="hint">Ajoute foto oswa videyo pwomosyonèl (pou kou oswa antrepriz) ki ap parèt nan yon seksyon espesyal sou Akèy la, san yo pa touche okenn kou ki egziste deja.</p>
       <label>Tit (opsyonèl)</label>
       <input id="promoPostTitle" placeholder="Ex: Nouvo kou Marketing disponib!">
@@ -708,6 +712,7 @@ window.addEventListener('unhandledrejection', function(e) {
       </div>
       <p id="promoPostUploadStatus" class="hint" style="margin-top:8px;"></p>
       <div id="adminPromoPosts" style="margin-top:14px;"></div>
+      </div>
     </div>
 
     <div class="card" style="background:linear-gradient(135deg,#EEF2FF 0%,#E0F2FE 100%);border:2px solid #4F46E5;border-radius:16px;">
@@ -3152,6 +3157,16 @@ function computeCourseSalesTotal(courseId){
   return { totalHtg, totalUsd };
 }
 
+function togglePromoCard(){
+  const body = document.getElementById('promoCardBody');
+  const arrow = document.getElementById('promoCardArrow');
+  if(!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if(arrow) arrow.textContent = open ? '▲' : '▼';
+}
+window.togglePromoCard = togglePromoCard;
+
 function togglePromoPost(id){
   if(!state.expandedPromoPosts) state.expandedPromoPosts = new Set();
   if(state.expandedPromoPosts.has(id)) state.expandedPromoPosts.delete(id);
@@ -3163,6 +3178,8 @@ window.togglePromoPost = togglePromoPost;
 function renderAdminPromoPosts(){
   const promoBox = document.getElementById('adminPromoPosts');
   if(!promoBox) return;
+  const cnt = document.getElementById('promoCount');
+  if(cnt) cnt.textContent = promoPosts.length ? '(' + promoPosts.length + ')' : '';
   if(!state.expandedPromoPosts) state.expandedPromoPosts = new Set();
   if(!promoPosts.length){
     promoBox.innerHTML = `<div class="empty">Pa gen flyè ajoute pou kounye a.</div>`;
