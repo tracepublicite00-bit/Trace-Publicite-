@@ -246,6 +246,7 @@ window.addEventListener('unhandledrejection', function(e) {
 
   <section id="touFormasyon" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Tout Fòmasyon</span></div>
+    <input id="courseSearchBox" type="search" placeholder="🔍 Chèche yon fòmasyon oswa antrepriz..." style="margin-bottom:12px;" oninput="renderCourseListFull()">
     <div id="courseListFull"></div>
   </section>
 
@@ -687,6 +688,16 @@ window.addEventListener('unhandledrejection', function(e) {
       <p class="hint" style="margin-top:-8px;margin-bottom:14px;">Mete yon pousantaj epi peze "Aplike pou tout" pou chanje komisyon TOUT antrepriz yo yon sèl kou.</p>
       <input id="companySearchBox" type="text" placeholder="🔍 Chèche yon antrepriz pa non..." style="margin-bottom:12px;" oninput="renderCompanyFinance()">
       <div id="adminCompanyFinance"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📥 Ekspòte done (Excel/CSV)</div>
+      <p class="hint" style="margin-top:-4px;margin-bottom:10px;">Telechaje yon kopi done yo pou sovgad oswa pou kalkile lajan antrepriz yo. Fichye a louvri nan Excel oswa Google Sheets.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary" style="width:auto;padding:8px 14px;font-size:13px;" onclick="exportData('users')">👥 Itilizatè</button>
+        <button class="btn btn-primary" style="width:auto;padding:8px 14px;font-size:13px;" onclick="exportData('deposits')">💳 Tout depo</button>
+        <button class="btn btn-primary" style="width:auto;padding:8px 14px;font-size:13px;" onclick="exportData('sales')">💰 Vant konfime</button>
+      </div>
     </div>
 
     <div class="card" style="background:linear-gradient(135deg,#FFE4EC 0%,#EDE4FF 100%);border:2px solid #C026D3;border-radius:16px;">
@@ -1792,8 +1803,22 @@ function courseCardHtml(k){
     </div>`;
 }
 
+function normSearch(t){
+  return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
 function renderCourseListFull(){
-  document.getElementById('courseListFull').innerHTML = courses.filter(isPublicCourse).map(k=>courseCardHtml(k)).join('');
+  const box = document.getElementById('courseSearchBox');
+  const q = normSearch(box ? box.value : '');
+  let list = courses.filter(isPublicCourse);
+  if(q){
+    list = list.filter(k=>{
+      const comp = companies.find(c=>c.id===k.companyId);
+      return normSearch(k.title).includes(q) || normSearch(comp && comp.name).includes(q);
+    });
+  }
+  document.getElementById('courseListFull').innerHTML = list.length
+    ? list.map(k=>courseCardHtml(k)).join('')
+    : `<div class="empty">${q ? 'Pa jwenn okenn fòmasyon pou "' + escPromptHtml(box.value.trim()) + '".' : 'Pa gen fòmasyon pou kounye a.'}</div>`;
 }
 
 function prefillDepositUserInfo(){
@@ -2936,6 +2961,71 @@ function uploadProfilePhoto(event){
   reader.readAsDataURL(file);
 }
 
+function waNumber(tel){
+  const digits = String(tel||'').replace(/\D/g,'');
+  if(!digits) return '';
+  return digits.length === 8 ? '509' + digits : digits;
+}
+function whatsappDepositReminder(id){
+  const d = deposits.find(x=>x.id===id);
+  if(!d){ toast('Depo pa jwenn'); return; }
+  const num = waNumber(d.tel);
+  if(!num){ toast('Depo sa a pa gen nimewo telefòn'); return; }
+  const devise = d.devise==='usd' ? 'USD' : 'G';
+  const msg = `Bonjou ${d.prenon || ''}, nou resevwa depo w la (${d.montan} ${devise}) sou Trace Publicité. N ap verifye l kounye a, sa ka pran kèk minit jiska 1 è. Nou pral fè w konnen lè l konfime. Mèsi! 🙏`;
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+window.whatsappDepositReminder = whatsappDepositReminder;
+
+function csvCell(v){
+  if(v === null || v === undefined) return '""';
+  let t = String(v);
+  if(typeof v === 'string' && /^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  return '"' + t.replace(/"/g,'""') + '"';
+}
+function downloadCsv(filename, headers, rows){
+  const lines = [headers.map(csvCell).join(',')].concat(rows.map(r=>r.map(csvCell).join(',')));
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function exportDateStr(v){ return v ? new Date(v).toLocaleString('fr-FR') : ''; }
+function exportData(kind){
+  const stamp = new Date().toISOString().slice(0,10);
+  const courseTitle = id => (courses.find(c=>c.id===id)||{}).title || '';
+  const companyOfCourse = id => {
+    const k = courses.find(c=>c.id===id);
+    const c = k && companies.find(x=>x.id===k.companyId);
+    return c ? c.name : '';
+  };
+  if(kind === 'users'){
+    const list = dedupeByPhone(allUsers);
+    downloadCsv(`itilizate-${stamp}.csv`,
+      ['Non','Imèl','Telefòn','Peyi','Vil','Fòmasyon achte','Fòmasyon fini','Bloke','Dat enskripsyon'],
+      list.map(u=>[u.non,u.email,u.tel,u.peyi,u.vil,u.achte||0,u.fini||0,u.blocked?'Wi':'Non',exportDateStr(u.createdAt)]));
+    toast('Fichye itilizatè yo pare ✅');
+  } else if(kind === 'deposits'){
+    const list = deposits.slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+    downloadCsv(`depo-${stamp}.csv`,
+      ['Dat','Prenon','Siyati','Telefòn','Montan','Devise','Metòd','Estati','Kou','Antrepriz'],
+      list.map(d=>[exportDateStr(d.createdAt),d.prenon,d.siyati,d.tel,d.montan,(d.devise==='usd'?'USD':'HTG'),d.method,d.status,courseTitle(d.courseId),companyOfCourse(d.courseId)]));
+    toast('Fichye depo yo pare ✅');
+  } else if(kind === 'sales'){
+    const list = deposits.filter(d=>d.status==='konfime').slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+    downloadCsv(`vant-${stamp}.csv`,
+      ['Dat','Kliyan','Telefòn','Kou','Antrepriz','Montan','Devise','Metòd'],
+      list.map(d=>[exportDateStr(d.createdAt),`${d.prenon||''} ${d.siyati||''}`.trim(),d.tel,courseTitle(d.courseId),companyOfCourse(d.courseId),d.montan,(d.devise==='usd'?'USD':'HTG'),d.method]));
+    toast('Fichye vant yo pare ✅');
+  }
+}
+window.exportData = exportData;
+
 function renderAdmin(){
   const pending = deposits.filter(d=>d.status==='atant');
   document.getElementById('adminDeposits').innerHTML = pending.length
@@ -2945,6 +3035,7 @@ function renderAdmin(){
         <span style="display:flex;gap:8px;">
           <button class="btn btn-primary" id="confBtn_${d.id}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="confirmDeposit('${d.id}')">Konfime</button>
           <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;" onclick="rejectDeposit('${d.id}')">Efase</button>
+          <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;" onclick="whatsappDepositReminder('${d.id}')">💬 WhatsApp</button>
         </span>
       </div>`).join('')
     : `<div class="empty">Pa gen depo an atant.</div>`;
