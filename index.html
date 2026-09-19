@@ -976,10 +976,8 @@ function formatTel(tel){
   const raw = String(tel||'').trim();
   const d = raw.replace(/\D/g,'');
   if(!d) return '';
-  let local = null;
-  if(d.length === 8) local = d;
-  else if(d.length === 11 && d.startsWith('509')) local = d.slice(3);
-  if(local) return '+509 ' + local.slice(0,4) + ' ' + local.slice(4);
+  if(d.length === 8) return d;
+  if(d.startsWith('509') && d.length > 8) return d.slice(3);
   return raw;
 }
 window.formatTel = formatTel;
