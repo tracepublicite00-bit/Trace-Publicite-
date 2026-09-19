@@ -861,6 +861,7 @@ window.addEventListener('unhandledrejection', function(e) {
       <button class="btn" style="margin-top:14px;background:linear-gradient(90deg,#0284C7,#38BDF8);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="saveEmailService()">Anrejistre sèvis imèl la</button>
       <button class="btn" style="margin-top:8px;background:#fff;color:#0369A1;font-weight:700;border:2px solid #0284C7;" onclick="testEmailService()">Voye yon imèl tès</button>
       <p id="emailServiceStatus" class="hint" style="margin-top:8px;"></p>
+      <div id="emailUsage"></div>
     </div>
   </section>
 
@@ -2971,6 +2972,7 @@ window.openIconSettingsModal = openIconSettingsModal;
   document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
   if(window.selectEmailService) window.selectEmailService(settings.emailService || 'auto');
   if(window.showEmailServiceStatus) window.showEmailServiceStatus();
+  if(window.loadEmailUsage) window.loadEmailUsage();
   updateTeacherFeeText();
   updateCompanyCondText();
 
@@ -3649,7 +3651,7 @@ async function sendEmailNotification(to, subject, message, type, name) {
   const mode = (settings && settings.emailService) || 'auto';
   if (mode !== 'emailjs') {
     try {
-      if (await sendViaAppsScript(to, subject, message, type, name)) return 'google';
+      if (await sendViaAppsScript(to, subject, message, type, name)) { logEmailSent('google', type); return 'google'; }
       console.warn('Apps Script pa reponn ok');
     } catch (e) {
       console.warn('Apps Script echwe:', e);
@@ -3671,9 +3673,45 @@ async function sendEmailNotification(to, subject, message, type, name) {
       amount,
       currency
     });
+    logEmailSent('emailjs', type);
     return 'emailjs';
   } catch (e) { console.error('Email error:', e); toast('⚠️ Imèl pa voye: '+(e?.text||e?.message||JSON.stringify(e)).slice(0,120)); return false; }
 }
+
+function logEmailSent(service, kind){
+  try {
+    db.from('email_log').insert({ service, kind: kind || null }).then(
+      () => { if (document.getElementById('emailUsage')) loadEmailUsage(); },
+      () => {}
+    );
+  } catch(e) {}
+}
+
+async function loadEmailUsage(){
+  const box = document.getElementById('emailUsage');
+  if(!box) return;
+  try {
+    const now = new Date();
+    const since24 = new Date(now.getTime() - 24*3600*1000).toISOString();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const [g, e] = await Promise.all([
+      db.from('email_log').select('*', { count:'exact', head:true }).eq('service','google').gte('created_at', since24),
+      db.from('email_log').select('*', { count:'exact', head:true }).eq('service','emailjs').gte('created_at', monthStart)
+    ]);
+    if (g.error || e.error) throw (g.error || e.error);
+    const gc = g.count || 0, ec = e.count || 0;
+    const gLeft = Math.max(0, 100 - gc), eLeft = Math.max(0, 200 - ec);
+    const bar = (used, max, color) => `<div style="height:8px;background:#E2E8F0;border-radius:6px;overflow:hidden;margin:4px 0 8px;"><div style="height:100%;width:${Math.min(100, Math.round(used*100/max))}%;background:${color};"></div></div>`;
+    box.innerHTML =
+      `<div style="font-weight:700;color:#0369A1;font-size:13px;margin-top:10px;">📊 Imèl ki rete (apeprè)</div>` +
+      `<div style="font-size:13px;margin-top:6px;">Google Script: <b>${gLeft}</b> rete sou 100 (24 dènye èdtan)</div>${bar(gc,100,'#0284C7')}` +
+      `<div style="font-size:13px;">EmailJS: <b>${eLeft}</b> rete sou 200 (mwa sa a)</div>${bar(ec,200,'#F59E0B')}` +
+      `<div style="font-size:11px;color:#64748B;">Se sèlman imèl app la voye depi konpteur la limen yo konte. Tablo EmailJS la (dashboard.emailjs.com) montre chif egzat la.</div>`;
+  } catch(err) {
+    box.innerHTML = `<div style="font-size:12px;color:#64748B;margin-top:10px;">📊 Konpteur poko disponib (kreye tab email_log nan Supabase).</div>`;
+  }
+}
+window.loadEmailUsage = loadEmailUsage;
 
 const EMAIL_SERVICE_LABELS = { auto: 'Otomatik', google: 'Google Script sèlman', emailjs: 'EmailJS sèlman' };
 function showEmailServiceStatus(){
