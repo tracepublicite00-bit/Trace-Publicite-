@@ -1802,6 +1802,25 @@ function prefillDepositUserInfo(){
 }
 window.prefillDepositUserInfo = prefillDepositUserInfo;
 
+function showDepositReminder(){
+  if(document.getElementById('depReminder')) return;
+  const d = document.createElement('div');
+  d.id = 'depReminder';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  d.innerHTML = `<div style="background:#fff;border:4px solid #F59E0B;border-radius:18px;padding:20px;max-width:380px;width:100%;text-align:center;">
+    <div style="font-size:26px;font-weight:900;color:#B45309;">⚠️ ATANSYON</div>
+    <div style="font-size:21px;font-weight:800;color:#92400E;margin-top:10px;">Fòm ki nan foto a se yon EGZANP.<br>PA RANPLI L!</div>
+    <div style="font-size:18px;font-weight:700;color:#78350F;margin-top:12px;">Soti sou li ak bouton flèch la (←), epi ale nan <b>Depoze Lajan</b>. Se fòm sa a pou nou ranpli.</div>
+    <button class="btn btn-gold" style="margin-top:16px;width:100%;font-size:18px;" onclick="closeDepositReminder()">OK, mwen konprann</button>
+  </div>`;
+  document.body.appendChild(d);
+}
+function closeDepositReminder(){
+  const d = document.getElementById('depReminder');
+  if(d) d.remove();
+}
+window.closeDepositReminder = closeDepositReminder;
+
 function checkAccessCode(courseId){
   const entered = document.getElementById('courseAccessCode').value;
   const myCode = currentUser?.accessCode || (currentUser ? computeAccessCode(currentUser.tel) : null);
@@ -1811,6 +1830,7 @@ function checkAccessCode(courseId){
     result.innerHTML = '<span style="color:var(--vet)">Kòd korèk — men ou dwe fè depo a konfime pa admin anvan aksè final.</span>';
     document.getElementById('depForCourse').value = courseId;
     go('depoze');
+    if(settings.depositVideoUrl) showDepositReminder();
   } else {
     result.innerHTML = '<span style="color:var(--wouj)">Kòd la pa koresponn ak kont ou.</span>';
   }
@@ -2330,6 +2350,27 @@ function clearDepositFoto(){
 }
 window.clearDepositFoto = clearDepositFoto;
 
+function askDuplicateDeposit(amountText){
+  return new Promise(resolve => {
+    const old = document.getElementById('dupDepositModal');
+    if(old) old.remove();
+    const d = document.createElement('div');
+    d.id = 'dupDepositModal';
+    d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    d.innerHTML = `<div style="background:#fff;border:4px solid #F59E0B;border-radius:18px;padding:20px;max-width:380px;width:100%;text-align:center;">
+      <div style="font-size:26px;font-weight:900;color:#B45309;">⚠️ ATANSYON</div>
+      <div style="font-size:20px;font-weight:800;color:#92400E;margin-top:10px;">Ou gen deja yon depo ki poko konfime (${amountText}).</div>
+      <div style="font-size:17px;font-weight:700;color:#78350F;margin-top:10px;">Li ap tann verifikasyon. Pa voye l ankò si se menm depo a.</div>
+      <button id="dupNo" class="btn btn-gold" style="margin-top:16px;width:100%;font-size:17px;">Non, mwen pa voye l ankò</button>
+      <button id="dupYes" class="btn" style="margin-top:10px;width:100%;font-size:16px;background:#fff;color:#92400E;border:2px solid #F59E0B;">Wi, se yon lòt depo</button>
+    </div>`;
+    document.body.appendChild(d);
+    const done = (v) => { d.remove(); resolve(v); };
+    d.querySelector('#dupNo').onclick = () => done(false);
+    d.querySelector('#dupYes').onclick = () => done(true);
+  });
+}
+
 async function submitDeposit(){
   const btn = document.querySelector('#depoze .btn-gold');
   if(btn && btn.disabled) return;
@@ -2342,6 +2383,18 @@ async function submitDeposit(){
   if(!montan || montan < minAmount){ toast(`Montan minimòm se ${minAmount} ${state.dev==='usd'?'USD':'G'}`); return; }
   if(!prenon || !siyati || !tel){ toast('Tanpri ranpli tout chan yo'); return; }
   if(!foto){ toast('Mete yon foto kòm prèv depo'); return; }
+
+  // Pwoteksyon kont depo doub: si moun nan gen deja yon depo k ap tann, mande l konfime
+  if(currentUser?.id){
+    try {
+      const { data: pend } = await db.from('deposits').select('id,montan,devise').eq('user_id', currentUser.id).eq('status', 'atant');
+      if(pend && pend.length){
+        const p0 = pend[0];
+        const ok = await askDuplicateDeposit(p0.montan + ' ' + (p0.devise === 'usd' ? 'USD' : 'G'));
+        if(!ok) return;
+      }
+    } catch(e) { console.warn('Verifikasyon depo doub echwe:', e); }
+  }
 
   if(btn){ btn.disabled = true; btn.textContent = 'Ap voye...'; }
 
