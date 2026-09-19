@@ -838,6 +838,20 @@ window.addEventListener('unhandledrejection', function(e) {
       <input id="admin_teacherFee" type="number" value="3000">
       <button class="btn" style="margin-top:14px;background:linear-gradient(90deg,#DB2777,#F472B6);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="saveAdminSettings()">Anrejistre chanjman yo</button>
     </div>
+
+    <div class="card" style="background:linear-gradient(135deg,#F0F9FF 0%,#E0F2FE 100%);border:2px solid #0284C7;border-radius:16px;">
+      <div class="section-title" style="color:#0369A1;">📧 Sèvis Imèl</div>
+      <p class="hint">Chwazi ki sèvis ki voye imèl byenveni ak imèl konfimasyon depo yo bay itilizatè yo.</p>
+      <label>Sèvis imèl</label>
+      <select id="admin_emailService">
+        <option value="auto">Otomatik (rekòmande): Google Script an premye, EmailJS si li echwe</option>
+        <option value="google">Google Script sèlman (Gmail, ~100 imèl/jou)</option>
+        <option value="emailjs">EmailJS sèlman (200 imèl/mwa)</option>
+      </select>
+      <button class="btn" style="margin-top:14px;background:linear-gradient(90deg,#0284C7,#38BDF8);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="saveEmailService()">Anrejistre sèvis imèl la</button>
+      <button class="btn" style="margin-top:8px;background:#fff;color:#0369A1;font-weight:700;border:2px solid #0284C7;" onclick="testEmailService()">Voye yon imèl tès</button>
+      <p id="emailServiceStatus" class="hint" style="margin-top:8px;"></p>
+    </div>
   </section>
 
   <nav class="bottomnav">
@@ -2945,6 +2959,8 @@ function openIconSettingsModal(){
 }
 window.openIconSettingsModal = openIconSettingsModal;
   document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
+  const emailSel = document.getElementById('admin_emailService');
+  if(emailSel) emailSel.value = settings.emailService || 'auto';
   updateTeacherFeeText();
   updateCompanyCondText();
 
@@ -3585,6 +3601,27 @@ const EMAILJS_TEMPLATE_DEPOSIT = 'template_32psx62';
 const EMAILJS_TEMPLATE_WELCOME = 'template_nvwwin2';
 if (window.emailjs) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
+// Google Apps Script (Gmail tracepublicite00) — sèvis prensipal pou imèl itilizatè yo. EmailJS pran plas si li echwe.
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFgM2mRPYWLbDpKJCoB--8xnb0rGRyHbWpcgBJT44aT8s8PRKRDGPvNPG850OWhwjzPg/exec';
+const APPS_SCRIPT_SECRET = 'tp-8492-kzq';
+
+async function sendViaAppsScript(to, subject, message, type, name) {
+  const r = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      secret: APPS_SCRIPT_SECRET,
+      to,
+      name: name || '',
+      subject,
+      message,
+      type: (type === 'registration') ? 'registration' : 'notification'
+    })
+  });
+  const data = await r.json();
+  return !!(data && data.ok === true);
+}
+
 async function sendEmailNotification(to, subject, message, type, name) {
   if(!to) return;
   if(type === 'new_deposit'){
@@ -3598,6 +3635,21 @@ async function sendEmailNotification(to, subject, message, type, name) {
     } catch (e) { console.error('Email error (Resend):', e); toast('⚠️ Imèl admin echwe: '+e.message); }
     return;
   }
+  // Chwa admin nan: 'auto' (defo) | 'google' | 'emailjs'
+  const mode = (settings && settings.emailService) || 'auto';
+  if (mode !== 'emailjs') {
+    try {
+      if (await sendViaAppsScript(to, subject, message, type, name)) return 'google';
+      console.warn('Apps Script pa reponn ok');
+    } catch (e) {
+      console.warn('Apps Script echwe:', e);
+    }
+    if (mode === 'google') {
+      toast('⚠️ Imèl pa voye (Google Script). Chwazi "Otomatik" nan Admin pou EmailJS pran plas.');
+      return false;
+    }
+  }
+  // Rezèv (oswa chwa "EmailJS sèlman"): EmailJS
   const templateId = (type === 'registration') ? EMAILJS_TEMPLATE_WELCOME : EMAILJS_TEMPLATE_DEPOSIT;
   const m = message.match(/([\d.,]+)\s*(USD|HTG|G)\b/i);
   const amount = m ? m[1] : '';
@@ -3609,8 +3661,44 @@ async function sendEmailNotification(to, subject, message, type, name) {
       amount,
       currency
     });
-  } catch (e) { console.error('Email error:', e); toast('⚠️ Imèl pa voye: '+(e?.text||e?.message||JSON.stringify(e)).slice(0,120)); }
+    return 'emailjs';
+  } catch (e) { console.error('Email error:', e); toast('⚠️ Imèl pa voye: '+(e?.text||e?.message||JSON.stringify(e)).slice(0,120)); return false; }
 }
+
+async function saveEmailService(){
+  const sel = document.getElementById('admin_emailService');
+  const st = document.getElementById('emailServiceStatus');
+  if(!sel) return;
+  const v = sel.value;
+  const res = await updateRow('settings', 'main', { emailService: v });
+  if(!res.success){
+    toast('⚠️ Pa ka sovgade. Kolòn email_service poko nan Supabase (ekzekite SQL la).');
+    if(st) st.textContent = '❌ Pa sovgade. Ajoute kolòn email_service nan tab settings (SQL).';
+    return;
+  }
+  settings.emailService = v;
+  toast('Sèvis imèl anrejistre ✅');
+  if(st) st.textContent = '✅ Anrejistre.';
+}
+window.saveEmailService = saveEmailService;
+
+async function testEmailService(){
+  const sel = document.getElementById('admin_emailService');
+  const st = document.getElementById('emailServiceStatus');
+  if(st) st.textContent = 'Ap voye yon imèl tès bay tracepublicite00@gmail.com ...';
+  const prev = settings.emailService;
+  settings.emailService = sel ? sel.value : prev;
+  let r = false;
+  try {
+    r = await sendEmailNotification('tracepublicite00@gmail.com', 'Tès imèl', 'Tès imèl soti nan Panèl Admin.', 'registration', 'Admin');
+  } finally {
+    settings.emailService = prev;
+  }
+  if(st) st.textContent = r === 'google' ? '✅ Tès voye pa Google Script. Gade Gmail (ak Spam).'
+    : r === 'emailjs' ? '✅ Tès voye pa EmailJS. Gade Gmail (ak Spam).'
+    : '❌ Tès pa voye. Gade mesaj erè a anlè.';
+}
+window.testEmailService = testEmailService;
 
 async function confirmDeposit(id){
   const btn = document.getElementById('confBtn_'+id);
