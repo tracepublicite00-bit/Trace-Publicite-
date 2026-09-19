@@ -467,6 +467,8 @@ window.addEventListener('unhandledrejection', function(e) {
       <input id="co_stepYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
       <label>Lyen aplikasyon pou telechaje (opsyonèl)</label>
       <input id="co_stepAppLink" placeholder="https://...">
+      <label>📝 Tèks / Prompt pou elèv yo kopye (opsyonèl)</label>
+      <textarea id="co_stepPromptText" rows="6" placeholder="Kole prompt la isit la (ka soti sou WhatsApp)..."></textarea>
       <label>Imaj (opsyonèl — max 40 MB chak, ou ka chwazi plizyè)</label>
       <input id="co_stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('co_stepImageFile','co_stepImagePreview','image')">
       <div id="co_stepImagePreview"></div>
@@ -749,6 +751,9 @@ window.addEventListener('unhandledrejection', function(e) {
         <label>Lyen aplikasyon pou telechaje (opsyonèl)</label>
         <input id="stepAppLink" placeholder="https://...">
         <p class="hint">Lyen sa a ap parèt kòm yon bouton anba etap la pou elèv yo ka al telechaje yon aplikasyon.</p>
+        <label>📝 Tèks / Prompt pou elèv yo kopye (opsyonèl)</label>
+        <textarea id="stepPromptText" rows="6" placeholder="Kole prompt la isit la (ka soti sou WhatsApp)..."></textarea>
+        <p class="hint">Elèv yo ap wè tèks sa a anba etap la ak yon bouton "📋 Kopye" pou yo kole l kote yo vle.</p>
         <label>Imaj (opsyonèl — ou ka chwazi plizyè)</label>
         <input id="stepImageFile" type="file" accept="image/*" multiple onchange="previewStepFile('stepImageFile','stepImagePreview','image')">
         <div id="stepImagePreview"></div>
@@ -2120,6 +2125,31 @@ function openStepViewersModal(courseId, index){
 }
 window.openStepViewersModal = openStepViewersModal;
 
+function escPromptHtml(t){
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+async function copyStepPrompt(courseId, i){
+  const k = courses.find(x=>x.id===courseId);
+  const txt = k && k.videos && k.videos[i] ? k.videos[i].promptText : '';
+  if(!txt){ toast('Pa gen tèks pou kopye'); return; }
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast('Prompt la kopye ✅');
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    let ok = false;
+    try{ ok = document.execCommand('copy'); }catch(_){}
+    document.body.removeChild(ta);
+    toast(ok ? 'Prompt la kopye ✅' : 'Pa t kapab kopye — peze long sou tèks la');
+  }
+}
+window.copyStepPrompt = copyStepPrompt;
+
 async function openCourse(id){
   state.currentCourse = id;
   await incrementField('courses', id, 'views', 1);
@@ -2157,7 +2187,14 @@ async function openCourse(id){
         ${(v.imageUrls && v.imageUrls.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">${v.imageUrls.map(u=>`<img src="${u}" style="width:100%;max-width:100%;border-radius:10px;">`).join('')}</div>` : ''}
         ${v.audioUrl ? `<audio src="${v.audioUrl}" controls style="width:100%;margin-top:8px;"></audio>` : ''}
         ${v.appLink ? `<a class="btn btn-gold" style="margin-top:10px;text-decoration:none;" href="${v.appLink}" target="_blank">📲 Telechaje Aplikasyon</a>` : ''}
-        ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl && !v.appLink && !(v.imageUrls && v.imageUrls.length)) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
+        ${v.promptText ? `<div style="margin-top:10px;border:1.5px dashed var(--border);border-radius:10px;padding:10px;background:#fff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+              <b style="font-size:13px;">📝 Prompt</b>
+              <button type="button" class="btn btn-primary" style="width:auto;padding:6px 14px;font-size:13px;" onclick="copyStepPrompt('${id}', ${i})">📋 Kopye</button>
+            </div>
+            <div style="white-space:pre-wrap;word-break:break-word;font-size:13.5px;user-select:text;-webkit-user-select:text;">${escPromptHtml(v.promptText)}</div>
+          </div>` : ''}
+        ${(!v.youtubeUrl && !v.videoUrl && !v.imageUrl && !v.audioUrl && !v.appLink && !v.promptText && !(v.imageUrls && v.imageUrls.length)) ? `<div class="hint">Kontni pa ajoute pou etap sa a poko.</div>` : ''}
       </div>`).join('') || `<div class="empty">Pa gen etap kreye pou kou sa a.</div>`;
   } else {
     document.getElementById('videoArea').innerHTML = `
@@ -2774,6 +2811,7 @@ async function addCompanyCourseStep(){
   const audioFile = document.getElementById('co_stepAudioFile').files[0];
   const youtubeUrl = document.getElementById('co_stepYoutubeUrl').value.trim();
   const appLink = document.getElementById('co_stepAppLink').value.trim();
+  const promptText = document.getElementById('co_stepPromptText').value.trim();
 
   const oversized = [videoFile, ...(imageFiles||[]), audioFile].filter(f=>f && f.size > MAX_COMPANY_UPLOAD_BYTES);
   if(oversized.length){ toast(`Fichye "${oversized[0].name}" twò gwo — limit la se 40 MB pa fichye`); return; }
@@ -2782,6 +2820,7 @@ async function addCompanyCourseStep(){
   const step = { id: 'v'+Date.now(), title, locked:false };
   if(youtubeUrl) step.youtubeUrl = youtubeUrl;
   if(appLink) step.appLink = appLink;
+  if(promptText) step.promptText = promptText;
   let uploadFailed = false;
   let uploadErrors = [];
   if(videoFile){
@@ -2833,6 +2872,7 @@ async function addCompanyCourseStep(){
   document.getElementById('co_stepAudioFile').value = '';
   document.getElementById('co_stepYoutubeUrl').value = '';
   document.getElementById('co_stepAppLink').value = '';
+  document.getElementById('co_stepPromptText').value = '';
   document.getElementById('co_stepVideoPreview').innerHTML = '';
   document.getElementById('co_stepImagePreview').innerHTML = '';
   document.getElementById('co_stepAudioPreview').innerHTML = '';
@@ -4595,12 +4635,14 @@ async function addCourseStep(){
   const audioFile = document.getElementById('stepAudioFile').files[0];
   const youtubeUrl = document.getElementById('stepYoutubeUrl').value.trim();
   const appLink = document.getElementById('stepAppLink').value.trim();
+  const promptText = document.getElementById('stepPromptText').value.trim();
 
   statusEl.textContent = 'Ajoute etap la...';
   const allowDownload = document.getElementById('toggleAllowDownload').classList.contains('on');
   const step = { id: 'v'+Date.now(), title, locked:false, allowDownload };
   if(youtubeUrl) step.youtubeUrl = youtubeUrl;
   if(appLink) step.appLink = appLink;
+  if(promptText) step.promptText = promptText;
   let uploadFailed = false;
   let uploadErrors = [];
   if(videoFile){
@@ -4653,6 +4695,7 @@ async function addCourseStep(){
   document.getElementById('stepAudioFile').value = '';
   document.getElementById('stepYoutubeUrl').value = '';
   document.getElementById('stepAppLink').value = '';
+  document.getElementById('stepPromptText').value = '';
   document.getElementById('stepVideoPreview').innerHTML = '';
   document.getElementById('stepImagePreview').innerHTML = '';
   document.getElementById('stepAudioPreview').innerHTML = '';
