@@ -972,6 +972,17 @@ function normalizePhone(tel){
   const digits = (tel||'').replace(/\D/g,'');
   return digits.startsWith('509') ? digits.slice(3) : digits;
 }
+function formatTel(tel){
+  const raw = String(tel||'').trim();
+  const d = raw.replace(/\D/g,'');
+  if(!d) return '';
+  let local = null;
+  if(d.length === 8) local = d;
+  else if(d.length === 11 && d.startsWith('509')) local = d.slice(3);
+  if(local) return '+509 ' + local.slice(0,4) + ' ' + local.slice(4);
+  return raw;
+}
+window.formatTel = formatTel;
 function dedupeByPhone(list){
   const seen = new Set();
   const out = [];
@@ -2444,7 +2455,7 @@ async function submitDeposit(){
   const montan = document.getElementById('dep_montan').value;
   const prenon = document.getElementById('dep_prenon').value;
   const siyati = document.getElementById('dep_siyati').value;
-  const tel = document.getElementById('dep_tel').value;
+  const tel = formatTel(document.getElementById('dep_tel').value);
   const foto = document.getElementById('dep_foto').files[0];
   const minAmount = state.dev==='usd' ? 20 : 1000;
   if(!montan || montan < minAmount){ toast(`Montan minimòm se ${minAmount} ${state.dev==='usd'?'USD':'G'}`); return; }
@@ -2493,10 +2504,11 @@ async function submitRegister(){
   if(btn.disabled) return;
   const non = document.getElementById('reg_non').value;
   const email = document.getElementById('reg_email').value;
-  const tel = document.getElementById('reg_tel').value;
+  const tel = formatTel(document.getElementById('reg_tel').value);
   const peyi = document.getElementById('reg_peyi').value;
   const vil = document.getElementById('reg_vil').value;
   if(!non||!email||!tel||!peyi||!vil){ toast('Tanpri ranpli tout chan yo'); return; }
+  if(tel.replace(/\D/g,'').length < 8){ toast('Nimewo telefòn nan twò kout. Mete 8 chif (egzanp 3712 3456)'); return; }
   btn.disabled = true;
   btn.textContent = 'Ap kreye kont...';
 
@@ -3009,19 +3021,19 @@ function exportData(kind){
     const list = dedupeByPhone(allUsers);
     downloadCsv(`itilizate-${stamp}.csv`,
       ['Non','Imèl','Telefòn','Peyi','Vil','Fòmasyon achte','Fòmasyon fini','Bloke','Dat enskripsyon'],
-      list.map(u=>[u.non,u.email,u.tel,u.peyi,u.vil,u.achte||0,u.fini||0,u.blocked?'Wi':'Non',exportDateStr(u.createdAt)]));
+      list.map(u=>[u.non,u.email,formatTel(u.tel),u.peyi,u.vil,u.achte||0,u.fini||0,u.blocked?'Wi':'Non',exportDateStr(u.createdAt)]));
     toast('Fichye itilizatè yo pare ✅');
   } else if(kind === 'deposits'){
     const list = deposits.slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
     downloadCsv(`depo-${stamp}.csv`,
       ['Dat','Prenon','Siyati','Telefòn','Montan','Devise','Metòd','Estati','Kou','Antrepriz'],
-      list.map(d=>[exportDateStr(d.createdAt),d.prenon,d.siyati,d.tel,d.montan,(d.devise==='usd'?'USD':'HTG'),d.method,d.status,courseTitle(d.courseId),companyOfCourse(d.courseId)]));
+      list.map(d=>[exportDateStr(d.createdAt),d.prenon,d.siyati,formatTel(d.tel),d.montan,(d.devise==='usd'?'USD':'HTG'),d.method,d.status,courseTitle(d.courseId),companyOfCourse(d.courseId)]));
     toast('Fichye depo yo pare ✅');
   } else if(kind === 'sales'){
     const list = deposits.filter(d=>d.status==='konfime').slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
     downloadCsv(`vant-${stamp}.csv`,
       ['Dat','Kliyan','Telefòn','Kou','Antrepriz','Montan','Devise','Metòd'],
-      list.map(d=>[exportDateStr(d.createdAt),`${d.prenon||''} ${d.siyati||''}`.trim(),d.tel,courseTitle(d.courseId),companyOfCourse(d.courseId),d.montan,(d.devise==='usd'?'USD':'HTG'),d.method]));
+      list.map(d=>[exportDateStr(d.createdAt),`${d.prenon||''} ${d.siyati||''}`.trim(),formatTel(d.tel),courseTitle(d.courseId),companyOfCourse(d.courseId),d.montan,(d.devise==='usd'?'USD':'HTG'),d.method]));
     toast('Fichye vant yo pare ✅');
   }
 }
