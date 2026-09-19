@@ -843,11 +843,21 @@ window.addEventListener('unhandledrejection', function(e) {
       <div class="section-title" style="color:#0369A1;">📧 Sèvis Imèl</div>
       <p class="hint">Chwazi ki sèvis ki voye imèl byenveni ak imèl konfimasyon depo yo bay itilizatè yo.</p>
       <label>Sèvis imèl</label>
-      <select id="admin_emailService">
-        <option value="auto">Otomatik (rekòmande): Google Script an premye, EmailJS si li echwe</option>
-        <option value="google">Google Script sèlman (Gmail, ~100 imèl/jou)</option>
-        <option value="emailjs">EmailJS sèlman (200 imèl/mwa)</option>
-      </select>
+      <input type="hidden" id="admin_emailService" value="auto">
+      <div id="emailServiceOptions" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+        <button type="button" data-v="auto" onclick="selectEmailService('auto')" style="text-align:left;padding:10px 12px;border-radius:12px;border:2px solid #BAE6FD;background:#fff;cursor:pointer;">
+          <div style="font-weight:700;font-size:14px;color:#0369A1;">Otomatik (rekòmande)</div>
+          <div style="font-size:12px;color:#475569;margin-top:2px;">Google Script an premye, EmailJS si li echwe</div>
+        </button>
+        <button type="button" data-v="google" onclick="selectEmailService('google')" style="text-align:left;padding:10px 12px;border-radius:12px;border:2px solid #BAE6FD;background:#fff;cursor:pointer;">
+          <div style="font-weight:700;font-size:14px;color:#0369A1;">Google Script sèlman</div>
+          <div style="font-size:12px;color:#475569;margin-top:2px;">Gmail, apeprè 100 imèl pa jou</div>
+        </button>
+        <button type="button" data-v="emailjs" onclick="selectEmailService('emailjs')" style="text-align:left;padding:10px 12px;border-radius:12px;border:2px solid #BAE6FD;background:#fff;cursor:pointer;">
+          <div style="font-weight:700;font-size:14px;color:#0369A1;">EmailJS sèlman</div>
+          <div style="font-size:12px;color:#475569;margin-top:2px;">200 imèl pa mwa</div>
+        </button>
+      </div>
       <button class="btn" style="margin-top:14px;background:linear-gradient(90deg,#0284C7,#38BDF8);color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" onclick="saveEmailService()">Anrejistre sèvis imèl la</button>
       <button class="btn" style="margin-top:8px;background:#fff;color:#0369A1;font-weight:700;border:2px solid #0284C7;" onclick="testEmailService()">Voye yon imèl tès</button>
       <p id="emailServiceStatus" class="hint" style="margin-top:8px;"></p>
@@ -2959,8 +2969,7 @@ function openIconSettingsModal(){
 }
 window.openIconSettingsModal = openIconSettingsModal;
   document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
-  const emailSel = document.getElementById('admin_emailService');
-  if(emailSel) emailSel.value = settings.emailService || 'auto';
+  if(window.selectEmailService) window.selectEmailService(settings.emailService || 'auto');
   updateTeacherFeeText();
   updateCompanyCondText();
 
@@ -3664,6 +3673,18 @@ async function sendEmailNotification(to, subject, message, type, name) {
     return 'emailjs';
   } catch (e) { console.error('Email error:', e); toast('⚠️ Imèl pa voye: '+(e?.text||e?.message||JSON.stringify(e)).slice(0,120)); return false; }
 }
+
+function selectEmailService(v){
+  const hid = document.getElementById('admin_emailService');
+  if(hid) hid.value = v;
+  document.querySelectorAll('#emailServiceOptions button').forEach(b=>{
+    const on = b.dataset.v === v;
+    b.style.borderColor = on ? '#0284C7' : '#BAE6FD';
+    b.style.background = on ? '#E0F2FE' : '#fff';
+    b.style.boxShadow = on ? '0 0 0 2px rgba(2,132,199,.25)' : 'none';
+  });
+}
+window.selectEmailService = selectEmailService;
 
 async function saveEmailService(){
   const sel = document.getElementById('admin_emailService');
