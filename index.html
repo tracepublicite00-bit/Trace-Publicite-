@@ -2980,7 +2980,8 @@ window.whatsappDepositReminder = whatsappDepositReminder;
 function csvCell(v){
   if(v === null || v === undefined) return '""';
   let t = String(v);
-  if(typeof v === 'string' && /^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  const phoneLike = /^\+?[\d\s().\-]+$/.test(t);
+  if(typeof v === 'string' && !phoneLike && /^[=+\-@\t\r]/.test(t)) t = "'" + t;
   return '"' + t.replace(/"/g,'""') + '"';
 }
 function downloadCsv(filename, headers, rows){
