@@ -2970,6 +2970,7 @@ function openIconSettingsModal(){
 window.openIconSettingsModal = openIconSettingsModal;
   document.getElementById('admin_teacherFee').value = settings.teacherFee ?? 3000;
   if(window.selectEmailService) window.selectEmailService(settings.emailService || 'auto');
+  if(window.showEmailServiceStatus) window.showEmailServiceStatus();
   updateTeacherFeeText();
   updateCompanyCondText();
 
@@ -3674,6 +3675,17 @@ async function sendEmailNotification(to, subject, message, type, name) {
   } catch (e) { console.error('Email error:', e); toast('⚠️ Imèl pa voye: '+(e?.text||e?.message||JSON.stringify(e)).slice(0,120)); return false; }
 }
 
+const EMAIL_SERVICE_LABELS = { auto: 'Otomatik', google: 'Google Script sèlman', emailjs: 'EmailJS sèlman' };
+function showEmailServiceStatus(){
+  const st = document.getElementById('emailServiceStatus');
+  if(!st) return;
+  const saved = settings && settings.emailService;
+  st.textContent = saved
+    ? '✅ Anrejistre: ' + (EMAIL_SERVICE_LABELS[saved] || saved)
+    : 'ℹ️ Pa gen chwa anrejistre. Otomatik ap itilize pa defo.';
+}
+window.showEmailServiceStatus = showEmailServiceStatus;
+
 function selectEmailService(v){
   const hid = document.getElementById('admin_emailService');
   if(hid) hid.value = v;
@@ -3699,7 +3711,7 @@ async function saveEmailService(){
   }
   settings.emailService = v;
   toast('Sèvis imèl anrejistre ✅');
-  if(st) st.textContent = '✅ Anrejistre.';
+  showEmailServiceStatus();
 }
 window.saveEmailService = saveEmailService;
 
@@ -3718,6 +3730,7 @@ async function testEmailService(){
   if(st) st.textContent = r === 'google' ? '✅ Tès voye pa Google Script. Gade Gmail (ak Spam).'
     : r === 'emailjs' ? '✅ Tès voye pa EmailJS. Gade Gmail (ak Spam).'
     : '❌ Tès pa voye. Gade mesaj erè a anlè.';
+  setTimeout(showEmailServiceStatus, 6000);
 }
 window.testEmailService = testEmailService;
 
