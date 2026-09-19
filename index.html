@@ -3063,21 +3063,7 @@ window.openIconSettingsModal = openIconSettingsModal;
     renderStepList();
   }
 
-  const promoBox = document.getElementById('adminPromoPosts');
-  if(promoBox){
-    promoBox.innerHTML = promoPosts.length
-      ? promoPosts.map(p=>`
-        <div class="kv" style="align-items:center;">
-          <span class="k" style="display:flex;align-items:center;gap:8px;">
-            ${p.mediaType==='video'
-              ? `<span style="width:44px;height:34px;border-radius:6px;background:#000;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🎬</span>`
-              : `<img src="${p.mediaUrl}" style="width:44px;height:34px;object-fit:cover;border-radius:6px;flex-shrink:0;">`}
-            <span>${p.title || '(San tit)'}</span>
-          </span>
-          <button class="btn btn-danger" style="width:auto;padding:4px 10px;font-size:11px;" onclick="deletePromoPost('${p.id}')">Efase</button>
-        </div>`).join('')
-      : `<div class="empty">Pa gen flyè ajoute pou kounye a.</div>`;
-  }
+  renderAdminPromoPosts();
 
   const coursesBox = document.getElementById('adminCourses');
   if(coursesBox){
@@ -3165,6 +3151,46 @@ function computeCourseSalesTotal(courseId){
   const totalUsd = confirmedDeps.filter(d=>d.devise==='usd').reduce((s,d)=>s+(Number(d.montan)||0), 0);
   return { totalHtg, totalUsd };
 }
+
+function togglePromoPost(id){
+  if(!state.expandedPromoPosts) state.expandedPromoPosts = new Set();
+  if(state.expandedPromoPosts.has(id)) state.expandedPromoPosts.delete(id);
+  else state.expandedPromoPosts.add(id);
+  renderAdminPromoPosts();
+}
+window.togglePromoPost = togglePromoPost;
+
+function renderAdminPromoPosts(){
+  const promoBox = document.getElementById('adminPromoPosts');
+  if(!promoBox) return;
+  if(!state.expandedPromoPosts) state.expandedPromoPosts = new Set();
+  if(!promoPosts.length){
+    promoBox.innerHTML = `<div class="empty">Pa gen flyè ajoute pou kounye a.</div>`;
+    return;
+  }
+  promoBox.innerHTML = promoPosts.map(p=>{
+    const expanded = state.expandedPromoPosts.has(p.id);
+    const thumb = p.mediaType==='video'
+      ? `<span style="width:32px;height:26px;border-radius:5px;background:#000;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">🎬</span>`
+      : `<img src="${p.mediaUrl}" style="width:32px;height:26px;object-fit:cover;border-radius:5px;flex-shrink:0;">`;
+    const big = p.mediaType==='video'
+      ? `<video src="${p.mediaUrl}" controls style="width:100%;max-height:220px;border-radius:10px;background:#000;"></video>`
+      : `<img src="${p.mediaUrl}" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:#000;">`;
+    return `
+    <div class="card" style="background:var(--gri);margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;" onclick="togglePromoPost('${p.id}')">
+        <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;min-width:0;">${thumb}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.title || '(San tit)'}</span></div>
+        <span style="font-size:12.5px;color:var(--tex-mou);">${expanded?'▲':'▼'}</span>
+      </div>
+      ${expanded ? `
+      <div style="margin-top:10px;">
+        ${big}
+        <button class="btn btn-danger" style="margin-top:10px;" onclick="event.stopPropagation(); deletePromoPost('${p.id}')">Efase flyè sa a</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+window.renderAdminPromoPosts = renderAdminPromoPosts;
 
 function toggleCompanyCard(companyId){
   if(!state.expandedCompanyCards) state.expandedCompanyCards = new Set();
