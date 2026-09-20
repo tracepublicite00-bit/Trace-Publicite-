@@ -664,6 +664,14 @@ window.addEventListener('unhandledrejection', function(e) {
       <div class="kv"><span class="k">Estati notifikasyon</span><span class="v" id="notifStatusBadgeAdmin">—</span></div>
       <button class="btn" style="margin-top:8px;margin-bottom:14px;background:linear-gradient(90deg,#7C3AED,var(--or));color:#fff;font-weight:700;border:none;box-shadow:0 4px 10px rgba(0,0,0,.15);" id="notifStatusBtnAdmin" onclick="checkNotifStatus()">🔔 Verifye / Aktive notifikasyon</button>
       <div class="section-title" style="color:#6D28D9;">Depo an atant</div>
+      <div class="kv" style="align-items:center;gap:10px;">
+        <span class="k" style="font-size:15px;">💬 Bouton otomatik</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <b id="waAutoStatus" style="font-size:14px;color:#DC2626;white-space:nowrap;">🔴 OFF · fèmen</b>
+          <div class="toggle" id="toggleWaAuto" onclick="toggleWaAuto()"><div class="dot"></div></div>
+        </span>
+      </div>
+      <div class="hint" style="font-size:13px;line-height:1.45;margin:2px 0 10px;"><b>ON · ouvè:</b> bouton "WhatsApp pou tout depo yo" mache, epi lè yon nouvo depo rive aparèy la fè yon alèt ak son. Ou peze, WhatsApp louvri ak mesaj la pare, ou jis peze "Voye". <b>OFF · fèmen:</b> bouton an pa travay, pa gen alèt. Entèriptè a sèlman pou aparèy sa a (limen l sou tablèt la).</div>
       <div id="adminDeposits"></div>
     </div>
 
@@ -1101,8 +1109,14 @@ async function refreshUsers(){
 }
 async function refreshDeposits(){
   const prevPending = deposits.filter(d=>d.status==='atant').length;
+  const prevIds = new Set(deposits.filter(d=>d.status==='atant').map(d=>d.id));
+  const firstLoad = !depositsLoadedOnce;
   deposits = await fetchAll('deposits');
+  depositsLoadedOnce = true;
   const newPending = deposits.filter(d=>d.status==='atant').length;
+  if(!firstLoad && waAutoEnabled() && isAdminDevice()){
+    deposits.filter(d=>d.status==='atant' && !prevIds.has(d.id)).forEach(waAutoAlert);
+  }
   if(newPending > prevPending && typeof Notification !== 'undefined' && Notification.permission === 'granted'){
     showNotif('Trace Publicité', 'Yon nouvo depo rive — al konfime li nan Panèl Admin.');
   }
@@ -2523,9 +2537,20 @@ async function submitDeposit(){
     fotoUrl
   });
 
+  if(currentUser){
+    try{
+      await insertRow('notifications', {
+        userId: currentUser.id,
+        message: `✅ Nou resevwa depo w la (${montan} ${state.dev==='usd'?'USD':'G'}). N ap verifye l nan kèk minit. Ou pral resevwa yon notifikasyon lè l konfime.`,
+        isRead: false
+      });
+    }catch(e){ console.warn('Notifikasyon depo echwe:', e); }
+  }
+
   sendEmailNotification('tracepublicite00@gmail.com', 'Nouvo depo rive!', `Yon nouvo depo rive: ${montan} ${state.dev==='usd'?'USD':'HTG'} soti nan ${prenon} ${siyati} (tel: ${tel}). Al konfime li nan Panèl Admin.`, 'new_deposit', `${prenon} ${siyati}`);
 
   toast('Reyisi! ' + montan + ' ' + (state.dev==='usd'?'USD':'HTG') + ' — depo an atant konfimasyon');
+
   document.getElementById('dep_montan').value='';
   document.getElementById('dep_prenon').value='';
   document.getElementById('dep_siyati').value='';
@@ -3044,6 +3069,146 @@ function waNumber(tel){
   if(!digits) return '';
   return digits.length === 8 ? '509' + digits : digits;
 }
+let depositsLoadedOnce = false;
+function waAutoEnabled(){ try{ return localStorage.getItem('tp_wa_auto') === '1'; }catch(e){ return false; } }
+function isAdminDevice(){
+  try{ if(localStorage.getItem('tp_is_admin') === '1') return true; }catch(e){}
+  return !!(currentUser && isOwnerUser(currentUser));
+}
+function syncWaAutoToggle(){
+  const on = waAutoEnabled();
+  const t = document.getElementById('toggleWaAuto');
+  if(t) t.classList.toggle('on', on);
+  const st = document.getElementById('waAutoStatus');
+  if(st){
+    st.textContent = on ? '🟢 ON · ouvè' : '🔴 OFF · fèmen';
+    st.style.color = on ? '#15803D' : '#DC2626';
+  }
+}
+async function toggleWaAuto(){
+  const now = !waAutoEnabled();
+  try{ localStorage.setItem('tp_wa_auto', now ? '1' : '0'); }catch(e){}
+  syncWaAutoToggle();
+  if(now){
+    if(typeof Notification !== 'undefined' && Notification.permission === 'default'){
+      try{ await Notification.requestPermission(); }catch(e){}
+    }
+    toast('Bouton otomatik ON · ouvè ✅ (sou aparèy sa a)');
+  } else {
+    waAutoPending = [];
+    const bar = document.getElementById('waAutoBar');
+    if(bar) bar.remove();
+    toast('Bouton otomatik OFF · fèmen');
+  }
+  renderAdmin();
+}
+window.toggleWaAuto = toggleWaAuto;
+
+let waAutoPending = [];
+function waBeep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 880; g.gain.value = 0.15;
+    o.start();
+    setTimeout(()=>{ try{ o.stop(); ctx.close(); }catch(e){} }, 350);
+  }catch(e){}
+}
+function renderWaAutoBar(){
+  let bar = document.getElementById('waAutoBar');
+  if(!waAutoPending.length){ if(bar) bar.remove(); return; }
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'waAutoBar';
+    bar.style = 'position:fixed;left:12px;right:12px;top:78px;z-index:10005;background:#15803D;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.35);';
+    document.body.appendChild(bar);
+  }
+  const d = deposits.find(x=>x.id===waAutoPending[0]);
+  if(!d){ waAutoPending.shift(); renderWaAutoBar(); return; }
+  const more = waAutoPending.length - 1;
+  bar.innerHTML = `
+    <div style="font-size:15px;line-height:1.4;">💬 <b>Nouvo depo:</b> ${escPromptHtml(d.prenon + ' ' + d.siyati)} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${escPromptHtml(d.method||'')})${more ? ` <span style="opacity:.9;">(+${more} lòt)</span>` : ''}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+      <button type="button" class="btn btn-gold" style="width:auto;padding:9px 14px;font-size:14px;" onclick="waAutoSend()">💬 Voye mesaj WhatsApp</button>
+      <button type="button" class="btn btn-outline" style="width:auto;padding:9px 14px;font-size:14px;" onclick="waAutoDismiss()">Pita</button>
+    </div>`;
+}
+function waAutoAlert(d){
+  if(!waAutoPending.includes(d.id)) waAutoPending.push(d.id);
+  renderWaAutoBar();
+  waBeep();
+  try{ if(navigator.vibrate) navigator.vibrate([200,100,200]); }catch(e){}
+  try{
+    if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
+      const n = new Notification('💬 Nouvo depo', { body: `${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'}. Peze pou voye mesaj WhatsApp.`, tag: 'wa-' + d.id });
+      n.onclick = ()=>{ try{ window.focus(); }catch(e){} waAutoSendId(d.id); n.close(); };
+    }
+  }catch(e){}
+}
+function waAutoSendId(id){
+  waAutoPending = waAutoPending.filter(x=>x!==id);
+  renderWaAutoBar();
+  whatsappDepositReminder(id);
+}
+function waAutoSend(){ if(waAutoPending.length) waAutoSendId(waAutoPending[0]); }
+function waAutoDismiss(){ waAutoPending = []; renderWaAutoBar(); }
+window.waAutoSend = waAutoSend;
+window.waAutoDismiss = waAutoDismiss;
+
+let waQueue = { ids: [], index: 0 };
+function waQueueBar(){
+  let bar = document.getElementById('waQueueBar');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'waQueueBar';
+    bar.style = 'position:fixed;left:12px;right:12px;bottom:84px;z-index:10004;background:#1B3A6B;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.35);';
+    document.body.appendChild(bar);
+  }
+  return bar;
+}
+function renderWaQueueBar(){
+  const bar = waQueueBar();
+  const total = waQueue.ids.length;
+  const d = deposits.find(x=>x.id===waQueue.ids[waQueue.index]);
+  const last = waQueue.index >= total - 1;
+  bar.innerHTML = `
+    <div style="font-size:14.5px;line-height:1.4;">💬 <b>${waQueue.index + 1}/${total}</b> · ${escPromptHtml(d ? (d.prenon + ' ' + d.siyati) : '')} — peze "Voye" nan WhatsApp, epi retounen isit la.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+      <button type="button" class="btn btn-gold" style="width:auto;padding:8px 12px;font-size:13.5px;" onclick="waQueueNext()">${last ? '✅ Fini' : 'Suivan ▶'}</button>
+      <button type="button" class="btn btn-outline" style="width:auto;padding:8px 12px;font-size:13.5px;" onclick="waQueueReopen()">↻ Ouvri chat la ankò</button>
+      <button type="button" class="btn btn-outline" style="width:auto;padding:8px 12px;font-size:13.5px;" onclick="waQueueStop()">✕ Rete</button>
+    </div>`;
+}
+function startWhatsappQueue(){
+  if(!waAutoEnabled()){ toast('Bouton otomatik la fèmen (OFF). Limen entèriptè a (ON) pou l travay.'); return; }
+  const list = deposits.filter(d=>d.status==='atant');
+  if(!list.length){ toast('Pa gen depo an atant'); return; }
+  const ids = list.filter(d=>waNumber(d.tel)).map(d=>d.id);
+  const skipped = list.length - ids.length;
+  if(!ids.length){ toast('Okenn depo pa gen nimewo telefòn'); return; }
+  waQueue = { ids, index: 0 };
+  if(skipped) toast(`${skipped} depo san nimewo telefòn yo sote`);
+  renderWaQueueBar();
+  whatsappDepositReminder(ids[0]);
+}
+function waQueueReopen(){ whatsappDepositReminder(waQueue.ids[waQueue.index]); }
+function waQueueNext(){
+  if(waQueue.index >= waQueue.ids.length - 1){ waQueueStop(); toast('Tout mesaj yo pare ✅'); return; }
+  waQueue.index += 1;
+  renderWaQueueBar();
+  whatsappDepositReminder(waQueue.ids[waQueue.index]);
+}
+function waQueueStop(){
+  const bar = document.getElementById('waQueueBar');
+  if(bar) bar.remove();
+  waQueue = { ids: [], index: 0 };
+}
+window.startWhatsappQueue = startWhatsappQueue;
+window.waQueueReopen = waQueueReopen;
+window.waQueueNext = waQueueNext;
+window.waQueueStop = waQueueStop;
+
 function whatsappDepositReminder(id){
   const d = deposits.find(x=>x.id===id);
   if(!d){ toast('Depo pa jwenn'); return; }
@@ -3120,9 +3285,12 @@ window.exportData = exportData;
 
 function renderAdmin(){
   renderAdminCertificates();
+  syncWaAutoToggle();
   const pending = deposits.filter(d=>d.status==='atant');
+  const autoOn = waAutoEnabled();
+  const bulkBtn = `<button class="btn btn-primary" style="margin-bottom:10px;" onclick="startWhatsappQueue()">💬 WhatsApp pou tout depo yo (${pending.length})</button>`;
   document.getElementById('adminDeposits').innerHTML = pending.length
-    ? pending.map(d=>`
+    ? bulkBtn + pending.map(d=>`
       <div class="kv" style="flex-direction:column;align-items:stretch;gap:6px;">
         <span class="k" style="cursor:pointer;text-decoration:underline;" onclick="viewDepositProof('${d.id}')">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.method})</span>
         <span style="display:flex;gap:8px;">
@@ -3131,7 +3299,7 @@ function renderAdmin(){
           <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;" onclick="whatsappDepositReminder('${d.id}')">💬 WhatsApp</button>
         </span>
       </div>`).join('')
-    : `<div class="empty">Pa gen depo an atant.</div>`;
+    : bulkBtn + `<div class="empty">Pa gen depo an atant.${autoOn ? ' Bouton an ap aktive lè yon depo rive.' : ' Limen bouton otomatik la (ON) pou l travay.'}</div>`;
 
   const confirmed = deposits.filter(d=>d.status==='konfime')
     .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
