@@ -3956,7 +3956,7 @@ function saveBlob(blob, filename){
 async function downloadCertificatePng(data, filename){
   try{
     toast('Ap prepare foto a...');
-    const c = await certificateCanvas(data, 1520);
+    const c = await certificateCanvas(data, 2480);
     const b = await canvasToBlob(c, 'image/png');
     if(!b){ toast('Telechajman echwe'); return; }
     saveBlob(b, filename);
@@ -3964,34 +3964,40 @@ async function downloadCertificatePng(data, filename){
 }
 window.downloadCertificatePng = downloadCertificatePng;
 
+async function certificatePdfBlob(data){
+  const c = await certificateCanvas(data, 2480);
+  const jpg = await canvasToBlob(c, 'image/jpeg', 0.95);
+  if(!jpg) return null;
+  const jpgBytes = new Uint8Array(await jpg.arrayBuffer());
+  const enc = new TextEncoder();
+  const W = 595.28, H = 841.89;
+  const content = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
+  const parts = [];
+  const offsets = [];
+  let pos = 0;
+  const push = (bytes)=>{ parts.push(bytes); pos += bytes.length; };
+  const pushStr = (t)=> push(enc.encode(t));
+  pushStr('%PDF-1.4\n');
+  offsets[1] = pos; pushStr('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  offsets[2] = pos; pushStr('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+  offsets[3] = pos; pushStr(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`);
+  offsets[4] = pos; pushStr(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${c.width} /Height ${c.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgBytes.length} >>\nstream\n`);
+  push(jpgBytes);
+  pushStr('\nendstream\nendobj\n');
+  offsets[5] = pos; pushStr(`5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
+  const xrefPos = pos;
+  let xref = 'xref\n0 6\n0000000000 65535 f \n';
+  for(let i=1;i<=5;i++) xref += String(offsets[i]).padStart(10,'0') + ' 00000 n \n';
+  pushStr(xref + `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
+  return new Blob(parts, { type:'application/pdf' });
+}
+
 async function downloadCertificatePdf(data, filename){
   try{
     toast('Ap prepare PDF la...');
-    const c = await certificateCanvas(data, 2480);
-    const jpg = await canvasToBlob(c, 'image/jpeg', 0.95);
-    if(!jpg){ toast('Telechajman echwe'); return; }
-    const jpgBytes = new Uint8Array(await jpg.arrayBuffer());
-    const enc = new TextEncoder();
-    const W = 595.28, H = 841.89;
-    const content = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
-    const parts = [];
-    const offsets = [];
-    let pos = 0;
-    const push = (bytes)=>{ parts.push(bytes); pos += bytes.length; };
-    const pushStr = (s)=> push(enc.encode(s));
-    pushStr('%PDF-1.4\n');
-    offsets[1] = pos; pushStr('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-    offsets[2] = pos; pushStr('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
-    offsets[3] = pos; pushStr(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`);
-    offsets[4] = pos; pushStr(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${c.width} /Height ${c.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgBytes.length} >>\nstream\n`);
-    push(jpgBytes);
-    pushStr('\nendstream\nendobj\n');
-    offsets[5] = pos; pushStr(`5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
-    const xrefPos = pos;
-    let xref = 'xref\n0 6\n0000000000 65535 f \n';
-    for(let i=1;i<=5;i++) xref += String(offsets[i]).padStart(10,'0') + ' 00000 n \n';
-    pushStr(xref + `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
-    saveBlob(new Blob(parts, { type:'application/pdf' }), filename);
+    const blob = await certificatePdfBlob(data);
+    if(!blob){ toast('Telechajman echwe'); return; }
+    saveBlob(blob, filename);
   }catch(e){ console.error(e); toast('Telechajman echwe'); }
 }
 window.downloadCertificatePdf = downloadCertificatePdf;
@@ -4015,6 +4021,33 @@ async function shareCertificate(data, filename){
   }
 }
 window.shareCertificate = shareCertificate;
+
+async function shareCertificateBoth(data, baseName){
+  try{
+    toast('Ap prepare foto ak PDF...');
+    const c = await certificateCanvas(data, 1520);
+    const pngBlob = await canvasToBlob(c, 'image/png');
+    const pdfBlob = await certificatePdfBlob(data);
+    if(!pngBlob || !pdfBlob){ toast('Pataj echwe'); return; }
+    const png = new File([pngBlob], baseName + '.png', { type:'image/png' });
+    const pdf = new File([pdfBlob], baseName + '.pdf', { type:'application/pdf' });
+    if(navigator.canShare && navigator.canShare({ files:[png, pdf] })){
+      await navigator.share({ files:[png, pdf], title:'Sètifika Trace Publicité' });
+    } else if(navigator.canShare && navigator.canShare({ files:[png] })){
+      await navigator.share({ files:[png], title:'Sètifika Trace Publicité' });
+      toast('Sèlman foto a pataje. Telechaje PDF la apa.');
+    } else {
+      saveBlob(pngBlob, baseName + '.png');
+      saveBlob(pdfBlob, baseName + '.pdf');
+      toast('Pataj pa sipòte sou aparèy sa a. Foto a ak PDF la telechaje.');
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return;
+    console.error(e);
+    toast('Pataj echwe');
+  }
+}
+window.shareCertificateBoth = shareCertificateBoth;
 
 function isStepDone(courseId, index, userId){
   return stepCompletions.some(s=>s.userId===userId && s.courseId===courseId && Number(s.stepIndex)===index);
@@ -4218,11 +4251,14 @@ function openCertificateViewer(id, adminMode){
     };
     mk('🖨️ PDF pou enprime (A4)', 'btn-primary', ()=> downloadCertificatePdf(data, `sètifika-${number}.pdf`));
     mk('🖼️ Foto (PNG)', 'btn-outline', ()=> downloadCertificatePng(data, `sètifika-${number}.png`));
-    mk('📤 Pataje', 'btn-outline', ()=> shareCertificate(data, `sètifika-${number}.png`));
+    mk('📤 Voye foto + PDF', 'btn-primary', ()=> shareCertificateBoth(data, `sètifika-${number}`));
+    if(adminMode) mk('💬 WhatsApp elèv la', 'btn-primary', ()=> whatsappCertificate(id));
     const tip = document.createElement('div');
     tip.className = 'hint';
     tip.style.cssText = 'width:100%;margin-top:4px;';
-    tip.textContent = 'Pou enprime: louvri PDF la epi enprime l sou papye A4 (papye epè ase pou l bèl).';
+    tip.textContent = adminMode
+      ? 'Pou voye sou WhatsApp: telechaje PDF la oswa foto a anvan, peze "💬 WhatsApp elèv la" pou louvri chat la ak mesaj la, epi atache fichye a. Pou enprime: louvri PDF la sou papye A4.'
+      : 'Pou enprime: louvri PDF la epi enprime l sou papye A4 (papye epè ase pou l bèl).';
     actions.appendChild(tip);
     if(adminMode){
       const shown = c.status === 'pibliye';
@@ -4382,6 +4418,18 @@ async function createCertificateManually(userId, name, number){
 }
 window.createCertificateManually = createCertificateManually;
 
+function whatsappCertificate(certId){
+  const c = certificates.find(x=>x.id===certId);
+  if(!c){ toast('Sètifika pa jwenn'); return; }
+  const u = allUsers.find(x=>x.id===c.userId);
+  const num = waNumber(u ? u.tel : '');
+  if(!num){ toast('Elèv sa a pa gen nimewo telefòn'); return; }
+  const nom = (c.studentName || (u && u.non) || '').trim();
+  const msg = `Bonjou ${nom}! 🎓 Felisitasyon, ou fini Formation Marketing nan Trace Publicité. Men sètifika w la (atache ak mesaj sa a). Mèsi! 🙏`;
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+window.whatsappCertificate = whatsappCertificate;
+
 async function setCertificateVisibility(id, visible){
   const c = certificates.find(x=>x.id===id);
   if(!c) return;
@@ -4420,7 +4468,10 @@ function renderAdminCertificates(){
       approved.slice(0, 15).map(c=>`
       <div class="kv" style="align-items:center;gap:8px;">
         <span class="k">${certEsc(c.studentName || '—')}<span class="hint" style="display:block;">${certEsc(c.number || '')} · ${c.status === 'pibliye' ? '👁️ elèv la wè l' : '🙈 ou voye l manyèlman'}</span></span>
-        <button class="btn btn-outline" style="width:auto;padding:5px 9px;font-size:11px;" onclick="openCertificateViewer('${c.id}', true)">Wè</button>
+        <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+          <button class="btn btn-outline" style="width:auto;padding:6px 10px;font-size:12px;" onclick="openCertificateViewer('${c.id}', true)">Wè</button>
+          <button class="btn btn-primary" style="width:auto;padding:6px 10px;font-size:12px;" onclick="whatsappCertificate('${c.id}')">💬 WhatsApp</button>
+        </span>
       </div>`).join('')
     : '';
   box.innerHTML = pendingHtml + approvedHtml;
