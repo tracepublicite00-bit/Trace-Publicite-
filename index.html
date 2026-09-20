@@ -227,8 +227,12 @@ window.addEventListener('unhandledrejection', function(e) {
       <label>Non konplè *</label><input id="reg_non" placeholder="Ex: Jean Baptiste">
       <label>Imèl *</label><input id="reg_email" type="email" placeholder="ou@egzanp.com">
       <label>Numewo Telefòn *</label><input id="reg_tel" placeholder="(509) 3xxx xxxx">
-      <label>Peyi *</label><input id="reg_peyi" placeholder="Ayiti">
-      <label>Vil *</label><input id="reg_vil" placeholder="Pòtoprens">
+      <label>Peyi *</label>
+      <select id="reg_peyi_sel" onchange="onPeyiChange()"><option value="Ayiti" selected>Ayiti</option><option value="Etazini">Etazini</option><option value="Kanada">Kanada</option><option value="Lafrans">Lafrans</option><option value="Repiblik Dominikèn">Repiblik Dominikèn</option><option value="Brezil">Brezil</option><option value="Chili">Chili</option><option value="Meksik">Meksik</option><option value="Bahamas">Bahamas</option><option value="__lot">Lòt peyi...</option></select>
+      <input id="reg_peyi" placeholder="Non peyi a" style="display:none;margin-top:8px;">
+      <label>Vil *</label>
+      <select id="reg_vil_sel" onchange="onVilChange()"><option value="">— Chwazi vil —</option><option value="Pòtoprens">Pòtoprens</option><option value="Delma">Delma</option><option value="Petyonvil">Petyonvil</option><option value="Tabarre">Tabarre</option><option value="Kafou">Kafou</option><option value="Kròdèbouke">Kròdèbouke</option><option value="Kenscoff">Kenscoff</option><option value="Leyogàn">Leyogàn</option><option value="Miragwàn">Miragwàn</option><option value="Ti Goav">Ti Goav</option><option value="Jakmèl">Jakmèl</option><option value="Okay">Okay</option><option value="Jérémi">Jérémi</option><option value="Sen Mak">Sen Mak</option><option value="Gonayiv">Gonayiv</option><option value="Okap">Okap</option><option value="Fò Libète">Fò Libète</option><option value="Wanament">Wanament</option><option value="Pòdepè">Pòdepè</option><option value="Ench">Ench</option><option value="__lot">Lòt vil...</option></select>
+      <input id="reg_vil" placeholder="Non vil la" style="display:none;margin-top:8px;">
       <button id="regSubmitBtn" class="btn btn-primary" style="margin-top:18px;" onclick="submitRegister()">Kreye kont mwen</button>
     </div>
   </section>
@@ -2497,14 +2501,44 @@ async function submitDeposit(){
   if(btn){ btn.disabled = false; btn.textContent = 'Konfime Depo'; }
 }
 
+function onVilChange(){
+  const v = document.getElementById('reg_vil_sel').value;
+  document.getElementById('reg_vil').style.display = v === '__lot' ? 'block' : 'none';
+}
+function onPeyiChange(){
+  const sel = document.getElementById('reg_peyi_sel').value;
+  document.getElementById('reg_peyi').style.display = sel === '__lot' ? 'block' : 'none';
+  const vilSel = document.getElementById('reg_vil_sel');
+  const vilTxt = document.getElementById('reg_vil');
+  if(sel === 'Ayiti'){
+    vilSel.style.display = 'block';
+    onVilChange();
+  } else {
+    vilSel.style.display = 'none';
+    vilTxt.style.display = 'block';
+  }
+}
+function getRegPeyi(){
+  const sel = document.getElementById('reg_peyi_sel').value;
+  return (sel === '__lot' ? document.getElementById('reg_peyi').value : sel).trim();
+}
+function getRegVil(){
+  const peyiSel = document.getElementById('reg_peyi_sel').value;
+  const vilSel = document.getElementById('reg_vil_sel').value;
+  if(peyiSel === 'Ayiti' && vilSel && vilSel !== '__lot') return vilSel;
+  return document.getElementById('reg_vil').value.trim();
+}
+window.onPeyiChange = onPeyiChange;
+window.onVilChange = onVilChange;
+
 async function submitRegister(){
   const btn = document.getElementById('regSubmitBtn');
   if(btn.disabled) return;
   const non = document.getElementById('reg_non').value;
   const email = document.getElementById('reg_email').value;
   const tel = formatTel(document.getElementById('reg_tel').value);
-  const peyi = document.getElementById('reg_peyi').value;
-  const vil = document.getElementById('reg_vil').value;
+  const peyi = getRegPeyi();
+  const vil = getRegVil();
   if(!non||!email||!tel||!peyi||!vil){ toast('Tanpri ranpli tout chan yo'); return; }
   if(tel.replace(/\D/g,'').length < 8){ toast('Nimewo telefòn nan twò kout. Mete 8 chif (egzanp 3712 3456)'); return; }
   btn.disabled = true;
@@ -3006,6 +3040,19 @@ function downloadCsv(filename, headers, rows){
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url), 2000);
 }
+function stdPeyi(v){
+  const n = normSearch(v).replace(/[^a-z]/g,'');
+  if(n === 'ayiti' || n === 'haiti') return 'Ayiti';
+  return String(v||'').trim();
+}
+function stdVil(v){
+  const n = normSearch(v).replace(/[^a-z]/g,'');
+  if(n.startsWith('poto') || n.startsWith('portaupr')) return 'Pòtoprens';
+  if(n.startsWith('portdep') || n.startsWith('podep')) return 'Pòdepè';
+  if(n.startsWith('caphaiti') || n === 'okap') return 'Okap';
+  if(n.startsWith('miragw') || n.startsWith('miragoan')) return 'Miragwàn';
+  return String(v||'').trim();
+}
 function exportDateStr(v){ return v ? new Date(v).toLocaleString('fr-FR') : ''; }
 function exportData(kind){
   const stamp = new Date().toISOString().slice(0,10);
@@ -3019,7 +3066,7 @@ function exportData(kind){
     const list = dedupeByPhone(allUsers);
     downloadCsv(`itilizate-${stamp}.csv`,
       ['Non','Imèl','Telefòn','Peyi','Vil','Fòmasyon achte','Fòmasyon fini','Bloke','Dat enskripsyon'],
-      list.map(u=>[u.non,u.email,formatTel(u.tel),u.peyi,u.vil,u.achte||0,u.fini||0,u.blocked?'Wi':'Non',exportDateStr(u.createdAt)]));
+      list.map(u=>[u.non,u.email,formatTel(u.tel),stdPeyi(u.peyi),stdVil(u.vil),u.achte||0,u.fini||0,u.blocked?'Wi':'Non',exportDateStr(u.createdAt)]));
     toast('Fichye itilizatè yo pare ✅');
   } else if(kind === 'deposits'){
     const list = deposits.slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
