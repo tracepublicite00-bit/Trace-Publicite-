@@ -3672,6 +3672,107 @@ function renderAccessAndVisits(){
   }
 }
 
+function openUserAccessPanel(userId){
+  const u = allUsers.find(x=>x.id===userId);
+  if(!u){ toast('Itilizatè pa jwenn'); return; }
+  const old = document.getElementById('userAccessOverlay');
+  if(old) old.remove();
+
+  const owned = new Set(purchases.filter(p=>p.userId===userId).map(p=>p.courseId));
+  const userDeps = deposits.filter(d=>d.userId===userId)
+    .slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  const depLabel = d => `${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.status})`;
+
+  const ownedRows = courses.filter(k=>owned.has(k.id)).map(k=>{
+    const problems = [];
+    (k.videos||[]).forEach((v,i)=>{
+      if(v.videoUrl && v.onceOnly){
+        const sv = findStepView(k.id, i, userId);
+        if(sv && sv.blocked) problems.push(`Etap ${i+1}: 🔒 bloke`);
+        else if(sv && (sv.watchCount||0) >= STEP_VIEW_LIMIT) problems.push(`Etap ${i+1}: limit ${STEP_VIEW_LIMIT} gad rive`);
+      }
+    });
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="font-weight:600;font-size:12.5px;">✅ ${escPromptHtml(k.title)}</div>
+      <div class="hint">${problems.length ? '⚠️ ' + problems.join(' · ') : 'Tout etap yo louvri pou li'}</div>
+    </div>`;
+  }).join('');
+
+  const lockedCourses = courses.filter(k=>!owned.has(k.id) && isPublicCourse(k))
+    .map(k=>({ k, deps: userDeps.filter(d=>d.courseId===k.id) }))
+    .sort((a,b)=> b.deps.length - a.deps.length);
+  const lockedRows = lockedCourses.map(({k,deps})=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:12.5px;">🔒 ${escPromptHtml(k.title)}</div>
+        ${deps.length ? `<div class="hint">Depo: ${deps.map(depLabel).join(', ')}</div>` : ''}
+      </div>
+      <button class="btn btn-primary" style="width:auto;padding:5px 9px;font-size:11px;white-space:nowrap;" onclick="quickGrantAccess('${userId}', '${k.id}')">🔓 Bay aksè</button>
+    </div>`).join('');
+
+  const orphanDeps = userDeps.filter(d=>!d.courseId);
+  const orphanBlock = orphanDeps.length
+    ? `<div style="margin:10px 0;padding:8px 10px;border-radius:9px;background:#FFF6E0;border:1px solid #F0D48A;font-size:12px;">
+         ⚠️ Depo san kou: ${orphanDeps.map(depLabel).join(', ')}. Si l konfime men li pa gen aksè, bay li aksè anba a.
+       </div>` : '';
+
+  const key = normalizePhone(u.tel);
+  const others = key ? allUsers.filter(x=>x.id!==u.id && normalizePhone(x.tel)===key) : [];
+  const othersBlock = others.length
+    ? `<div style="margin:10px 0;padding:8px 10px;border-radius:9px;background:#EAF2FF;border:1px solid #B5CDF5;font-size:12px;">
+         👥 Gen lòt kont ak menm nimewo:
+         ${others.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;">
+             <span>${escPromptHtml(o.non)} · ${purchases.filter(p=>p.userId===o.id).length} kou</span>
+             <button class="btn btn-outline" style="width:auto;padding:3px 8px;font-size:11px;" onclick="openUserAccessPanel('${o.id}')">Wè</button>
+           </div>`).join('')}
+       </div>` : '';
+
+  const summary = owned.size
+    ? `✅ Gen aksè a ${owned.size} kou`
+    : `🔒 Pa gen aksè a okenn kou — li wè "Peye avan ou klike" ak chak etap make "🔒 Bloke"`;
+
+  const box = document.createElement('div');
+  box.id = 'userAccessOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10001;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:16px;max-width:460px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:15px;">🔍 Sa ${escPromptHtml(u.non)} wè</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('userAccessOverlay').remove()">Fèmen</button>
+      </div>
+      <div class="hint">Tel: ${escPromptHtml(u.tel || '—')} · ${u.blocked ? 'Kont bloke' : 'Kont aktif'}</div>
+      <div style="margin:10px 0;font-weight:600;font-size:13px;">${summary}</div>
+      ${orphanBlock}
+      ${othersBlock}
+      ${ownedRows ? `<div style="font-weight:700;font-size:13px;margin-top:8px;">Kou li gen aksè</div>${ownedRows}` : ''}
+      ${lockedRows ? `<div style="font-weight:700;font-size:13px;margin-top:12px;">Kou li pa gen aksè</div>${lockedRows}` : ''}
+      <p class="hint" style="margin-top:12px;">Bouton "Bay aksè" la debloke kou a pou elèv la, men li pa anrejistre yon vant. Pou anrejistre yon montan, sèvi ak "🔓 Bay Aksè Kou Manyèlman".</p>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.openUserAccessPanel = openUserAccessPanel;
+
+async function quickGrantAccess(userId, courseId){
+  const k = courses.find(c=>c.id===courseId);
+  const u = allUsers.find(x=>x.id===userId);
+  if(!k || !u) return;
+  if(purchases.some(p=>p.userId===userId && p.courseId===courseId)){ toast('Li gen aksè a kou sa a deja'); return; }
+  if(!confirm(`Bay ${u.non} aksè a "${k.title}" ?`)) return;
+  await insertRow('purchases', { userId, courseId });
+  await incrementField('users', userId, 'achte', 1);
+  await insertRow('notifications', {
+    userId,
+    message: `✅ Ou resevwa aksè a yon nouvo kou! Al gade l nan seksyon Kou.`,
+    isRead: false
+  });
+  await refreshPurchases();
+  await refreshUsers();
+  toast('Aksè bay avèk siksè ✅');
+  openUserAccessPanel(userId);
+}
+window.quickGrantAccess = quickGrantAccess;
+
 function openUsersList(){
   const box = document.createElement('div');
   box.id = 'usersListOverlay';
@@ -3682,6 +3783,7 @@ function openUsersList(){
         <div style="flex:1;min-width:0;cursor:pointer;" onclick="viewUserDetails('${u.id}')">
           <div style="font-weight:700;font-size:13px;">${u.non}</div>
           <div class="hint">Enskri: ${formatDateTime(u.createdAt)}</div>
+          ${(()=>{ const n = purchases.filter(p=>p.userId===u.id).length; return `<div style="margin-top:5px;"><button class="btn ${n?'btn-outline':'btn-danger'}" style="width:auto;padding:3px 8px;font-size:10.5px;" onclick="event.stopPropagation(); openUserAccessPanel('${u.id}')">${n ? '✅ '+n+' kou' : '🔒 Pa gen kou'} · Wè aksè</button></div>`; })()}
         </div>
         <span style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">
           <button class="btn ${u.blocked?'btn-primary':'btn-danger'}" style="width:auto;padding:5px 9px;font-size:11px;white-space:nowrap;" onclick="toggleUserBlock('${u.id}', ${!!u.blocked})">${u.blocked?'Debloke':'Bloke'}</button>
