@@ -396,13 +396,13 @@ window.addEventListener('unhandledrejection', function(e) {
 
   <section id="profil" class="page">
     <div class="back-row"><button class="back-btn" onclick="go('akey')">←</button><span class="page-title">Pwofil Mwen</span></div>
+    <div id="announceBox"></div>
     <div class="card">
       <div class="section-title">🔔 Notifikasyon</div>
       <div class="kv"><span class="k">Estati notifikasyon</span><span class="v" id="notifStatusBadge">—</span></div>
       <button class="btn btn-gold" style="margin-top:8px;margin-bottom:10px;" id="notifStatusBtn" onclick="checkNotifStatus()">🔔 Verifye / Aktive notifikasyon</button>
       <div id="notifList"></div>
     </div>
-    <div id="announceBox"></div>
     <div class="card" style="border:2px solid #C9902B;">
       <div class="section-title" style="color:#8A5A12;">🎓 Sètifika mwen</div>
       <div id="myCertificateBox"></div>
@@ -4064,9 +4064,9 @@ function stepDoneHtml(courseId, index){
   }
   return `<div id="stepDone_${courseId}_${index}" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
     ${done
-      ? `<div style="font-size:13px;color:#15803D;font-weight:600;">✅ Etap sa a fini</div>`
-      : `<button type="button" class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:13px;" onclick="markStepDone('${courseId}', ${index})">✅ Mwen fini etap sa a</button>`}
-    ${upTo ? `<button type="button" class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:13px;" onclick="markStepsUpTo('${courseId}', ${index})">⏭️ Mwen fini jiska isit</button>` : ''}
+      ? `<div style="font-size:15px;color:#15803D;font-weight:600;">✅ Etap sa a fini</div>`
+      : `<button type="button" class="btn btn-outline" style="width:auto;padding:10px 16px;font-size:15px;" onclick="markStepDone('${courseId}', ${index})">✅ Mwen fini etap sa a</button>`}
+    ${upTo ? `<button type="button" class="btn btn-outline" style="width:auto;padding:10px 16px;font-size:15px;" onclick="markStepsUpTo('${courseId}', ${index})">⏭️ Mwen fini jiska isit</button>` : ''}
   </div>`;
 }
 function refreshCourseProgressUI(courseId){
@@ -4422,25 +4422,15 @@ function renderAdminCertificates(){
   box.innerHTML = pendingHtml + approvedHtml;
 }
 
-const ANN_KEY = 'tp_ann_mwen_fini_v1';
 function renderProfileAnnouncement(){
   const box = document.getElementById('announceBox');
   if(!box) return;
-  let seen = false;
-  try{ seen = localStorage.getItem(ANN_KEY) === '1'; }catch(e){}
-  if(!currentUser || isOwnerUser(currentUser) || seen){ box.innerHTML = ''; return; }
+  if(!currentUser){ box.innerHTML = ''; return; }
   box.innerHTML = `<div class="card" style="background:linear-gradient(135deg,#FFF7E0 0%,#E8F0FF 100%);border:2px solid #C9902B;">
-    <div class="section-title" style="color:#8A5A12;">📢 Nouvèl</div>
-    <div style="font-size:13.5px;line-height:1.5;">Gen yon nouvo bouton d aksyon nan Trace Publicité.<br><br>Lè w fin gade yon etap nan kou w la, peze bouton <b>"✅ Mwen fini etap sa a"</b> anba etap la. Fè sa pou chak etap.<br><br>Lè w fin make tout etap yo, Trace Publicité ap verifye epi voye sètifika Formation Marketing ou (an fransè) ba ou. 📜</div>
-    <button class="btn btn-primary" style="margin-top:12px;" onclick="dismissAnnouncement()">Konprann ✅</button>
+    <div class="section-title" style="color:#8A5A12;font-size:19px;">📢 Nòt enpòtan</div>
+    <div style="font-size:17px;line-height:1.65;">Bonjou! 🎓 Gen yon nouvo bouton daksyon nan Trace Publicité.<br><br>Lè w fin gade yon etap nan kou w la, peze bouton <b>"✅ Mwen fini etap sa a"</b> anba etap la. Fè sa pou chak etap.<br><br>Si w deja fin gade plizyè etap, peze bouton <b>"⏭️ Mwen fini jiska isit"</b> anba etap kote w rive a. Li make etap sa a ak tout etap ki anvan l kòm fini nan yon sèl klik, konsa w pa bezwen peze chak etap youn pa youn.<br><br>Lè w fin make tout etap yo, Trace Publicité ap verifye epi voye sètifika Formation Marketing ou (an fransè) ba ou. 📜<br><br>Tanpri louvri app la ak ikòn TP a sou ekran akèy telefòn ou, konsa w ap toujou jwenn kont ou. Mèsi! 🙏</div>
   </div>`;
 }
-function dismissAnnouncement(){
-  try{ localStorage.setItem(ANN_KEY, '1'); }catch(e){}
-  const box = document.getElementById('announceBox');
-  if(box) box.innerHTML = '';
-}
-window.dismissAnnouncement = dismissAnnouncement;
 
 function renderMyCertificate(){
   const box = document.getElementById('myCertificateBox');
@@ -4449,22 +4439,22 @@ function renderMyCertificate(){
   const mine = certificates.find(c=>c.userId===currentUser.id);
   if(mine && mine.status === 'pibliye'){
     box.innerHTML = `
-      <div class="hint" style="margin-bottom:8px;">Felisitasyon! Sètifika w la pare. ${certEsc(mine.number || '')}</div>
+      <div class="hint" style="margin-bottom:8px;font-size:15px;line-height:1.5;">Felisitasyon! Sètifika w la pare. ${certEsc(mine.number || '')}</div>
       <button class="btn btn-gold" onclick="openCertificateViewer('${mine.id}', false)">🎓 Wè sètifika mwen</button>`;
     return;
   }
   if(mine){
     box.innerHTML = mine.status === 'apwouve'
-      ? `<div class="hint">🎓 Sètifika w apwouve! Trace Publicité ap voye l ba ou.</div>`
-      : `<div class="hint">⏳ Ou fini tout etap yo! Trace Publicité ap verifye epi apwouve sètifika w la.</div>`;
+      ? `<div class="hint" style="font-size:15px;line-height:1.5;">🎓 Sètifika w apwouve! Trace Publicité ap voye l ba ou.</div>`
+      : `<div class="hint" style="font-size:15px;line-height:1.5;">⏳ Ou fini tout etap yo! Trace Publicité ap verifye epi apwouve sètifika w la.</div>`;
     return;
   }
   const s = userProgressSummary(currentUser.id);
   box.innerHTML = s.total
-    ? `<div class="hint" style="margin-bottom:6px;">Lè w fin gade yon etap, peze "✅ Mwen fini etap sa a" anba etap la. Fini tout etap yo nan kou ou yo pou w jwenn sètifika Trace Publicité a.</div>
-       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Pwogrè total</span><b>${s.done}/${s.total} etap</b></div>
+    ? `<div class="hint" style="margin-bottom:8px;font-size:15px;line-height:1.5;">Lè w fin gade yon etap, peze "✅ Mwen fini etap sa a" anba etap la. Fini tout etap yo nan kou ou yo pou w jwenn sètifika Trace Publicité a.</div>
+       <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px;"><span>Pwogrè total</span><b>${s.done}/${s.total} etap</b></div>
        <div style="height:8px;border-radius:6px;background:#E5E7EB;overflow:hidden;"><div style="height:100%;width:${Math.round(s.done*100/s.total)}%;background:#16A34A;"></div></div>`
-    : `<div class="hint">Achte yon kou epi fini tout etap yo pou w jwenn sètifika Trace Publicité a.</div>`;
+    : `<div class="hint" style="font-size:15px;line-height:1.5;">Achte yon kou epi fini tout etap yo pou w jwenn sètifika Trace Publicité a.</div>`;
 }
 
 async function refreshStepCompletions(){
