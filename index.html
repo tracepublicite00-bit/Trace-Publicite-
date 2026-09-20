@@ -3727,9 +3727,15 @@ function openUserAccessPanel(userId){
         else if(sv && (sv.watchCount||0) >= STEP_VIEW_LIMIT) problems.push(`Etap ${i+1}: limit ${STEP_VIEW_LIMIT} gad rive`);
       }
     });
+    const doneSet = new Set(stepCompletions.filter(r=>r.userId===userId && r.courseId===k.id).map(r=>Number(r.stepIndex)));
+    const stepsList = (k.videos||[]).map((v,i)=>`<div style="font-size:12px;padding:2px 0;${doneSet.has(i) ? 'color:#15803D;' : 'color:#6B7280;'}">${doneSet.has(i) ? '✅' : '⬜'} ${i+1}. ${escPromptHtml(v.title || 'Etap ' + (i+1))}</div>`).join('');
     return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
       <div style="font-weight:600;font-size:12.5px;">✅ ${escPromptHtml(k.title)}</div>
       <div class="hint">${problems.length ? '⚠️ ' + problems.join(' · ') : 'Tout etap yo louvri pou li'}</div>
+      <details style="margin-top:6px;">
+        <summary style="cursor:pointer;font-size:12.5px;color:#1B3A6B;font-weight:600;">📋 Etap li fini yo (${doneSet.size}/${(k.videos||[]).length})</summary>
+        <div style="margin-top:6px;max-height:260px;overflow:auto;">${stepsList}</div>
+      </details>
     </div>`;
   }).join('');
 
@@ -4289,6 +4295,16 @@ async function approveCertificate(id, name, number){
 }
 window.approveCertificate = approveCertificate;
 
+function lastDoneStepInfo(userId){
+  const rows = stepCompletions.filter(r=>r.userId===userId);
+  if(!rows.length) return null;
+  const latest = rows.slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0))[0];
+  const inCourse = rows.filter(r=>r.courseId===latest.courseId);
+  const maxIdx = Math.max(...inCourse.map(r=>Number(r.stepIndex)));
+  const k = courses.find(c=>c.id===latest.courseId);
+  const title = k && k.videos && k.videos[maxIdx] ? (k.videos[maxIdx].title || '') : '';
+  return title ? { title, number: maxIdx + 1 } : null;
+}
 function openProgressList(){
   const old = document.getElementById('certViewerOverlay');
   if(old) old.remove();
@@ -4309,6 +4325,7 @@ function openProgressList(){
         <span>${r.sm.done}/${r.sm.total} etap</span>
       </div>
       <div style="height:6px;border-radius:5px;background:#E5E7EB;overflow:hidden;margin-top:5px;"><div style="height:100%;width:${Math.round(r.pct*100)}%;background:${r.sm.ok ? '#16A34A' : '#E8A33D'};"></div></div>
+      ${(()=>{ const li = lastDoneStepInfo(r.u.id); return li ? `<div class="hint" style="margin-top:4px;">Dènye etap fini: ${li.number}. ${certEsc(li.title)}</div>` : ''; })()}
     </div>`;
   const box = document.createElement('div');
   box.id = 'certViewerOverlay';
