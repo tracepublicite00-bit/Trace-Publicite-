@@ -704,6 +704,7 @@ window.addEventListener('unhandledrejection', function(e) {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
         <button class="btn btn-outline" style="width:auto;padding:7px 12px;font-size:12.5px;" onclick="openCertificateModel()">👁️ Wè modèl la</button>
         <button class="btn btn-primary" style="width:auto;padding:7px 12px;font-size:12.5px;" onclick="openCertificateCreator()">➕ Kreye pou yon elèv</button>
+        <button class="btn btn-outline" style="width:auto;padding:7px 12px;font-size:12.5px;" onclick="openProgressList()">📊 Pwogrè elèv yo</button>
       </div>
       <div id="adminCertificates"></div>
     </div>
@@ -4182,6 +4183,47 @@ async function approveCertificate(id, name, number){
   openCertificateViewer(id, true);
 }
 window.approveCertificate = approveCertificate;
+
+function openProgressList(){
+  const old = document.getElementById('certViewerOverlay');
+  if(old) old.remove();
+  const rows = dedupeByPhone(allUsers).filter(u=>!isOwnerUser(u)).map(u=>{
+    const sm = userProgressSummary(u.id);
+    const cert = certificates.find(c=>c.userId===u.id);
+    return { u, sm, cert, pct: sm.total ? sm.done / sm.total : 0 };
+  }).filter(r=>r.sm.total > 0);
+  const started = rows.filter(r=>r.sm.done > 0)
+    .sort((a,b)=> (b.sm.ok - a.sm.ok) || (b.pct - a.pct));
+  const notStarted = rows.filter(r=>r.sm.done === 0);
+  const finishedCount = started.filter(r=>r.sm.ok).length;
+  const certIcon = c => !c ? '' : (c.status === 'pibliye' ? ' 🎓👁️' : (c.status === 'apwouve' ? ' 🎓' : ' ⏳'));
+  const rowHtml = r => `
+    <div style="padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="openUserAccessPanel('${r.u.id}')">
+      <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;">
+        <span style="font-weight:600;">${r.sm.ok ? '✅ ' : ''}${certEsc(r.u.non || '—')}${certIcon(r.cert)}</span>
+        <span>${r.sm.done}/${r.sm.total} etap</span>
+      </div>
+      <div style="height:6px;border-radius:5px;background:#E5E7EB;overflow:hidden;margin-top:5px;"><div style="height:100%;width:${Math.round(r.pct*100)}%;background:${r.sm.ok ? '#16A34A' : '#E8A33D'};"></div></div>
+    </div>`;
+  const box = document.createElement('div');
+  box.id = 'certViewerOverlay';
+  box.style = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10002;display:flex;align-items:flex-start;justify-content:center;padding:14px;overflow:auto;';
+  box.innerHTML = `
+    <div style="background:#fff;border-radius:14px;padding:14px;max-width:440px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:15px;">📊 Pwogrè elèv yo</div>
+        <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('certViewerOverlay').remove()">Fèmen</button>
+      </div>
+      <div class="hint" style="margin-bottom:8px;">${finishedCount} elèv fini tout etap yo · ${started.length - finishedCount} ap avanse · ${notStarted.length} poko make okenn etap. Peze sou yon non pou wè detay li.</div>
+      ${started.length ? started.map(rowHtml).join('') : '<div class="empty">Poko gen elèv ki make etap.</div>'}
+      ${notStarted.length ? `<div style="font-weight:700;font-size:13px;margin-top:14px;">Poko kòmanse (${notStarted.length})</div>
+        <div class="hint" style="margin-top:4px;">${notStarted.map(r=>certEsc(r.u.non || '—')).join(' · ')}</div>` : ''}
+      <div class="hint" style="margin-top:12px;">🎓 sètifika kreye · 👁️ elèv la ka wè l · ⏳ ap tann apwobasyon. Elèv ki te fini avan sistèm sa a poko make etap yo: itilize "➕ Kreye pou yon elèv" pou yo.</div>
+    </div>`;
+  box.onclick = (e)=>{ if(e.target===box) box.remove(); };
+  document.body.appendChild(box);
+}
+window.openProgressList = openProgressList;
 
 function openCertificateModel(){
   const old = document.getElementById('certViewerOverlay');
