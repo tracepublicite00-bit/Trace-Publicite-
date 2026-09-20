@@ -411,19 +411,19 @@ window.addEventListener('unhandledrejection', function(e) {
       <div class="section-title" style="color:#8A5A12;">🎓 Sètifika mwen</div>
       <div id="myCertificateBox"></div>
     </div>
-    <div class="card" style="text-align:center;">
+    <div class="card" style="background:linear-gradient(135deg,#FFE4EC 0%,#FFF1F2 100%);border:2px solid #EC4899;border-radius:16px;text-align:center;">
       <div class="avatar" id="profAvatar" style="margin:0 auto 10px;width:64px;height:64px;font-size:22px;overflow:hidden;">👤</div>
       <div style="font-weight:700;font-size:16px;" id="prof_non">Elèv Anonim</div>
       <div style="color:var(--tex-mou);font-size:12.5px;" id="prof_tel">—</div>
       <button class="btn btn-outline" style="margin-top:12px;" onclick="go('galeriInfo')">📷 Chanje foto pwofil (galeri)</button>
     </div>
-    <div class="card">
+    <div class="card" style="background:linear-gradient(135deg,#DBEAFE 0%,#EEF2FF 100%);border:2px solid #2563EB;border-radius:16px;">
       <div class="kv"><span class="k">Fòmasyon achte</span><span class="v" id="prof_achte">0</span></div>
       <div class="kv"><span class="k">Fòmasyon fini</span><span class="v" id="prof_fini">0</span></div>
       <div class="kv"><span class="k">Mwa aktif</span><span class="v" id="prof_mwa">0</span></div>
     </div>
-    <div class="card">
-      <div class="section-title">ID Kliyan</div>
+    <div class="card" style="background:linear-gradient(135deg,#DCFCE7 0%,#ECFDF5 100%);border:2px solid #16A34A;border-radius:16px;">
+      <div class="section-title" style="color:#15803D;">ID Kliyan</div>
       <div class="kv"><span class="k" id="prof_id">TP-88213</span><button class="copy-btn" onclick="copyText(document.getElementById('prof_id').textContent)">Kopye</button></div>
       <div class="kv"><span class="k">Kòd aksè videyo</span><span class="v" id="prof_code">••••</span></div>
       <div class="kv">
@@ -435,16 +435,16 @@ window.addEventListener('unhandledrejection', function(e) {
         <div class="toggle" id="togglePublic" onclick="togglePublicProfile()"><div class="dot"></div></div>
       </div>
     </div>
-    <div class="card">
-      <div class="section-title">🧾 Istorik Resi</div>
+    <div class="card" style="background:linear-gradient(135deg,#CFFAFE 0%,#ECFEFF 100%);border:2px solid #0891B2;border-radius:16px;">
+      <div class="section-title" style="color:#0E7490;">🧾 Istorik Resi</div>
       <div id="receiptList"></div>
     </div>
-    <div class="card" id="myCompanyCourseCard" style="display:none;">
-      <div class="section-title">🎬 Kou pa mwen (Antrepriz)</div>
+    <div class="card" id="myCompanyCourseCard" style="display:none;background:linear-gradient(135deg,#E0E7FF 0%,#EEF2FF 100%);border:2px solid #4F46E5;border-radius:16px;">
+      <div class="section-title" style="color:#4338CA;">🎬 Kou pa mwen (Antrepriz)</div>
       <p class="hint" id="myCompanyCourseHint"></p>
       <button class="btn btn-primary" onclick="go('kouAntrepriz')">Jere kou antrepriz mwen</button>
     </div>
-    <div class="card">
+    <div class="card" style="background:linear-gradient(135deg,#FFEDD5 0%,#FFF7ED 100%);border:2px solid #F97316;border-radius:16px;">
       <a class="btn btn-outline" style="text-decoration:none;display:block;" href="guide.pdf" target="_blank">📘 Gid Itilizatè</a>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="go('enskripsyonFormatè')">🎓 Vin Fòmatè (KYC)</button>
       <button class="btn btn-outline" style="margin-top:10px;" onclick="go('enskripsyonAntrepriz')">🏢 Enskri kòm Antrepriz</button>
@@ -4431,14 +4431,14 @@ function renderProfileAnnouncement(){
   if(!box) return;
   if(!currentUser){ box.innerHTML = ''; return; }
   box.innerHTML = `<details class="card" style="background:linear-gradient(135deg,#FFF7E0 0%,#E8F0FF 100%);border:2px solid #C9902B;">
-    <summary class="note-sum" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0;">
+    <summary class="note-sum" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
       <span style="color:#8A5A12;">
-        <span style="display:block;font-size:23px;font-weight:700;line-height:1.25;">📢 Nòt enpòtan</span>
-        <span style="display:block;font-size:19px;font-weight:600;margin-top:3px;">Peze isit la pou li</span>
+        <span style="display:block;font-size:17px;font-weight:700;">📢 Nòt enpòtan</span>
+        <span style="display:block;font-size:14.5px;font-weight:600;margin-top:2px;">Peze isit la pou li</span>
       </span>
-      <span class="note-arrow" style="color:#8A5A12;font-size:26px;">▼</span>
+      <span class="note-arrow" style="color:#8A5A12;font-size:20px;">▼</span>
     </summary>
-    <div style="font-size:17px;line-height:1.65;margin-top:12px;">Bonjou! 🎓 Gen yon nouvo bouton daksyon nan Trace Publicité.<br><br>Lè w fin gade yon etap nan kou w la, peze bouton <b>"✅ Mwen fini etap sa a"</b> anba etap la. Fè sa pou chak etap.<br><br>Si w deja fin gade plizyè etap, peze bouton <b>"⏭️ Mwen fini jiska isit"</b> anba etap kote w rive a. Li make etap sa a ak tout etap ki anvan l kòm fini nan yon sèl klik, konsa w pa bezwen peze chak etap youn pa youn.<br><br>Lè w fin make tout etap yo, Trace Publicité ap verifye epi voye sètifika Formation Marketing ou (an fransè) ba ou. 📜<br><br>Tanpri louvri app la ak ikòn TP a sou ekran akèy telefòn ou, konsa w ap toujou jwenn kont ou. Mèsi! 🙏</div>
+    <div style="font-size:16px;line-height:1.6;margin-top:12px;">Bonjou! 🎓 Gen yon nouvo bouton daksyon nan Trace Publicité.<br><br>Lè w fin gade yon etap nan kou w la, peze bouton <b>"✅ Mwen fini etap sa a"</b> anba etap la. Fè sa pou chak etap.<br><br>Si w deja fin gade plizyè etap, peze bouton <b>"⏭️ Mwen fini jiska isit"</b> anba etap kote w rive a. Li make etap sa a ak tout etap ki anvan l kòm fini nan yon sèl klik, konsa w pa bezwen peze chak etap youn pa youn.<br><br>Lè w fin make tout etap yo, Trace Publicité ap verifye epi voye sètifika Formation Marketing ou (an fransè) ba ou. 📜<br><br>Tanpri louvri app la ak ikòn TP a sou ekran akèy telefòn ou, konsa w ap toujou jwenn kont ou. Mèsi! 🙏</div>
   </details>`;
 }
 
