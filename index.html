@@ -964,6 +964,16 @@ async function insertRow(table, obj){
   if(error){ console.error('Erè ekri ('+table+'):', error); throw error; }
   return rowToCamel(data);
 }
+async function insertMany(table, rows){
+  const { data, error } = await db.from(table).insert(rows.map(objToSnake)).select();
+  if(error){ console.error('Erè ekri ('+table+'):', error); throw error; }
+  return (data || []).map(rowToCamel);
+}
+async function deleteWhere(table, col, val){
+  const { error } = await db.from(table).delete().eq(toSnakeKey(col), val);
+  if(error){ console.error('Erè efase ('+table+'):', error); return false; }
+  return true;
+}
 async function updateRow(table, id, obj){
   const { error } = await db.from(table).update(objToSnake(obj)).eq('id', id);
   if(error) console.error('Erè modifye ('+table+'):', error);
@@ -3823,9 +3833,7 @@ async function adminResetProgress(userId){
   const u = allUsers.find(x=>x.id===userId);
   if(!u) return;
   if(!confirm(`Efase tout pwogrè ak sètifika ${u.non} (pou tès)?`)) return;
-  for(const r of stepCompletions.filter(x=>x.userId===userId)){
-    await deleteRow('step_completions', r.id);
-  }
+  await deleteWhere('step_completions', 'userId', userId);
   const cert = certificates.find(c=>c.userId===userId);
   if(cert) await deleteRow('certificates', cert.id);
   await refreshStepCompletions();
@@ -4040,9 +4048,28 @@ function adminTestBar(courseId){
 }
 async function resetMyStepTests(courseId){
   if(!currentUser) return;
-  const rows = stepCompletions.filter(r=>r.userId===currentUser.id);
-  for(const r of rows) await deleteRow('step_completions', r.id);
+  await deleteWhere('step_completions', 'userId', currentUser.id);
   await refreshStepCompletions();
+  refreshCourseProgressUI(courseId);
+  toast('Tès yo efase ↩️');
+}
+window.resetMyStepTests = resetMyStepTests;
+
+function stepDoneHtml(courseId, index){
+  const uid = currentUser ? currentUser.id : null;
+  const done = !!uid && isStepDone(courseId, index, uid);
+  let upTo = false;
+  if(uid && index > 0){
+    for(let j=0;j<=index;j++){ if(!isStepDone(courseId, j, uid)){ upTo = true; break; } }
+  }
+  return `<div id="stepDone_${courseId}_${index}" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    ${done
+      ? `<div style="font-size:13px;color:#15803D;font-weight:600;">✅ Etap sa a fini</div>`
+      : `<button type="button" class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:13px;" onclick="markStepDone('${courseId}', ${index})">✅ Mwen fini etap sa a</button>`}
+    ${upTo ? `<button type="button" class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:13px;" onclick="markStepsUpTo('${courseId}', ${index})">⏭️ Mwen fini jiska isit</button>` : ''}
+  </div>`;
+}
+function refreshCourseProgressUI(courseId){
   const k = courses.find(c=>c.id===courseId);
   const total = k ? (k.videos||[]).length : 0;
   for(let i=0;i<total;i++){
@@ -4051,18 +4078,36 @@ async function resetMyStepTests(courseId){
   }
   const bar = document.getElementById(`courseProgress_${courseId}`);
   if(bar) bar.outerHTML = progressBarHtml(courseId);
-  toast('Tès yo efase ↩️');
 }
-window.resetMyStepTests = resetMyStepTests;
-
-function stepDoneHtml(courseId, index){
-  const done = currentUser && isStepDone(courseId, index, currentUser.id);
-  return `<div id="stepDone_${courseId}_${index}" style="margin-top:12px;">${
-    done
-      ? `<div style="font-size:13px;color:#15803D;font-weight:600;">✅ Etap sa a fini</div>`
-      : `<button type="button" class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:13px;" onclick="markStepDone('${courseId}', ${index})">✅ Mwen fini etap sa a</button>`
-  }</div>`;
+async function markStepsUpTo(courseId, index){
+  if(!currentUser){ toast('Ou dwe konekte anvan'); return; }
+  const missing = [];
+  for(let j=0;j<=index;j++) if(!isStepDone(courseId, j, currentUser.id)) missing.push(j);
+  if(!missing.length){ toast('Tout etap sa yo deja fini'); return; }
+  if(!confirm(`Make etap 1 rive ${index+1} kòm fini?`)) return;
+  const mk = (list)=> list.map(j=>({ userId: currentUser.id, courseId, stepIndex: j }));
+  try{
+    let rows;
+    try{
+      rows = await insertMany('step_completions', mk(missing));
+    }catch(e){
+      await refreshStepCompletions();
+      const again = missing.filter(j=>!isStepDone(courseId, j, currentUser.id));
+      rows = again.length ? await insertMany('step_completions', mk(again)) : [];
+    }
+    stepCompletions.push(...rows);
+  }catch(e){
+    toast('Fonksyon sa a poko aktive. Kontakte admin.');
+    return;
+  }
+  refreshCourseProgressUI(courseId);
+  toast(`${missing.length} etap make fini ✅`);
+  const p = courseProgress(courseId, currentUser.id);
+  if(p.total && p.done === p.total) toast('🎉 Ou fini kou sa a!');
+  await checkCertificateEligibility();
+  renderMyCertificate();
 }
+window.markStepsUpTo = markStepsUpTo;
 async function markStepDone(courseId, index){
   if(!currentUser){ toast('Ou dwe konekte anvan'); return; }
   if(isStepDone(courseId, index, currentUser.id)) return;
@@ -4073,10 +4118,7 @@ async function markStepDone(courseId, index){
     toast('Fonksyon sa a poko aktive. Kontakte admin.');
     return;
   }
-  const stepBox = document.getElementById(`stepDone_${courseId}_${index}`);
-  if(stepBox) stepBox.outerHTML = stepDoneHtml(courseId, index);
-  const bar = document.getElementById(`courseProgress_${courseId}`);
-  if(bar) bar.outerHTML = progressBarHtml(courseId);
+  refreshCourseProgressUI(courseId);
   const p = courseProgress(courseId, currentUser.id);
   if(p.total && p.done === p.total) toast('🎉 Ou fini kou sa a!');
   await checkCertificateEligibility();
