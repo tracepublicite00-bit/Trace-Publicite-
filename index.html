@@ -671,7 +671,7 @@ window.addEventListener('unhandledrejection', function(e) {
           <div class="toggle" id="toggleWaAuto" onclick="toggleWaAuto()"><div class="dot"></div></div>
         </span>
       </div>
-      <div class="hint" style="font-size:13px;line-height:1.45;margin:2px 0 10px;"><b>ON · ouvè:</b> bouton "WhatsApp pou tout depo yo" mache, epi lè yon nouvo depo rive aparèy la fè yon alèt ak son. Ou peze, WhatsApp louvri ak mesaj la pare, ou jis peze "Voye". <b>OFF · fèmen:</b> bouton an pa travay, pa gen alèt. Entèriptè a sèlman pou aparèy sa a (limen l sou tablèt la).</div>
+      <div class="hint" style="font-size:13px;line-height:1.45;margin:2px 0 10px;"><b>ON · ouvè:</b> bouton "WhatsApp pou tout depo yo" mache, epi lè yon nouvo depo rive aparèy la fè yon alèt ak son. Ou peze, WhatsApp louvri ak mesaj la pare, ou jis peze "Voye". <b>OFF · fèmen:</b> bouton an pa travay, pa gen alèt. Entèriptè a pataje ak tout aparèy ou yo (telefòn ak tablèt): lè w chanje l yon kote, li chanje pou tout.</div>
       <div id="adminDeposits"></div>
     </div>
 
@@ -1121,6 +1121,7 @@ async function refreshDeposits(){
     showNotif('Trace Publicité', 'Yon nouvo depo rive — al konfime li nan Panèl Admin.');
   }
   updateBadges();
+  renderWaAutoBar();
   if(document.getElementById('admin').classList.contains('active')) renderAdmin();
   if(document.getElementById('profil').classList.contains('active')) renderReceipts();
 }
@@ -1132,6 +1133,9 @@ async function refreshTeachers(){
 async function refreshSettings(){
   const s = await fetchOne('settings','main');
   if(s) settings = s;
+  syncWaAutoToggle();
+  if(typeof waAutoEnabled === 'function' && !waAutoEnabled()){ waAutoPending = []; const wb = document.getElementById('waAutoBar'); if(wb) wb.remove(); }
+  try{ if(document.getElementById('admin') && document.getElementById('admin').classList.contains('active')) renderAdmin(); }catch(e){}
   if(settings.paymentInfo){
     for(const m of Object.keys(DEFAULT_BENEF_INFO)){
       benefInfo[m] = { ...DEFAULT_BENEF_INFO[m], ...(settings.paymentInfo[m]||{}) };
@@ -3070,7 +3074,10 @@ function waNumber(tel){
   return digits.length === 8 ? '509' + digits : digits;
 }
 let depositsLoadedOnce = false;
-function waAutoEnabled(){ try{ return localStorage.getItem('tp_wa_auto') === '1'; }catch(e){ return false; } }
+function waAutoEnabled(){
+  if(typeof settings.waAuto === 'boolean') return settings.waAuto;
+  try{ return localStorage.getItem('tp_wa_auto') === '1'; }catch(e){ return false; }
+}
 function isAdminDevice(){
   try{ if(localStorage.getItem('tp_is_admin') === '1') return true; }catch(e){}
   return !!(currentUser && isOwnerUser(currentUser));
@@ -3087,18 +3094,25 @@ function syncWaAutoToggle(){
 }
 async function toggleWaAuto(){
   const now = !waAutoEnabled();
-  try{ localStorage.setItem('tp_wa_auto', now ? '1' : '0'); }catch(e){}
+  const res = await updateRow('settings', 'main', { waAuto: now });
+  let localOnly = false;
+  if(res.success){
+    settings.waAuto = now;
+  } else {
+    localOnly = true;
+    try{ localStorage.setItem('tp_wa_auto', now ? '1' : '0'); }catch(e){}
+  }
   syncWaAutoToggle();
   if(now){
     if(typeof Notification !== 'undefined' && Notification.permission === 'default'){
       try{ await Notification.requestPermission(); }catch(e){}
     }
-    toast('Bouton otomatik ON · ouvè ✅ (sou aparèy sa a)');
+    toast(localOnly ? 'ON · SQL la poko egzekite: entèriptè a mache sèlman sou aparèy sa a.' : 'Bouton otomatik ON · ouvè ✅ (tout aparèy ou yo)');
   } else {
     waAutoPending = [];
     const bar = document.getElementById('waAutoBar');
     if(bar) bar.remove();
-    toast('Bouton otomatik OFF · fèmen');
+    toast(localOnly ? 'OFF · SQL la poko egzekite: sèlman sou aparèy sa a.' : 'Bouton otomatik OFF · fèmen (tout aparèy ou yo)');
   }
   renderAdmin();
 }
@@ -3116,6 +3130,7 @@ function waBeep(){
   }catch(e){}
 }
 function renderWaAutoBar(){
+  waAutoPending = waAutoPending.filter(id=>{ const x = deposits.find(y=>y.id===id); return x && x.status==='atant' && !x.waSent; });
   let bar = document.getElementById('waAutoBar');
   if(!waAutoPending.length){ if(bar) bar.remove(); return; }
   if(!bar){
@@ -3125,7 +3140,6 @@ function renderWaAutoBar(){
     document.body.appendChild(bar);
   }
   const d = deposits.find(x=>x.id===waAutoPending[0]);
-  if(!d){ waAutoPending.shift(); renderWaAutoBar(); return; }
   const more = waAutoPending.length - 1;
   bar.innerHTML = `
     <div style="font-size:15px;line-height:1.4;">💬 <b>Nouvo depo:</b> ${escPromptHtml(d.prenon + ' ' + d.siyati)} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${escPromptHtml(d.method||'')})${more ? ` <span style="opacity:.9;">(+${more} lòt)</span>` : ''}</div>
@@ -3135,6 +3149,7 @@ function renderWaAutoBar(){
     </div>`;
 }
 function waAutoAlert(d){
+  if(d.waSent) return;
   if(!waAutoPending.includes(d.id)) waAutoPending.push(d.id);
   renderWaAutoBar();
   waBeep();
@@ -3182,8 +3197,8 @@ function renderWaQueueBar(){
 }
 function startWhatsappQueue(){
   if(!waAutoEnabled()){ toast('Bouton otomatik la fèmen (OFF). Limen entèriptè a (ON) pou l travay.'); return; }
-  const list = deposits.filter(d=>d.status==='atant');
-  if(!list.length){ toast('Pa gen depo an atant'); return; }
+  const list = deposits.filter(d=>d.status==='atant' && !d.waSent);
+  if(!list.length){ toast(deposits.some(d=>d.status==='atant') ? 'Tout depo yo deja resevwa mesaj WhatsApp ✅' : 'Pa gen depo an atant'); return; }
   const ids = list.filter(d=>waNumber(d.tel)).map(d=>d.id);
   const skipped = list.length - ids.length;
   if(!ids.length){ toast('Okenn depo pa gen nimewo telefòn'); return; }
@@ -3209,6 +3224,13 @@ window.waQueueReopen = waQueueReopen;
 window.waQueueNext = waQueueNext;
 window.waQueueStop = waQueueStop;
 
+async function markWaSent(id){
+  const d = deposits.find(x=>x.id===id);
+  if(d) d.waSent = true;
+  try{ await updateRow('deposits', id, { waSent: true }); }catch(e){}
+  renderWaAutoBar();
+  if(document.getElementById('admin') && document.getElementById('admin').classList.contains('active')) renderAdmin();
+}
 function whatsappDepositReminder(id){
   const d = deposits.find(x=>x.id===id);
   if(!d){ toast('Depo pa jwenn'); return; }
@@ -3217,6 +3239,7 @@ function whatsappDepositReminder(id){
   const devise = d.devise==='usd' ? 'USD' : 'G';
   const msg = `Bonjou ${d.prenon || ''}, nou resevwa depo w la (${d.montan} ${devise}) sou Trace Publicité. N ap verifye l kounye a, sa ka pran kèk minit jiska 1 è. Nou pral fè w konnen lè l konfime. Mèsi! 🙏`;
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+  markWaSent(id);
 }
 window.whatsappDepositReminder = whatsappDepositReminder;
 
@@ -3293,6 +3316,7 @@ function renderAdmin(){
     ? bulkBtn + pending.map(d=>`
       <div class="kv" style="flex-direction:column;align-items:stretch;gap:6px;">
         <span class="k" style="cursor:pointer;text-decoration:underline;" onclick="viewDepositProof('${d.id}')">${d.prenon} ${d.siyati} — ${d.montan} ${d.devise==='usd'?'USD':'G'} (${d.method})</span>
+        ${d.waSent ? '<span style="font-size:12.5px;color:#15803D;font-weight:600;">✅ Mesaj WhatsApp voye</span>' : ''}
         <span style="display:flex;gap:8px;">
           <button class="btn btn-primary" id="confBtn_${d.id}" style="width:auto;padding:6px 12px;font-size:12px;" onclick="confirmDeposit('${d.id}')">Konfime</button>
           <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;" onclick="rejectDeposit('${d.id}')">Efase</button>
