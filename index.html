@@ -1158,6 +1158,7 @@ async function refreshVisits(){
 }
 async function refreshPurchases(){
   purchases = await fetchAll('purchases');
+  refreshUsersListOverlay();
   if(document.getElementById('admin').classList.contains('active')) renderCompanyFinance();
 }
 async function refreshCompanyPayouts(){
@@ -3944,7 +3945,7 @@ function openUserAccessPanel(userId){
     </div>`).join('');
 
   const orphanDeps = userDeps.filter(d=>!d.courseId);
-  const orphanBlock = orphanDeps.length
+  const orphanBlock = (orphanDeps.length && owned.size === 0)
     ? `<div style="margin:10px 0;padding:8px 10px;border-radius:9px;background:#FFF6E0;border:1px solid #F0D48A;font-size:12px;">
          ⚠️ Depo san kou: ${orphanDeps.map(depLabel).join(', ')}. Si l konfime men li pa gen aksè, bay li aksè anba a.
        </div>` : '';
@@ -4061,6 +4062,7 @@ async function quickGrantAccess(userId, courseId){
   await refreshPurchases();
   await refreshUsers();
   toast('Aksè bay avèk siksè ✅');
+  refreshUsersListOverlay();
   openUserAccessPanel(userId);
 }
 window.quickGrantAccess = quickGrantAccess;
@@ -4737,6 +4739,18 @@ async function refreshCertificates(){
   renderAdminCertificates();
   renderMyCertificate();
 }
+
+function refreshUsersListOverlay(){
+  const old = document.getElementById('usersListOverlay');
+  if(!old) return;
+  const inner = old.firstElementChild;
+  const s1 = old.scrollTop, s2 = inner ? inner.scrollTop : 0;
+  old.remove();
+  openUsersList();
+  const nu = document.getElementById('usersListOverlay');
+  if(nu){ nu.scrollTop = s1; if(nu.firstElementChild) nu.firstElementChild.scrollTop = s2; }
+}
+window.refreshUsersListOverlay = refreshUsersListOverlay;
 
 function openUsersList(){
   const box = document.createElement('div');
