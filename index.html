@@ -3912,6 +3912,15 @@ function renderAccessAndVisits(){
   }
 }
 
+function whatsappChatWithStudent(userId){
+  const u = allUsers.find(x=>x.id===userId);
+  if(!u){ toast('Itilizatè pa jwenn'); return; }
+  const num = waNumber(u.tel);
+  if(!num){ toast('Elèv sa a pa gen nimewo telefòn'); return; }
+  window.open('https://wa.me/' + num, '_blank');
+}
+window.whatsappChatWithStudent = whatsappChatWithStudent;
+
 function openUserAccessPanel(userId){
   const u = allUsers.find(x=>x.id===userId);
   if(!u){ toast('Itilizatè pa jwenn'); return; }
@@ -3986,7 +3995,10 @@ function openUserAccessPanel(userId){
         <div style="font-weight:700;font-size:15px;">🔍 Sa ${escPromptHtml(u.non)} wè</div>
         <button class="btn btn-outline" style="width:auto;padding:4px 10px;font-size:12px;" onclick="document.getElementById('userAccessOverlay').remove()">Fèmen</button>
       </div>
-      <div class="hint">Tel: ${escPromptHtml(u.tel || '—')} · ${u.blocked ? 'Kont bloke' : 'Kont aktif'}</div>
+      <div class="hint" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>Tel: ${escPromptHtml(u.tel || '—')} · ${u.blocked ? 'Kont bloke' : 'Kont aktif'}</span>
+        ${waNumber(u.tel) ? `<button type="button" class="btn btn-primary" style="width:auto;padding:4px 10px;font-size:12px;" onclick="whatsappChatWithStudent('${u.id}')">💬 WhatsApp</button>` : ''}
+      </div>
       <div style="margin:10px 0;font-weight:600;font-size:13px;">${summary}</div>
       ${orphanBlock}
       ${othersBlock}
